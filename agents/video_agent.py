@@ -74,8 +74,11 @@ class VideoAgent:
 
         logger.info(f"Audio duration: {total_duration:.1f}s — rendering {len(sections)} sections")
 
-        # 1. Fetch one unique Pexels clip per section
-        section_clip_paths = self._fetch_section_clips(sections, visual_queries)
+        # 1. Fetch background media — V2: AI images (default) or V1: Pexels clips
+        if config.VIDEO_BACKGROUND_MODE == "pexels":
+            section_clip_paths = self._fetch_section_clips(sections, visual_queries)   # V1
+        else:
+            section_clip_paths = self._fetch_section_images(sections, visual_queries)  # V2
 
         # 2. Build background video (per-section footage stitched together)
         base_video = self._build_base_video(sections, section_clip_paths, total_duration)
@@ -166,6 +169,91 @@ class VideoAgent:
 
         return results
 
+    # ── V2: AI-generated images + Ken Burns ──────────────────────────────────
+
+    def _fetch_section_images(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+        """V2: Generate one Pollinations.ai image per section. Returns {idx: path_or_None}."""
+        cinematic_fallbacks = [
+            "cinematic aerial cityscape golden hour",
+            "abstract technology neural network visualization",
+            "futuristic data visualization dark background",
+            "modern office skyline sunset",
+            "artificial intelligence digital brain",
+            "global network connections blue",
+        ]
+        results: Dict[int, Optional[str]] = {}
+        for i, section in enumerate(sections):
+            if i < len(visual_queries) and visual_queries[i].strip():
+                query = visual_queries[i].strip()
+            else:
+                query = cinematic_fallbacks[i % len(cinematic_fallbacks)]
+            path = self._fetch_ai_image(query, i)
+            results[i] = path
+            status = f"'{path}'" if path else "gradient fallback"
+            logger.info(f"Section {i + 1}/{len(sections)} image for query='{query}': {status}")
+        return results
+
+    def _fetch_ai_image(self, prompt: str, section_idx: int) -> Optional[str]:
+        """Download a Pollinations.ai (Flux) image. Cached by prompt hash. No API key needed."""
+        import urllib.parse
+        prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"{prompt_hash}.jpg"
+
+        if cache_path.exists() and cache_path.stat().st_size > 5_000:
+            logger.info(f"AI image cache hit: {cache_path.name}")
+            return str(cache_path)
+
+        full_prompt = f"cinematic high quality {prompt}, 4K, professional photography, no text"
+        encoded = urllib.parse.quote(full_prompt)
+        seed = random.randint(1, 99999)
+        url = (
+            f"https://image.pollinations.ai/prompt/{encoded}"
+            f"?width=1920&height=1080&nologo=true&model=flux&seed={seed}"
+        )
+        try:
+            resp = requests.get(url, timeout=90)
+            resp.raise_for_status()
+            with open(cache_path, "wb") as f:
+                f.write(resp.content)
+            size_kb = cache_path.stat().st_size // 1024
+            logger.info(f"AI image downloaded: {cache_path.name} ({size_kb}KB)")
+            return str(cache_path)
+        except Exception as e:
+            logger.warning(f"Pollinations image failed for '{prompt}': {e}")
+            if cache_path.exists():
+                cache_path.unlink()
+            return None
+
+    def _image_to_ken_burns_clip(self, img_path: str, duration: float, direction: int = 0):
+        """
+        Creates a VideoClip from a static image with Ken Burns zoom effect.
+        direction=0: zoom in  (scale 1.00 → 1.12)
+        direction=1: zoom out (scale 1.12 → 1.00)
+        Alternating directions per section creates natural visual variety.
+        """
+        from moviepy import VideoClip
+        ZOOM_MAX = 1.12
+
+        img = Image.open(img_path).convert("RGB").resize((self.W, self.H), Image.LANCZOS)
+        img_array = np.array(img)
+        W, H = self.W, self.H
+
+        def make_frame(t):
+            progress = t / max(duration, 0.001)
+            if direction == 0:
+                zoom = 1.0 + (ZOOM_MAX - 1.0) * progress   # zoom in
+            else:
+                zoom = ZOOM_MAX - (ZOOM_MAX - 1.0) * progress  # zoom out
+
+            new_w = int(W * zoom)
+            new_h = int(H * zoom)
+            zoomed = np.array(Image.fromarray(img_array).resize((new_w, new_h), Image.LANCZOS))
+            x1 = (new_w - W) // 2
+            y1 = (new_h - H) // 2
+            return zoomed[y1:y1 + H, x1:x1 + W]
+
+        return VideoClip(make_frame, duration=duration)
+
     # ── Base video (per-section footage stitched) ─────────────────────────────
 
     def _build_base_video(
@@ -185,7 +273,18 @@ class VideoAgent:
             section_dur = max(2.0, (words / max(total_words, 1)) * total_duration)
             clip_path = clip_paths.get(i)
 
-            if clip_path:
+            if clip_path and clip_path.endswith(".jpg"):
+                # V2: AI-generated image → Ken Burns animated clip
+                try:
+                    clip = self._image_to_ken_burns_clip(clip_path, section_dur, direction=i % 2)
+                    section_clips.append(clip)
+                    t += section_dur
+                    continue
+                except Exception as e:
+                    logger.warning(f"Section {i} Ken Burns failed ({e}) — using gradient")
+
+            elif clip_path:
+                # V1: Pexels video clip
                 try:
                     raw = VideoFileClip(clip_path)
                     # Resize to fill 1920×1080 (crop to fit aspect ratio)

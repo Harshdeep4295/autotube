@@ -64,12 +64,12 @@ jobs:
         run: |
           mkdir -p data/music outputs/videos outputs/thumbnails outputs/audio outputs/video_cache logs
 
-      - name: Cache Pexels video clips
+      - name: Cache AI images and Pexels clips
         uses: actions/cache@v4
         with:
           path: outputs/video_cache
-          key: pexels-cache-${{ github.run_number }}
-          restore-keys: pexels-cache-
+          key: media-cache-${{ github.run_number }}
+          restore-keys: media-cache-
 
       - name: Restore YouTube credentials from Secrets
         run: |
@@ -89,6 +89,7 @@ jobs:
           SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
+          VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
           ARGS="--count $COUNT"

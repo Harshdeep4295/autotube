@@ -80,8 +80,9 @@ CHANNEL_NICHE = "AI & Tech"      # changes accent colors + research keywords
 CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
 SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
 SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
+VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
-PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script
+PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V1/pexels mode only)
 ```
 
 ---
@@ -103,6 +104,7 @@ PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script
 - Each run: 1 video, ~20 min, then commits history files back to repo
 - Manual trigger available via Actions tab with `count`, `dry_run`, `force_topic`, `model_provider` inputs
 - `SCRIPT_MODEL_PROVIDER` is a GitHub **Variable** (not Secret) — changeable via UI without code push
+- `VIDEO_BACKGROUND_MODE` is a GitHub **Variable** — `ai_images` (V2, default) or `pexels` (V1 fallback)
 - Logs uploaded as artifact for 14 days even on failure
 
 ## Secrets required in GitHub

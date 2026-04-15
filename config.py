@@ -104,9 +104,17 @@ class Config:
     VIDEO_PRIVACY: str = "public"
     VIDEO_MADE_FOR_KIDS: bool = False
 
+    # ── Video background mode ─────────────────────────────────────────────────
+    # "ai_images" → Pollinations.ai AI-generated images + Ken Burns effect (V2, default)
+    # "pexels"    → Pexels stock B-roll clips (V1, legacy — reverts by setting env var)
+    # Switch without code change: set VIDEO_BACKGROUND_MODE in .env or GitHub Variable.
+    VIDEO_BACKGROUND_MODE: str = field(
+        default_factory=lambda: os.getenv("VIDEO_BACKGROUND_MODE", "ai_images")
+    )
+
     # ── Video caption / B-roll settings ──────────────────────────────────────
-    VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips
-    PEXELS_CLIPS_PER_VIDEO: int = 6                # 1 unique clip per section
+    VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips and AI images
+    PEXELS_CLIPS_PER_VIDEO: int = 6                # 1 unique clip per section (V1/Pexels mode)
     CAPTION_FONT_SIZE: int = 52
     CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
     DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast
