@@ -112,6 +112,8 @@ class VideoAgent:
             fps=self.FPS,
             codec="libx264",
             audio_codec="aac",
+            preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
+            threads=2,            # match GitHub Actions vCPU count
             temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
             remove_temp=True,
             logger=None,
