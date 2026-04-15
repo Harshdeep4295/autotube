@@ -2,11 +2,14 @@ name: AutoTube Daily Pipeline
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC = 07:30 IST every day
-  workflow_dispatch:        # allow manual trigger from GitHub Actions tab
+    - cron: '00 23  * * *'   # 23:00 UTC = 05:00 IST
+    - cron: '30 5  * * *'   # 05:30 UTC = 11:00 IST
+    - cron: '00 11  * * *'   # 13:00 UTC = 17:00 IST
+    - cron: '30 17 * * *'   # 17:30 UTC = 23:00 IST
+  workflow_dispatch:          # manual trigger from GitHub Actions tab
     inputs:
       count:
-        description: 'Number of videos to produce (1-4)'
+        description: 'Number of videos to produce (default: 1)'
         required: false
         default: '1'
       dry_run:
@@ -26,7 +29,7 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 60   # 1 video ~20 min; 60 min is safe for up to 3 videos
+    timeout-minutes: 30   # 1 video per run — 30 min is sufficient
 
     steps:
       - name: Checkout repository
@@ -71,11 +74,9 @@ jobs:
 
       - name: Run AutoTube pipeline
         env:
-          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
-          GEMINI_API_KEY:       ${{ secrets.GEMINI_API_KEY }}
-          PEXELS_API_KEY:       ${{ secrets.PEXELS_API_KEY }}
-          # SCRIPT_MODEL_PROVIDER: read from GitHub Variables (non-sensitive)
-          # workflow_dispatch input overrides the Variable if provided
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY:        ${{ secrets.PEXELS_API_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
@@ -102,7 +103,7 @@ jobs:
           git config --local user.name  "AutoTube Bot"
           git add data/topics_history.json data/posted_videos.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore: update history $(date +'%Y-%m-%d') [skip ci]"
+            git commit -m "chore: update history $(date +'%Y-%m-%d %H:%M') [skip ci]"
             git push
           else
             echo "No history changes to commit"
