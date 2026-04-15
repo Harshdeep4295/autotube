@@ -96,22 +96,27 @@ class ScriptAgent:
     # ── Provider: Gemini ──────────────────────────────────────────────────────
 
     def _call_gemini(self, topic: Dict) -> str:
-        import google.generativeai as genai  # lazy import — only needed if using gemini
+        from google import genai                    # lazy import — google-genai package
+        from google.genai import types
         if not config.GEMINI_API_KEY:
             raise ValueError(
                 "GEMINI_API_KEY is not set. "
                 "Add it to your .env file or set SCRIPT_MODEL_PROVIDER=claude to use Claude instead."
             )
-        genai.configure(api_key=config.GEMINI_API_KEY)
-        model = genai.GenerativeModel(
-            model_name=config.GEMINI_MODEL,
-            system_instruction=SCRIPT_SYSTEM_PROMPT,
-        )
+        client = genai.Client(api_key=config.GEMINI_API_KEY)
         user_prompt = SCRIPT_USER_PROMPT.format(
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
-        response = model.generate_content(user_prompt)
+        response = client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SCRIPT_SYSTEM_PROMPT,
+                max_output_tokens=4096,
+                temperature=0.7,
+            ),
+        )
         return response.text
 
     # ── Response parser ───────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 
 # AI providers
 anthropic>=0.34.0
-google-generativeai>=0.8.0
+google-genai>=1.0.0
 
 # Research
 pytrends>=4.9.2

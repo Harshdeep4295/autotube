@@ -30,41 +30,32 @@ Return this exact JSON structure (no extra text outside the JSON):
   "title": "YouTube video title (max 60 chars, strong curiosity gap or emotion)",
   "description": "YouTube description 150-200 words with 3 calls to action and natural keywords",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8"],
+  "hook_title_text": "3-5 WORD BOLD HOOK (ALL CAPS, punchy — shown as opening title card)",
   "sections": [
     {{
       "section_name": "hook",
       "text": "...",
-      "word_count": 50
+      "word_count": 60
     }},
     {{
       "section_name": "intro",
       "text": "...",
-      "word_count": 100
+      "word_count": 80
     }},
     {{
       "section_name": "main_1",
       "text": "...",
-      "word_count": 200
+      "word_count": 150
     }},
     {{
       "section_name": "main_2",
       "text": "...",
-      "word_count": 200
+      "word_count": 150
     }},
     {{
       "section_name": "main_3",
       "text": "...",
-      "word_count": 200
-    }},
-    {{
-      "section_name": "main_4",
-      "text": "...",
-      "word_count": 200
-    }},
-    {{
-      "section_name": "main_5",
-      "text": "...",
-      "word_count": 200
+      "word_count": 130
     }},
     {{
       "section_name": "cta",
@@ -72,8 +63,20 @@ Return this exact JSON structure (no extra text outside the JSON):
       "word_count": 80
     }}
   ],
+  "visual_queries": [
+    "aerial city timelapse",
+    "ocean waves sunset",
+    "mountain landscape drone",
+    "modern glass building exterior",
+    "people collaborating technology",
+    "cinematic nature abstract"
+  ],
   "thumbnail_text": "SHORT BOLD PHRASE (max 6 words, ALL CAPS)",
   "thumbnail_subtext": "Supporting line (max 4 words)",
   "pexels_search_query": "2-3 word search term for stock footage",
-  "total_word_count": 1300
-}}"""
+  "total_word_count": 650
+}}
+
+IMPORTANT for visual_queries: provide 6 cinematic/beautiful search terms (one per section above).
+These should be visually stunning footage queries — aerial drone shots, landscapes, cityscapes, nature —
+NOT literal topic keywords. Think emotional tone, not topic illustration."""

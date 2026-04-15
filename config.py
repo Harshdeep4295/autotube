@@ -46,12 +46,12 @@ class Config:
     GEMINI_API_KEY: str = field(
         default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
     )
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
     CHANNEL_NICHE: str = "AI & Tech"   # Options: AI & Tech | Finance | Business | Health | History
-    CHANNEL_NAME: str = "TechPulse Daily"   # Your actual channel name (shown in watermark)
+    CHANNEL_NAME: str = "AutoTube"   # Your actual channel name (shown in watermark)
 
     # ── Research ──────────────────────────────────────────────────────────────
     SUBREDDITS: List[str] = field(default_factory=lambda: [
@@ -64,8 +64,8 @@ class Config:
     TOPICS_PER_RUN: int = 4        # how many scored topics to fetch (pick top N)
 
     # ── Script / content ──────────────────────────────────────────────────────
-    SCRIPT_WORD_COUNT: int = 1300  # ~8 min at 150 wpm
-    TARGET_VIDEO_SECONDS: int = 480  # 8 minutes
+    SCRIPT_WORD_COUNT: int = 650   # ~4.5 min at 150 wpm
+    TARGET_VIDEO_SECONDS: int = 270  # 4.5 minutes
 
     # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
     TTS_VOICE: str = "en-US-GuyNeural"   # US male, authoritative tone
@@ -103,6 +103,13 @@ class Config:
     VIDEO_CATEGORY_ID: str = "28"   # 28 = Science & Technology
     VIDEO_PRIVACY: str = "public"
     VIDEO_MADE_FOR_KIDS: bool = False
+
+    # ── Video caption / B-roll settings ──────────────────────────────────────
+    VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips
+    PEXELS_CLIPS_PER_VIDEO: int = 6                # 1 unique clip per section
+    CAPTION_FONT_SIZE: int = 52
+    CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
+    DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast
 
     # ── Paths ─────────────────────────────────────────────────────────────────
     DATA_DIR: str = "data"

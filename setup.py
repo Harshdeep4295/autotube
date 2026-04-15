@@ -185,10 +185,12 @@ def check_credentials() -> None:
     gemini_key = os.getenv("GEMINI_API_KEY", "")
     if gemini_key:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            resp = model.generate_content("Say: OK")
+            from google import genai
+            client = genai.Client(api_key=gemini_key)
+            resp = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents="Say: OK",
+            )
             ok(f"Gemini API works ({resp.text.strip()[:20]})")
         except Exception as e:
             warn(f"Gemini API error: {e}")
