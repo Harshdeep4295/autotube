@@ -35,12 +35,47 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
-RSS_FEEDS = [
-    "https://feeds.feedburner.com/TechCrunch",
-    "https://www.wired.com/feed/rss",
-    "https://feeds.reuters.com/reuters/technologyNews",
-    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-]
+RSS_FEEDS_BY_NICHE = {
+    "AI & Tech": [
+        "https://feeds.feedburner.com/TechCrunch",
+        "https://www.wired.com/feed/rss",
+        "https://feeds.reuters.com/reuters/technologyNews",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    ],
+    "Finance": [
+        "https://feeds.reuters.com/reuters/businessNews",
+        "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+    ],
+    "Business": [
+        "https://feeds.feedburner.com/entrepreneur/latest",
+        "https://feeds.reuters.com/reuters/businessNews",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+        "https://feeds.inc.com/home/updates",
+    ],
+    "Health": [
+        "https://rss.medicalnewstoday.com/",
+        "https://www.healthline.com/rss/health-news",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+        "https://feeds.reuters.com/reuters/healthNews",
+    ],
+    "History": [
+        "https://feeds.feedburner.com/smithsonianmag/history-archaeology",
+        "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+        "https://www.historydiscovery.com/feed/",
+        "https://feeds.reuters.com/reuters/oddlyEnoughNews",
+    ],
+    "English Learning": [
+        "https://feeds.feedburner.com/TechCrunch",          # tech English topics
+        "https://rss.nytimes.com/services/xml/rss/nyt/Education.xml",
+        "https://www.bbc.co.uk/learningenglish/english/rss",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+    ],
+}
+
+# Default fallback (AI & Tech)
+RSS_FEEDS = RSS_FEEDS_BY_NICHE.get(config.CHANNEL_NICHE, RSS_FEEDS_BY_NICHE["AI & Tech"])
 
 LOBSTERS_FEEDS = [
     "https://lobste.rs/t/ai.rss",
@@ -148,7 +183,7 @@ class ResearchAgent:
     def _fetch_reddit(self) -> List[Dict]:
         topics = []
         headers = {"User-Agent": "AutoTube/1.0 (research bot)"}
-        for sub in config.SUBREDDITS[:4]:
+        for sub in config.ACTIVE_SUBREDDITS[:4]:
             try:
                 url = f"https://www.reddit.com/r/{sub}/hot.json?limit=10"
                 r = requests.get(url, headers=headers, timeout=10)

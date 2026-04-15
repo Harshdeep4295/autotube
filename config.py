@@ -50,18 +50,53 @@ class Config:
 
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
-    CHANNEL_NICHE: str = "AI & Tech"   # Options: AI & Tech | Finance | Business | Health | History
+    # Options: AI & Tech | Finance | Business | Health | History | English Learning
+    CHANNEL_NICHE: str = "AI & Tech"
     CHANNEL_NAME: str = "AutoTube"   # Your actual channel name (shown in watermark)
 
     # ── Research ──────────────────────────────────────────────────────────────
-    SUBREDDITS: List[str] = field(default_factory=lambda: [
-        "technology", "singularity", "artificial", "MachineLearning",
-        "ChatGPT", "OpenAI", "investing", "science"
-    ])
+    # Subreddits are auto-selected based on CHANNEL_NICHE if SUBREDDITS is left empty.
+    # Override by setting SUBREDDITS explicitly.
+    SUBREDDITS: List[str] = field(default_factory=lambda: [])
     TRENDS_GEO: str = "US"
     TRENDS_CATEGORY: int = 0       # 0 = all categories; 5 = Tech; 7 = Finance
     TOPIC_HISTORY_DAYS: int = 30   # deduplication window (skip topics used recently)
     TOPICS_PER_RUN: int = 4        # how many scored topics to fetch (pick top N)
+
+    # Per-niche subreddit defaults — used when SUBREDDITS is empty
+    NICHE_SUBREDDITS: dict = field(default_factory=lambda: {
+        "AI & Tech": [
+            "technology", "singularity", "artificial", "MachineLearning",
+            "ChatGPT", "OpenAI", "programming", "science",
+        ],
+        "Finance": [
+            "personalfinance", "investing", "stocks", "financialindependence",
+            "dividends", "SecurityAnalysis", "wallstreetbets", "economy",
+        ],
+        "Business": [
+            "entrepreneur", "smallbusiness", "startups", "business",
+            "marketing", "SideProject", "passive_income", "ecommerce",
+        ],
+        "Health": [
+            "nutrition", "fitness", "longevity", "health", "medicine",
+            "weightloss", "mentalhealth", "sleep",
+        ],
+        "History": [
+            "history", "AskHistorians", "HistoryMemes", "todayilearned",
+            "worldhistory", "AncientHistory", "WW2", "AskHistory",
+        ],
+        "English Learning": [
+            "EnglishLearning", "grammar", "ENGLISH", "languagelearning",
+            "LearnEnglish", "linguistics", "teachers", "IELTS",
+        ],
+    })
+
+    @property
+    def ACTIVE_SUBREDDITS(self) -> List[str]:
+        """Returns explicit SUBREDDITS if set, otherwise uses niche defaults."""
+        if self.SUBREDDITS:
+            return self.SUBREDDITS
+        return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
 
     # ── Script / content ──────────────────────────────────────────────────────
     SCRIPT_WORD_COUNT: int = 650   # ~4.5 min at 150 wpm
@@ -118,6 +153,14 @@ class Config:
     CAPTION_FONT_SIZE: int = 52
     CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
     DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast
+
+    # ── Background music ──────────────────────────────────────────────────────
+    # IMPORTANT: YouTube deducts 55% of earnings for licensed music.
+    # Only use CC0 / royalty-free music in data/music/.
+    # Set MUSIC_ENABLED=false to disable background music entirely.
+    MUSIC_ENABLED: bool = field(
+        default_factory=lambda: os.getenv("MUSIC_ENABLED", "true").lower() != "false"
+    )
 
     # ── Paths ─────────────────────────────────────────────────────────────────
     DATA_DIR: str = "data"

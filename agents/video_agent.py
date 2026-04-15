@@ -32,12 +32,13 @@ from config import config
 logger = logging.getLogger(__name__)
 
 NICHE_COLORS = {
-    "AI & Tech":  ((10, 10, 35),  (3, 3, 18),   (70, 130, 255)),
-    "Finance":    ((8, 30, 8),    (3, 12, 3),   (40, 190, 70)),
-    "Business":   ((28, 18, 8),   (12, 8, 3),   (240, 150, 25)),
-    "Health":     ((32, 8, 8),    (12, 3, 3),   (240, 60, 60)),
-    "History":    ((22, 18, 8),   (9, 7, 3),    (190, 140, 45)),
-    "default":    ((18, 8, 28),   (7, 3, 12),   (140, 70, 240)),
+    "AI & Tech":        ((10, 10, 35),  (3, 3, 18),   (70, 130, 255)),
+    "Finance":          ((8, 30, 8),    (3, 12, 3),   (40, 190, 70)),
+    "Business":         ((28, 18, 8),   (12, 8, 3),   (240, 150, 25)),
+    "Health":           ((32, 8, 8),    (12, 3, 3),   (240, 60, 60)),
+    "History":          ((22, 18, 8),   (9, 7, 3),    (190, 140, 45)),
+    "English Learning": ((8, 28, 18),   (3, 12, 8),   (40, 210, 120)),
+    "default":          ((18, 8, 28),   (7, 3, 12),   (140, 70, 240)),
 }
 
 # Yellow accent for bold title cards (Analytics Vidhya style)
@@ -757,6 +758,11 @@ class VideoAgent:
     def _mix_background_music(self, video, duration: float):
         from moviepy import AudioFileClip, CompositeAudioClip, concatenate_audioclips
         from moviepy.audio.fx import MultiplyVolume
+
+        # Respect MUSIC_ENABLED flag — YouTube deducts 55% earnings for licensed music
+        if not config.MUSIC_ENABLED:
+            logger.info("Background music disabled (MUSIC_ENABLED=false)")
+            return video
 
         music_dir = Path(config.MUSIC_DIR)
         music_files = list(music_dir.glob("*.mp3")) + list(music_dir.glob("*.wav"))

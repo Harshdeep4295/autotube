@@ -76,11 +76,13 @@ Downloaded clips are cached in `outputs/video_cache/` by URL hash. If you change
 ## Config Fields That Matter Most
 
 ```python
-CHANNEL_NICHE = "AI & Tech"      # changes accent colors + research keywords
+CHANNEL_NICHE = "AI & Tech"      # Options: AI & Tech | Finance | Business | Health | History | English Learning
+                                  # Changing niche auto-switches: subreddits, RSS feeds, accent colors, script angle guidance
 CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
 SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
 SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
 VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
+MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: only use CC0 music, YouTube deducts 55% for licensed music
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
 PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V1/pexels mode only)
 ```

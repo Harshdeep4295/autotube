@@ -7,8 +7,44 @@ the JSON block, so _parse_response() in script_agent.py can reliably parse them.
 
 from config import config
 
+
+# Per-niche angle guidance: steers topics toward highest-RPM content angles
+_NICHE_ANGLE_GUIDE = {
+    "AI & Tech": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. AI for work/productivity/automation ($15-20 RPM) — "How to automate X", "AI saves 10 hrs/week on Y"
+  2. AI tool comparisons & head-to-heads ($12-18 RPM) — "Tool A vs Tool B", "5 AI tools for Z"
+  3. Business/revenue application ($15-35 RPM) — "Companies earning with AI", "Freelancers pricing AI"
+  4. Deep educational explainers ($10-25 RPM) — how models work, prompt engineering, fine-tuning
+  AVOID: generic AI news recaps with no actionable insight (low RPM, low retention)""",
+    "Finance": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. Personal investing strategies ($15-22 RPM) — specific stocks, ETFs, allocation methods
+  2. Passive income / wealth building ($12-18 RPM) — concrete steps, real numbers
+  3. Economic explainers with impact ($10-15 RPM) — inflation, interest rates, what it means for viewers
+  AVOID: generic news summaries without a clear takeaway""",
+    "English Learning": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. Common mistakes native speakers never make ($12-18 RPM) — specific grammar/vocabulary errors
+  2. Phrases for professional situations ($11-16 RPM) — job interviews, emails, meetings
+  3. Vocabulary for specific contexts ($10-14 RPM) — business English, idioms, slang
+  AVOID: overly academic grammar lessons — keep it conversational and practical""",
+    "Business": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. Specific business strategies with numbers ($12-18 RPM)
+  2. Case studies of real companies ($10-15 RPM)
+  3. Entrepreneurship / side income ideas ($10-14 RPM)""",
+    "default": """
+CONTENT ANGLE PRIORITY: Focus on specific, actionable insights with real numbers.
+Avoid generic overviews. Every video should answer: "What should the viewer DO differently after watching?" """,
+}
+
+_angle_guide = _NICHE_ANGLE_GUIDE.get(config.CHANNEL_NICHE, _NICHE_ANGLE_GUIDE["default"])
+
 SCRIPT_SYSTEM_PROMPT = f"""You are an elite faceless YouTube scriptwriter specializing in the {config.CHANNEL_NICHE} niche.
 Your audience is curious, intelligent, and based primarily in the US. RPM target: $12-20.
+
+{_angle_guide}
 
 SCRIPT RULES (non-negotiable):
 1. SENTENCE LENGTH: Every sentence must be 15 words or fewer. Split any longer sentence into two. This keeps voiceover punchy and viewers engaged.
@@ -77,7 +113,7 @@ Return this exact JSON structure (no extra text outside the JSON):
     "global network connections earth orbit"
   ],
   "thumbnail_text": "3-4 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47 TOOLS TESTED', 'AI KILLED THIS', '$50K MISTAKE')",
-  "thumbnail_subtext": "2-3 words only",
+  "thumbnail_subtext": "2-3 word VALUE PROPOSITION shown below main text — use ROI/outcome framing like 'SAVES 3 HRS', 'EARN MORE', 'FREE TOOL', 'IN 2026' — NOT a description of the video",
   "thumbnail_stat": "A bold number or stat from the video to use as a badge (e.g. '47', '$50K', '10X', '2026') — leave empty string if none",
   "pexels_search_query": "2-3 word search term for stock footage",
   "total_word_count": 650
