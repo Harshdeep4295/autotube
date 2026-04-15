@@ -30,6 +30,8 @@ jobs:
   run-pipeline:
     runs-on: ubuntu-latest
     timeout-minutes: 45   # ultrafast preset renders in ~5 min; 45 min is a safe ceiling
+    permissions:
+      contents: write       # needed to push posted_videos.json back to repo
 
     steps:
       - name: Checkout repository
@@ -60,7 +62,14 @@ jobs:
 
       - name: Create required directories
         run: |
-          mkdir -p data/music outputs/videos outputs/thumbnails outputs/audio logs
+          mkdir -p data/music outputs/videos outputs/thumbnails outputs/audio outputs/video_cache logs
+
+      - name: Cache Pexels video clips
+        uses: actions/cache@v4
+        with:
+          path: outputs/video_cache
+          key: pexels-cache-${{ github.run_number }}
+          restore-keys: pexels-cache-
 
       - name: Restore YouTube credentials from Secrets
         run: |

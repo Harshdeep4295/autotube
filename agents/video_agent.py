@@ -85,8 +85,8 @@ class VideoAgent:
         # 4. Bold opening title card (shown first ~3.5s)
         hook_card = self._build_hook_title_card(hook_title_text, min(3.5, total_duration * 0.08))
 
-        # 5. Caption clips (subtitle style, synced per section)
-        caption_clips = self._build_caption_clips(sections, total_duration)
+        # 5. Generate SRT captions file (uploaded to YouTube after publish — not burned in)
+        self._generate_srt(sections, total_duration, str(Path(output_path).parent))
 
         # 6. Progress bar
         progress_clips = self._build_progress_clips(sections, total_duration)
@@ -94,11 +94,10 @@ class VideoAgent:
         # 7. Watermark — TOP LEFT
         watermark = self._make_watermark(total_duration)
 
-        # 8. Composite all layers
+        # 8. Composite all layers (no burned-in captions — they live in captions.srt)
         all_clips = (
             [base_video, overlay]
             + ([hook_card] if hook_card else [])
-            + caption_clips
             + progress_clips
             + [watermark]
         )
@@ -115,6 +114,7 @@ class VideoAgent:
             audio_codec="aac",
             preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
             threads=2,            # match GitHub Actions vCPU count
+            bitrate="4000k",      # ensure 720p+ quality source for YouTube
             temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
             remove_temp=True,
             logger="bar",         # show ffmpeg progress in logs
@@ -262,7 +262,7 @@ class VideoAgent:
             "size": "large",
             "per_page": 15,
             "min_duration": 5,
-            "max_duration": 40,
+            "max_duration": 15,
         }
         try:
             r = requests.get(
@@ -481,6 +481,59 @@ class VideoAgent:
 
         return canvas
 
+    # ── SRT caption file generation ───────────────────────────────────────────
+
+    def _generate_srt(self, sections: List[Dict], total_duration: float, output_dir: str) -> Optional[str]:
+        """
+        Generate an SRT subtitle file synced to section word-count timing.
+        Writes captions.srt alongside the video — uploaded to YouTube after publish.
+        """
+        total_words = sum(len(s.get("text", "").split()) for s in sections)
+        entries = []
+        t = 0.0
+        idx = 1
+
+        for section in sections:
+            text = section.get("text", "").strip()
+            if not text:
+                continue
+            words = text.split()
+            section_words = len(words)
+            section_dur = max(2.0, (section_words / max(total_words, 1)) * total_duration)
+
+            chunk_size = config.CAPTION_WORDS_PER_LINE * 2
+            chunks = [words[i:i + chunk_size] for i in range(0, len(words), chunk_size)]
+            chunk_dur = section_dur / max(len(chunks), 1)
+
+            for chunk in chunks:
+                start_str = self._seconds_to_srt_timestamp(t)
+                end_str = self._seconds_to_srt_timestamp(t + chunk_dur)
+
+                cpw = config.CAPTION_WORDS_PER_LINE
+                line1 = " ".join(chunk[:cpw])
+                line2 = " ".join(chunk[cpw:]) if len(chunk) > cpw else ""
+                caption_text = f"{line1}\n{line2}" if line2 else line1
+
+                entries.append(f"{idx}\n{start_str} --> {end_str}\n{caption_text}")
+                idx += 1
+                t += chunk_dur
+
+        srt_path = str(Path(output_dir) / "captions.srt")
+        with open(srt_path, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(entries) + "\n")
+
+        logger.info(f"Generated SRT: {srt_path} ({len(entries)} entries)")
+        return srt_path
+
+    @staticmethod
+    def _seconds_to_srt_timestamp(seconds: float) -> str:
+        """Convert float seconds to SRT timestamp format HH:MM:SS,mmm."""
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = int(seconds % 60)
+        ms = int((seconds % 1) * 1000)
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
     # ── Progress bar ──────────────────────────────────────────────────────────
 
     def _build_progress_clips(self, sections: List[Dict], total_duration: float) -> List:
@@ -549,10 +602,10 @@ class VideoAgent:
                 fill=(*accent, 230),
             )
 
-            # Channel name text
+            # Channel name text — anchor="lm" centers vertically at circle midpoint
             tx = 12 + icon_diam + spacing
-            draw.text((tx, (img_h - (bbox[3] - bbox[1])) // 2), config.CHANNEL_NAME,
-                      font=font, fill=(255, 255, 255, 200))
+            draw.text((tx, cy), config.CHANNEL_NAME,
+                      font=font, fill=(255, 255, 255, 200), anchor="lm")
 
             # Position: top-left at (32, 32)
             return (

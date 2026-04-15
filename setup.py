@@ -138,6 +138,7 @@ Press Enter once client_secrets.json is in this folder…
             scopes=[
                 "https://www.googleapis.com/auth/youtube.upload",
                 "https://www.googleapis.com/auth/youtube",
+                "https://www.googleapis.com/auth/youtube.force-ssl",
             ],
         )
         creds = flow.run_local_server(port=0, open_browser=True)

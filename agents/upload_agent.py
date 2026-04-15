@@ -10,7 +10,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 from config import config
 
@@ -44,6 +44,12 @@ class UploadAgent:
 
         video_id = self._upload_video(video_path, script, publish_at)
         self._set_thumbnail(video_id, thumb_path)
+
+        # Upload SRT captions if generated alongside the video
+        srt_path = str(Path(video_path).parent / "captions.srt")
+        if Path(srt_path).exists():
+            self._upload_captions(video_id, srt_path)
+
         self._save_to_log(script, video_id, publish_at)
 
         result = {
@@ -106,6 +112,27 @@ class UploadAgent:
         except Exception as e:
             logger.warning(f"Thumbnail upload failed (video still uploaded): {e}")
 
+    def _upload_captions(self, video_id: str, srt_path: str) -> None:
+        """Upload SRT subtitle file to YouTube as an English caption track."""
+        from googleapiclient.http import MediaFileUpload
+        try:
+            media = MediaFileUpload(srt_path, mimetype="text/plain", resumable=False)
+            self.youtube.captions().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "videoId": video_id,
+                        "language": "en",
+                        "name": "English",
+                        "isDraft": False,
+                    }
+                },
+                media_body=media,
+            ).execute()
+            logger.info(f"Captions uploaded for video {video_id}")
+        except Exception as e:
+            logger.warning(f"Caption upload failed (video still published): {e}")
+
     # ── Scheduling ────────────────────────────────────────────────────────────
 
     def _get_publish_time(self, slot_index: int) -> str:
@@ -149,7 +176,10 @@ class UploadAgent:
             token_uri=token_data.get("token_uri", "https://oauth2.googleapis.com/token"),
             client_id=token_data.get("client_id"),
             client_secret=token_data.get("client_secret"),
-            scopes=token_data.get("scopes", ["https://www.googleapis.com/auth/youtube.upload"]),
+            scopes=token_data.get("scopes", [
+                "https://www.googleapis.com/auth/youtube.upload",
+                "https://www.googleapis.com/auth/youtube.force-ssl",
+            ]),
         )
 
         # Auto-refresh if expired
