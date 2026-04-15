@@ -1,0 +1,29 @@
+# AutoTube — Python requirements
+# Both AI providers installed; SCRIPT_MODEL_PROVIDER env var selects which is used at runtime
+
+# AI providers
+anthropic>=0.34.0
+google-generativeai>=0.8.0
+
+# Research
+pytrends>=4.9.2
+feedparser>=6.0.11
+requests>=2.31.0
+
+# TTS (voiceover)
+edge-tts>=6.1.9
+pyttsx3>=2.90
+
+# Video rendering
+moviepy>=1.0.3
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# YouTube upload
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+
+# Utilities
+python-dotenv>=1.0.0

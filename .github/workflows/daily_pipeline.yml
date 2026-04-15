@@ -1,0 +1,133 @@
+name: AutoTube Daily Pipeline
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC = 07:30 IST every day
+  workflow_dispatch:        # allow manual trigger from GitHub Actions tab
+    inputs:
+      count:
+        description: 'Number of videos to produce (1-4)'
+        required: false
+        default: '1'
+      dry_run:
+        description: 'Dry run — generate video but skip YouTube upload'
+        type: boolean
+        required: false
+        default: false
+      force_topic:
+        description: 'Force a specific topic (leave blank for auto research)'
+        required: false
+        default: ''
+      model_provider:
+        description: 'Model provider: claude or gemini (overrides Variable)'
+        required: false
+        default: ''
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60   # 1 video ~20 min; 60 min is safe for up to 3 videos
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies (ffmpeg + fonts)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            ffmpeg \
+            fonts-dejavu-core \
+            fonts-liberation \
+            --no-install-recommends
+          echo "ffmpeg: $(ffmpeg -version 2>&1 | head -1)"
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create required directories
+        run: |
+          mkdir -p data/music outputs/videos outputs/thumbnails outputs/audio logs
+
+      - name: Restore YouTube credentials from Secrets
+        run: |
+          echo '${{ secrets.YOUTUBE_TOKEN_JSON }}' > data/youtube_token.json
+          echo '${{ secrets.YOUTUBE_CLIENT_SECRETS }}' > client_secrets.json
+
+      - name: Restore history files (initialize if first run)
+        run: |
+          [ -f data/topics_history.json ] || echo '[]' > data/topics_history.json
+          [ -f data/posted_videos.json ]  || echo '[]' > data/posted_videos.json
+
+      - name: Run AutoTube pipeline
+        env:
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:       ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY:       ${{ secrets.PEXELS_API_KEY }}
+          # SCRIPT_MODEL_PROVIDER: read from GitHub Variables (non-sensitive)
+          # workflow_dispatch input overrides the Variable if provided
+          SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
+        run: |
+          COUNT="${{ github.event.inputs.count || '1' }}"
+          ARGS="--count $COUNT"
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+          if [ -n "${{ github.event.inputs.force_topic }}" ]; then
+            ARGS="$ARGS --topic \"${{ github.event.inputs.force_topic }}\""
+          fi
+          echo "Running: python orchestrator.py $ARGS"
+          eval "python orchestrator.py $ARGS"
+
+      - name: Upload logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autotube-logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 14
+
+      - name: Commit updated history files back to repo
+        if: success()
+        run: |
+          git config --local user.email "autotube-bot@github-actions"
+          git config --local user.name  "AutoTube Bot"
+          git add data/topics_history.json data/posted_videos.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update history $(date +'%Y-%m-%d') [skip ci]"
+            git push
+          else
+            echo "No history changes to commit"
+          fi
+
+      - name: Print pipeline summary
+        if: always()
+        run: |
+          echo "===== PIPELINE SUMMARY ====="
+          REPORT=$(ls logs/report_*.json 2>/dev/null | tail -1)
+          if [ -n "$REPORT" ]; then
+            python -c "
+          import json, sys
+          with open('$REPORT') as f:
+              r = json.load(f)
+          results = r.get('results', [])
+          ok = [x for x in results if x.get('success')]
+          fail = [x for x in results if not x.get('success')]
+          print(f'Provider : {r.get(\"provider\", \"?\")}')
+          print(f'Success  : {len(ok)} / {len(results)}')
+          for v in ok:
+              print(f'  ✓ {v.get(\"title\", v.get(\"topic\", \"\"))[:55]}')
+              print(f'    {v.get(\"url\", v.get(\"video_path\", \"\"))}')
+          for v in fail:
+              print(f'  ✗ {v.get(\"topic\", \"\")[:55]}')
+              print(f'    Error: {v.get(\"error\", \"\")[:80]}')
+          "
+          fi
