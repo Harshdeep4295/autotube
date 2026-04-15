@@ -106,7 +106,8 @@ class VideoAgent:
         final = final.with_audio(audio)
         final = self._mix_background_music(final, total_duration)
 
-        logger.info(f"Writing video: {output_path}")
+        duration_min = total_duration / 60
+        logger.info(f"Writing video: {output_path} (~{duration_min:.1f} min of footage, est. 5-8 min render)")
         final.write_videofile(
             output_path,
             fps=self.FPS,
@@ -116,7 +117,7 @@ class VideoAgent:
             threads=2,            # match GitHub Actions vCPU count
             temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
             remove_temp=True,
-            logger=None,
+            logger="bar",         # show ffmpeg progress in logs
         )
         logger.info(f"Video saved: {output_path}")
         return output_path
