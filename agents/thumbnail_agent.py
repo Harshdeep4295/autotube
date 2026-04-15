@@ -1,13 +1,15 @@
 """
 Thumbnail Agent
 Creates high-CTR YouTube thumbnails (1280×720) using Pillow only.
-No paid tools. Bold text on dark niche-colored backgrounds.
-Optional Pexels stock photo background if PEXELS_API_KEY is set.
+No paid tools. Bold text on AI-generated backgrounds (Pollinations.ai — free, no key).
+Falls back to gradient if image generation fails.
 """
 
+import hashlib
 import logging
 import os
 import random
+import urllib.parse
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -41,19 +43,26 @@ class ThumbnailAgent:
     def create(self, script: Dict, output_path: str) -> str:
         """
         Args:
-            script: Script dict with thumbnail_text, thumbnail_subtext, pexels_search_query
+            script: Script dict with thumbnail_text, thumbnail_subtext, thumbnail_stat
             output_path: Full path to save the thumbnail JPEG
         Returns:
             output_path on success
         """
         os.makedirs(Path(output_path).parent, exist_ok=True)
 
-        thumb_text = script.get("thumbnail_text", script.get("title", "")[:30].upper())
-        thumb_subtext = script.get("thumbnail_subtext", "")
-        pexels_query = script.get("pexels_search_query", "technology abstract")
+        # Enforce 3-4 word max on thumbnail text
+        thumb_text = script.get("thumbnail_text", script.get("title", "")[:25].upper())
+        thumb_words = thumb_text.split()
+        if len(thumb_words) > 5:
+            thumb_text = " ".join(thumb_words[:4])
+        thumb_text = thumb_text.upper()
 
-        # Step 1: Background
-        img = self._create_background(pexels_query)
+        thumb_subtext = script.get("thumbnail_subtext", "")
+        thumb_stat = script.get("thumbnail_stat", "")  # bold number badge e.g. "47", "$50K"
+        visual_query = script.get("pexels_search_query", "technology abstract")
+
+        # Step 1: Background — AI-generated via Pollinations.ai (free, unique every video)
+        img = self._create_background(visual_query, script.get("title", ""))
 
         # Step 2: Dark left vignette overlay (for text contrast)
         img = self._add_vignette(img)
@@ -68,7 +77,11 @@ class ThumbnailAgent:
         if thumb_subtext:
             img = self._add_subtext(img, thumb_subtext)
 
-        # Step 6: Channel badge (bottom-right)
+        # Step 6: Stat badge (bold number/stat, top-right — high-CTR pattern)
+        if thumb_stat:
+            img = self._add_stat_badge(img, thumb_stat)
+
+        # Step 7: Channel badge (bottom-right)
         img = self._add_channel_badge(img)
 
         img.save(str(output_path), "JPEG", quality=95, optimize=True)
@@ -77,33 +90,44 @@ class ThumbnailAgent:
 
     # ── Background ────────────────────────────────────────────────────────────
 
-    def _create_background(self, pexels_query: str) -> Image.Image:
-        if config.PEXELS_API_KEY:
-            try:
-                return self._fetch_pexels_bg(pexels_query)
-            except Exception as e:
-                logger.warning(f"Pexels failed (using gradient): {e}")
+    def _create_background(self, visual_query: str, title: str = "") -> Image.Image:
+        """Use Pollinations.ai (free, no key) for unique AI-generated thumbnails."""
+        try:
+            return self._fetch_ai_bg(visual_query, title)
+        except Exception as e:
+            logger.warning(f"AI background failed (using gradient): {e}")
         return self._gradient_background()
 
-    def _fetch_pexels_bg(self, query: str) -> Image.Image:
-        headers = {"Authorization": config.PEXELS_API_KEY}
-        r = requests.get(
-            "https://api.pexels.com/v1/search",
-            headers=headers,
-            params={"query": query, "per_page": 5, "orientation": "landscape"},
-            timeout=10,
+    def _fetch_ai_bg(self, visual_query: str, title: str = "") -> Image.Image:
+        """Download a Pollinations.ai background image sized for thumbnail (1280×720)."""
+        prompt = f"cinematic dramatic {visual_query}, dark moody lighting, high contrast, professional photography, no text, no watermark"
+        prompt_hash = hashlib.md5(f"thumb_{prompt}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"thumb_{prompt_hash}.jpg"
+
+        if cache_path.exists() and cache_path.stat().st_size > 5_000:
+            img = Image.open(cache_path).convert("RGB")
+            return img.resize((self.W, self.H), Image.LANCZOS)
+
+        encoded = urllib.parse.quote(prompt)
+        seed = random.randint(1, 99999)
+        url = (
+            f"https://image.pollinations.ai/prompt/{encoded}"
+            f"?width=1280&height=720&nologo=true&model=flux&seed={seed}"
         )
-        r.raise_for_status()
-        photos = r.json().get("photos", [])
-        if not photos:
-            raise ValueError("No Pexels photos found")
-        photo_url = random.choice(photos)["src"]["large2x"]
-        img_data = requests.get(photo_url, timeout=15).content
-        img = Image.open(BytesIO(img_data)).convert("RGB")
+        resp = requests.get(url, timeout=90)
+        resp.raise_for_status()
+
+        os.makedirs(config.VIDEO_CACHE_DIR, exist_ok=True)
+        with open(cache_path, "wb") as f:
+            f.write(resp.content)
+
+        img = Image.open(BytesIO(resp.content)).convert("RGB")
         img = img.resize((self.W, self.H), Image.LANCZOS)
-        # Darken 60% for text readability
+        # Darken 55% for text readability
         overlay = Image.new("RGB", (self.W, self.H), (0, 0, 0))
-        return Image.blend(img, overlay, 0.60)
+        result = Image.blend(img, overlay, 0.55)
+        logger.info(f"AI thumbnail background generated: {cache_path.name}")
+        return result
 
     def _gradient_background(self) -> Image.Image:
         bg_start, bg_end, _ = self.colors
@@ -150,6 +174,36 @@ class ThumbnailAgent:
         draw = ImageDraw.Draw(img)
         # Position below headline
         draw.text((43, self.H // 2 + 30), text, font=self.fonts["subtext"], fill=accent)
+        return img
+
+    def _add_stat_badge(self, img: Image.Image, stat: str) -> Image.Image:
+        """Bold number/stat badge in top-right corner — high-CTR pattern (e.g. '47', '$50K', '10X')."""
+        _, _, accent = self.colors
+        draw = ImageDraw.Draw(img)
+        stat_text = str(stat).upper().strip()[:8]  # cap length
+        font = self.fonts["stat"]
+
+        bbox = draw.textbbox((0, 0), stat_text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        pad_x, pad_y = 24, 16
+        badge_w = tw + pad_x * 2
+        badge_h = th + pad_y * 2
+
+        # Position: top-right, with margin
+        bx = self.W - badge_w - 30
+        by = 30
+
+        # Accent-colored background pill
+        badge_layer = Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0))
+        bd = ImageDraw.Draw(badge_layer)
+        bd.rounded_rectangle([bx, by, bx + badge_w, by + badge_h], radius=14,
+                              fill=(*accent, 230))
+        img = Image.alpha_composite(img.convert("RGBA"), badge_layer).convert("RGB")
+
+        # Draw stat text in black (high contrast on accent color)
+        draw = ImageDraw.Draw(img)
+        draw.text((bx + pad_x, by + pad_y), stat_text, font=font, fill=(0, 0, 0, 255))
         return img
 
     def _add_channel_badge(self, img: Image.Image) -> Image.Image:
@@ -207,5 +261,6 @@ class ThumbnailAgent:
         return {
             "headline": load(88),
             "subtext":  load(52),
+            "stat":     load(72),   # bold number badge (top-right)
             "badge":    load(26),
         }
