@@ -77,6 +77,8 @@ jobs:
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY:        ${{ secrets.PEXELS_API_KEY }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
@@ -96,17 +98,17 @@ jobs:
           path: logs/
           retention-days: 14
 
-      - name: Commit updated history files back to repo
+      - name: Commit posted_videos log back to repo
         if: success()
         run: |
           git config --local user.email "autotube-bot@github-actions"
           git config --local user.name  "AutoTube Bot"
-          git add data/topics_history.json data/posted_videos.json || true
+          git add data/posted_videos.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "chore: update history $(date +'%Y-%m-%d %H:%M') [skip ci]"
+            git commit -m "chore: update posted log $(date +'%Y-%m-%d %H:%M') [skip ci]"
             git push
           else
-            echo "No history changes to commit"
+            echo "No changes to commit"
           fi
 
       - name: Print pipeline summary

@@ -119,6 +119,16 @@ class Config:
     HISTORY_FILE: str = "data/topics_history.json"
     POSTED_FILE: str = "data/posted_videos.json"
 
+    # ── Supabase (topic history database) ────────────────────────────────────
+    # Create free project at supabase.com → Settings → API → copy URL + anon key
+    # If not set, falls back to local data/topics_history.json
+    SUPABASE_URL: str = field(
+        default_factory=lambda: os.getenv("SUPABASE_URL", "")
+    )
+    SUPABASE_KEY: str = field(
+        default_factory=lambda: os.getenv("SUPABASE_ANON_KEY", "")
+    )
+
     # ── Failure handling ──────────────────────────────────────────────────────
     SKIP_ON_FAIL: bool = True   # skip failed videos and continue pipeline
 

@@ -1,1 +1,58 @@
-[]
+[
+  {
+    "topic": "Allbirds announces stunning pivot from shoes to AI, stock explodes more than 300%",
+    "normalized_topic": "allbirds announces stunning pivot from s",
+    "timestamp": "2026-04-15T16:26:04.766900",
+    "used_at": "2026-04-15T16:26:04.766900",
+    "source": "reddit_r/technology"
+  },
+  {
+    "topic": "Johnny Somali: South Korea jails US YouTuber for public nuisance",
+    "normalized_topic": "johnny somali south korea jails us youtu",
+    "timestamp": "2026-04-15T16:26:04.766900",
+    "used_at": "2026-04-15T16:26:04.766900",
+    "source": "reddit_r/technology"
+  },
+  {
+    "topic": "From Molotov cocktails to data center shutdowns, the AI backlash is turning revolutionary",
+    "normalized_topic": "from molotov cocktails to data center sh",
+    "timestamp": "2026-04-15T16:26:04.766900",
+    "used_at": "2026-04-15T16:26:04.766900",
+    "source": "reddit_r/technology"
+  },
+  {
+    "topic": "23 Major News Sites Have Blocked the Wayback Machine \u2013 Digital History In Danger",
+    "normalized_topic": "23 major news sites have blocked the way",
+    "timestamp": "2026-04-15T16:26:04.766900",
+    "used_at": "2026-04-15T16:26:04.766900",
+    "source": "reddit_r/technology"
+  },
+  {
+    "topic": "For The First Time In War, Drones &amp; Ground Robotic Systems Seized Enemy positions Without A Sing",
+    "normalized_topic": "for the first time in war drones amp gro",
+    "timestamp": "2026-04-15T16:26:34.713644",
+    "used_at": "2026-04-15T16:26:34.713644",
+    "source": "reddit_r/singularity"
+  },
+  {
+    "topic": "The era of human coding is over",
+    "normalized_topic": "the era of human coding is over",
+    "timestamp": "2026-04-15T16:26:34.713644",
+    "used_at": "2026-04-15T16:26:34.713644",
+    "source": "reddit_r/singularity"
+  },
+  {
+    "topic": "Iran reportedly bought an in-orbit Chinese satellite to target US military sites in the Middle East ",
+    "normalized_topic": "iran reportedly bought an inorbit chines",
+    "timestamp": "2026-04-15T16:26:34.713644",
+    "used_at": "2026-04-15T16:26:34.713644",
+    "source": "reddit_r/technology"
+  },
+  {
+    "topic": "You\u2019re a Real Software Developer Only If\u2026",
+    "normalized_topic": "youre a real software developer only if",
+    "timestamp": "2026-04-15T16:26:34.713644",
+    "used_at": "2026-04-15T16:26:34.713644",
+    "source": "devto"
+  }
+]
