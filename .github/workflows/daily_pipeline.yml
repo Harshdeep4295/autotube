@@ -112,7 +112,7 @@ jobs:
         run: |
           git config --local user.email "autotube-bot@github-actions"
           git config --local user.name  "AutoTube Bot"
-          git add data/posted_videos.json || true
+          git add data/posted_videos.json data/used_clips.json || true
           if ! git diff --staged --quiet; then
             git commit -m "chore: update posted log $(date +'%Y-%m-%d %H:%M') [skip ci]"
             git push

@@ -15,6 +15,7 @@ Fallback: if Pexels fails → animated gradient background + captions still work
 """
 
 import hashlib
+import json
 import logging
 import math
 import os
@@ -46,6 +47,8 @@ TITLE_CARD_ACCENT = (255, 210, 40)
 class VideoAgent:
     """Renders 1920×1080 MP4 with per-section Pexels footage + caption overlays."""
 
+    USED_CLIPS_FILE = "data/used_clips.json"
+
     def __init__(self):
         self.W = config.VIDEO_WIDTH
         self.H = config.VIDEO_HEIGHT
@@ -53,6 +56,8 @@ class VideoAgent:
         self.colors = NICHE_COLORS.get(config.CHANNEL_NICHE, NICHE_COLORS["default"])
         self.fonts = self._load_fonts()
         os.makedirs(config.VIDEO_CACHE_DIR, exist_ok=True)
+        self._used_hashes: set = self._load_used_clips()
+        self._new_hashes: set = set()   # hashes used in this run, saved after render
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -120,6 +125,7 @@ class VideoAgent:
             logger="bar",         # show ffmpeg progress in logs
         )
         logger.info(f"Video saved: {output_path}")
+        self._save_used_clips()
         return output_path
 
     # ── Per-section Pexels clip fetching ─────────────────────────────────────
@@ -254,13 +260,15 @@ class VideoAgent:
     # ── Pexels video download ─────────────────────────────────────────────────
 
     def _fetch_pexels_clips(self, query: str, n: int = 1) -> List[str]:
-        """Download up to n HD clips from Pexels, cache them locally."""
+        """Download up to n HD clips from Pexels, cache them locally.
+        Uses a random page each call so results vary across runs."""
         headers = {"Authorization": config.PEXELS_API_KEY}
         params = {
             "query": query,
             "orientation": "landscape",
             "size": "large",
             "per_page": 15,
+            "page": random.randint(1, 8),   # random page → different pool each run
             "min_duration": 5,
             "max_duration": 15,
         }
@@ -308,8 +316,14 @@ class VideoAgent:
             return None
 
         url_hash = hashlib.md5(url.encode()).hexdigest()[:12]
+
+        # Skip clips already used in a previous video
+        if url_hash in self._used_hashes:
+            return None
+
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"{url_hash}.mp4"
         if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            self._new_hashes.add(url_hash)
             return str(cache_path)
 
         try:
@@ -318,13 +332,33 @@ class VideoAgent:
                 with open(cache_path, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=1024 * 512):
                         f.write(chunk)
-            logger.info(f"Cached clip: {cache_path.name} ({cache_path.stat().st_size // 1024}KB)")
+            self._new_hashes.add(url_hash)
+            logger.info(f"Downloaded clip: {cache_path.name} ({cache_path.stat().st_size // 1024}KB)")
             return str(cache_path)
         except Exception as e:
             logger.warning(f"Clip download failed: {e}")
             if cache_path.exists():
                 cache_path.unlink()
             return None
+
+    # ── Used-clips tracking (prevent cross-video repetition) ─────────────────
+
+    def _load_used_clips(self) -> set:
+        """Load set of previously used clip hashes from disk."""
+        try:
+            with open(self.USED_CLIPS_FILE) as f:
+                return set(json.load(f))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return set()
+
+    def _save_used_clips(self) -> None:
+        """Persist all used clip hashes (old + new) so future runs skip them."""
+        os.makedirs("data", exist_ok=True)
+        all_hashes = list(self._used_hashes | self._new_hashes)
+        with open(self.USED_CLIPS_FILE, "w") as f:
+            json.dump(all_hashes, f)
+        self._used_hashes = set(all_hashes)
+        logger.info(f"Used-clips registry: {len(all_hashes)} total hashes saved")
 
     # ── Hook title card (bold opener) ─────────────────────────────────────────
 
