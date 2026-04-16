@@ -147,6 +147,20 @@ class Config:
         default_factory=lambda: os.getenv("VIDEO_BACKGROUND_MODE", "ai_images")
     )
 
+    # ── Video animation mode ──────────────────────────────────────────────────
+    # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (current, free)
+    # "leiapix"    → Pollinations AI images + LeiaPix 3D-depth animation (free API)
+    # "pika"       → Pika API native video generation from prompts (free tier: ~25 videos/month)
+    # Default: "ken_burns" (current approach). Switch without code change via env var.
+    VIDEO_ANIMATION_MODE: str = field(
+        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "ken_burns")
+    )
+
+    # ── Pika API (for video generation mode) ───────────────────────────────────
+    PIKA_API_KEY: str = field(
+        default_factory=lambda: os.getenv("PIKA_API_KEY", "")
+    )
+
     # ── Video caption / B-roll settings ──────────────────────────────────────
     VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips and AI images
     PEXELS_CLIPS_PER_VIDEO: int = 6                # 1 unique clip per section (V1/Pexels mode)

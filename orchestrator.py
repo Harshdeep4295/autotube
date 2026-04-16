@@ -16,7 +16,7 @@ import os
 import sys
 import traceback
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -63,6 +63,60 @@ class Orchestrator:
         self.video      = VideoAgent()
         self.thumbnail  = ThumbnailAgent()
         self.uploader   = None if dry_run else UploadAgent()
+
+    def run_prefetch(self, count: int = 2) -> None:
+        """Job 1: Research trending topics, generate scripts, pre-download images → Supabase queue."""
+        # Check queue level — only prefetch if pending count < 3
+        pending_count = self._count_pending_videos()
+        if pending_count >= 3:
+            self.logger.info(f"Queue full: {pending_count} pending scripts available — skipping prefetch (threshold: 3)")
+            return
+        self.logger.info(f"Queue status: {pending_count} pending scripts — prefetching {count} more")
+
+        topics = self.research.get_topics(count)
+        if not topics:
+            self.logger.info("No new topics found")
+            return
+
+        queued_count = 0
+        for topic in topics[:count]:
+            try:
+                script = self.scripter.generate(topic)
+                image_cache = self.video._fetch_section_images(
+                    script.get("sections", []),
+                    script.get("visual_queries", [])
+                )
+                # Convert absolute paths to relative for portability across jobs
+                relative_cache = {
+                    str(k): str(Path(v).relative_to(Path.cwd())) if v else None
+                    for k, v in image_cache.items()
+                }
+                self._save_pending_video(topic["topic"], script, relative_cache)
+                queued_count += 1
+                self.logger.info(f"Queued: {script.get('title', topic['topic'])[:60]}")
+            except Exception as e:
+                self.logger.error(f"Prefetch failed for '{topic['topic']}': {e}")
+
+        self.logger.info(f"Prefetch complete: {queued_count} scripts queued")
+
+    def run_render(self, count: int = 1) -> List[Dict]:
+        """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
+        results = []
+        for slot_index in range(count):
+            row = self._fetch_pending_video()
+            if not row:
+                self.logger.info("Queue empty — no pending videos to render")
+                break
+            result = self._process_queued(row, slot_index)
+            results.append(result)
+            if result.get("success"):
+                self.logger.info(f"  ✓ Rendered & uploaded: {result.get('url', result.get('video_path', ''))}")
+            else:
+                self.logger.error(f"  ✗ Render failed: {result.get('error', 'unknown')[:80]}")
+
+        self._print_summary(results)
+        self._save_report(results)
+        return results
 
     def run(self, count: int = 1, topic_override: Optional[str] = None) -> List[Dict]:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
@@ -161,6 +215,167 @@ class Orchestrator:
 
         return result
 
+    def _process_queued(self, row: Dict, slot_index: int = 0) -> Dict:
+        """Process a script from the Supabase queue (skips research + script generation)."""
+        job_id = f"{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}"
+        out_dir = Path(config.OUTPUT_DIR) / job_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        result = {
+            "job_id":    job_id,
+            "topic":     row.get("topic", ""),
+            "success":   False,
+            "started":   datetime.now().isoformat(),
+            "queued_id": row.get("id"),
+        }
+
+        try:
+            # Update status to rendering
+            self._update_pending_status(row["id"], "rendering")
+
+            script = row["script_json"]
+            result["title"] = script.get("title", "")
+
+            # Resolve pre-cached image paths back to absolute
+            image_cache = {}
+            for k, v in (row.get("image_cache") or {}).items():
+                if v:
+                    abs_path = str(Path.cwd() / v)
+                    image_cache[int(k)] = abs_path
+                else:
+                    image_cache[int(k)] = None
+
+            # Step 3: Voiceover
+            self.logger.info("Step 3/6: Synthesizing voiceover…")
+            audio_path = str(out_dir / "audio.mp3")
+            self.voice.synthesize(script, audio_path)
+            result["audio_path"] = audio_path
+
+            # Step 4: Video (with prefetched images)
+            self.logger.info("Step 4/6: Rendering video…")
+            video_path = str(out_dir / "video.mp4")
+            self.video.render(script, audio_path, video_path, prefetched_images=image_cache)
+            result["video_path"] = video_path
+
+            # Step 5: Thumbnail
+            self.logger.info("Step 5/6: Creating thumbnail…")
+            thumb_path = str(out_dir / "thumbnail.jpg")
+            self.thumbnail.create(script, thumb_path)
+            result["thumbnail_path"] = thumb_path
+
+            # Step 6: Upload (or skip in dry-run)
+            if self.dry_run:
+                self.logger.info("Step 6/6: DRY RUN — skipping upload")
+                result["url"] = f"file://{video_path}"
+            else:
+                self.logger.info("Step 6/6: Uploading to YouTube…")
+                upload_result = self.uploader.publish(video_path, thumb_path, script, slot_index)
+                result.update(upload_result)
+
+            result["success"]   = True
+            result["completed"] = datetime.now().isoformat()
+
+            # Update Supabase with success
+            self._update_pending_status(
+                row["id"],
+                "published",
+                youtube_url=result.get("url"),
+            )
+
+        except Exception as e:
+            result["error"]     = str(e)
+            result["traceback"] = traceback.format_exc()
+            result["completed"] = datetime.now().isoformat()
+            self.logger.error(f"Render failed: {e}")
+            self.logger.debug(traceback.format_exc())
+
+            # Update Supabase with failure
+            self._update_pending_status(row["id"], "failed", error_text=str(e))
+
+            if not config.SKIP_ON_FAIL:
+                raise
+
+        return result
+
+    def _save_pending_video(self, topic: str, script: Dict, image_cache: Dict) -> None:
+        """Insert a pending video into Supabase queue."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            self.logger.warning("Supabase not configured — prefetch skipped")
+            return
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            client.table("pending_videos").insert({
+                "topic": topic,
+                "script_json": script,
+                "image_cache": image_cache,
+                "status": "pending",
+                "approved": True,
+            }).execute()
+            self.logger.info(f"Saved to Supabase: {topic}")
+        except Exception as e:
+            self.logger.error(f"Failed to save pending video to Supabase: {e}")
+            raise
+
+    def _fetch_pending_video(self) -> Optional[Dict]:
+        """Fetch one pending, approved video from Supabase queue."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            self.logger.warning("Supabase not configured — cannot fetch queue")
+            return None
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            res = (
+                client.table("pending_videos")
+                .select("*")
+                .eq("status", "pending")
+                .eq("approved", True)
+                .order("created_at")
+                .limit(1)
+                .execute()
+            )
+            return res.data[0] if res.data else None
+        except Exception as e:
+            self.logger.error(f"Failed to fetch pending video from Supabase: {e}")
+            return None
+
+    def _update_pending_status(self, row_id: int, status: str, **kwargs) -> None:
+        """Update a pending video's status in Supabase."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            self.logger.warning("Supabase not configured — status update skipped")
+            return
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            payload = {"status": status, **kwargs}
+            if status == "published":
+                payload["published_at"] = datetime.now(tz=timezone.utc).isoformat()
+            client.table("pending_videos").update(payload).eq("id", row_id).execute()
+            self.logger.info(f"Updated Supabase row {row_id}: status={status}")
+        except Exception as e:
+            self.logger.error(f"Failed to update Supabase status: {e}")
+
+    def _count_pending_videos(self) -> int:
+        """Count pending, approved videos in Supabase queue."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            self.logger.warning("Supabase not configured — assuming queue is empty")
+            return 0
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            res = (
+                client.table("pending_videos")
+                .select("id", count="exact")
+                .eq("status", "pending")
+                .eq("approved", True)
+                .execute()
+            )
+            count = res.count if res.count is not None else 0
+            return count
+        except Exception as e:
+            self.logger.error(f"Failed to count pending videos from Supabase: {e}")
+            return 0
+
     def _print_summary(self, results: List[Dict]) -> None:
         ok = [r for r in results if r.get("success")]
         fail = [r for r in results if not r.get("success")]
@@ -195,13 +410,22 @@ def main() -> None:
                         help="Number of videos to produce (default: 1)")
     parser.add_argument("--topic", type=str, default=None,
                         help="Override topic research with a specific topic")
+    parser.add_argument("--mode", choices=["prefetch", "render", "auto"], default="auto",
+                        help="prefetch=research+script+images only; render=pull queue+produce video; auto=full pipeline (default)")
     args = parser.parse_args()
 
     orchestrator = Orchestrator(dry_run=args.dry_run)
-    results = orchestrator.run(count=args.count, topic_override=args.topic)
+
+    if args.mode == "prefetch":
+        orchestrator.run_prefetch(count=args.count)
+        results = []  # prefetch doesn't return results
+    elif args.mode == "render":
+        results = orchestrator.run_render(count=args.count)
+    else:  # auto
+        results = orchestrator.run(count=args.count, topic_override=args.topic)
 
     # Exit with error code if nothing succeeded
-    if not any(r.get("success") for r in results):
+    if results and not any(r.get("success") for r in results):
         sys.exit(1)
 
 

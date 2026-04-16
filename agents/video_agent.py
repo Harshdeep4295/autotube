@@ -93,7 +93,7 @@ class VideoAgent:
 
     # ── Public entry point ────────────────────────────────────────────────────
 
-    def render(self, script: Dict, audio_path: str, output_path: str) -> str:
+    def render(self, script: Dict, audio_path: str, output_path: str, prefetched_images: Optional[Dict] = None) -> str:
         from moviepy import AudioFileClip, CompositeVideoClip, ColorClip, ImageClip
 
         os.makedirs(Path(output_path).parent, exist_ok=True)
@@ -105,12 +105,17 @@ class VideoAgent:
         hook_title_text = script.get("hook_title_text", script.get("title", "").upper()[:30])
 
         logger.info(f"Audio duration: {total_duration:.1f}s — rendering {len(sections)} sections")
+        logger.info(f"Animation mode: {config.VIDEO_ANIMATION_MODE}")
 
-        # 1. Fetch background media — V2: AI images (default) or V1: Pexels clips
-        if config.VIDEO_BACKGROUND_MODE == "pexels":
-            section_clip_paths = self._fetch_section_clips(sections, visual_queries)   # V1
+        # 1. Fetch background media — dispatch based on config + background mode + animation mode
+        if prefetched_images is not None:
+            section_clip_paths = prefetched_images
+            logger.info(f"Using prefetched images from queue")
+        elif config.VIDEO_BACKGROUND_MODE == "pexels":
+            section_clip_paths = self._fetch_section_clips(sections, visual_queries)   # V1: Pexels clips
         else:
-            section_clip_paths = self._fetch_section_images(sections, visual_queries)  # V2
+            # V2: AI images with animation mode dispatch
+            section_clip_paths = self._get_section_videos(sections, visual_queries)
 
         # 1b. Assign a random animation effect to each section (no repeats within video)
         pool = list(self.animation_effects) if self.animation_effects else list(ANIMATION_EFFECTS)
@@ -169,6 +174,163 @@ class VideoAgent:
         logger.info(f"Video saved: {output_path}")
         self._save_used_clips()
         return output_path
+
+    # ── Dispatcher: animation mode selection ──────────────────────────────────
+
+    def _get_section_videos(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+        """Dispatch to appropriate animation mode: ken_burns, leiapix, or pika."""
+        mode = config.VIDEO_ANIMATION_MODE.lower()
+
+        if mode == "pika":
+            return self._generate_videos_pika(sections, visual_queries)
+        elif mode == "leiapix":
+            return self._animate_images_leiapix(sections, visual_queries)
+        else:  # ken_burns (default)
+            return self._fetch_section_images(sections, visual_queries)
+
+    # ── Animation Mode 1: Pika (native video generation) ───────────────────────
+
+    def _generate_videos_pika(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+        """Generate videos using Pika API from visual_queries. Caches by prompt hash."""
+        if not config.PIKA_API_KEY:
+            logger.warning("Pika API key not set — falling back to ken_burns")
+            return self._fetch_section_images(sections, visual_queries)
+
+        cinematic_fallbacks = [
+            "cinematic aerial cityscape golden hour",
+            "abstract technology neural network visualization",
+            "futuristic data visualization dark background",
+            "modern office skyline sunset",
+            "artificial intelligence digital brain",
+            "global network connections blue",
+        ]
+
+        results: Dict[int, Optional[str]] = {}
+        for i, section in enumerate(sections):
+            query = (
+                visual_queries[i].strip()
+                if i < len(visual_queries) and visual_queries[i].strip()
+                else cinematic_fallbacks[i % len(cinematic_fallbacks)]
+            )
+            try:
+                video_path = self._fetch_pika_video(query, i)
+                results[i] = video_path
+                status = f"'{video_path}'" if video_path else "gradient fallback"
+                logger.info(f"Section {i+1}/{len(sections)} Pika video: {status}")
+            except Exception as e:
+                logger.warning(f"Section {i+1} Pika generation failed: {e} — gradient fallback")
+                results[i] = None
+
+        return results
+
+    def _fetch_pika_video(self, prompt: str, section_idx: int) -> Optional[str]:
+        """Request a video from Pika API. Cached by prompt hash."""
+        import time
+        prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"pika_{prompt_hash}.mp4"
+
+        if cache_path.exists() and cache_path.stat().st_size > 100_000:
+            logger.info(f"Pika video cache hit: {cache_path.name}")
+            return str(cache_path)
+
+        try:
+            import requests
+            full_prompt = f"cinematic high quality {prompt}, 4K, professional cinematography"
+            resp = requests.post(
+                "https://api.pika.art/v1/videos/generations",
+                headers={"Authorization": f"Bearer {config.PIKA_API_KEY}"},
+                json={"prompt": full_prompt, "duration": 5},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            video_url = data.get("video", {}).get("url")
+
+            if not video_url:
+                logger.warning(f"Pika API returned no video URL for '{prompt}'")
+                return None
+
+            # Download video
+            video_resp = requests.get(video_url, timeout=120)
+            video_resp.raise_for_status()
+            with open(cache_path, "wb") as f:
+                f.write(video_resp.content)
+            size_mb = cache_path.stat().st_size / (1024 * 1024)
+            logger.info(f"Pika video downloaded: {cache_path.name} ({size_mb:.1f}MB)")
+            return str(cache_path)
+
+        except Exception as e:
+            logger.warning(f"Pika video generation failed for '{prompt}': {e}")
+            if cache_path.exists():
+                cache_path.unlink()
+            return None
+
+    # ── Animation Mode 2: LeiaPix (3D-depth animation from images) ──────────────
+
+    def _animate_images_leiapix(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+        """Fetch Pollinations images, then animate them with LeiaPix 3D-depth effect."""
+        # First, fetch images like normal
+        images = self._fetch_section_images(sections, visual_queries)
+
+        # Then animate each image with LeiaPix
+        results: Dict[int, Optional[str]] = {}
+        for i, img_path in images.items():
+            if not img_path:
+                results[i] = None
+                continue
+            try:
+                video_path = self._animate_leiapix_image(img_path, i)
+                results[i] = video_path
+                status = f"'{video_path}'" if video_path else "gradient fallback"
+                logger.info(f"Section {i+1} LeiaPix animation: {status}")
+            except Exception as e:
+                logger.warning(f"Section {i+1} LeiaPix animation failed: {e} — gradient fallback")
+                results[i] = None
+
+        return results
+
+    def _animate_leiapix_image(self, img_path: str, section_idx: int) -> Optional[str]:
+        """Animate a static image using LeiaPix 3D-depth API (free, no key needed)."""
+        import requests
+        img_hash = hashlib.md5(f"{img_path}_{section_idx}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"leiapix_{img_hash}.mp4"
+
+        if cache_path.exists() and cache_path.stat().st_size > 100_000:
+            logger.info(f"LeiaPix cache hit: {cache_path.name}")
+            return str(cache_path)
+
+        try:
+            # Upload image to LeiaPix API
+            with open(img_path, "rb") as f:
+                files = {"image": f}
+                resp = requests.post(
+                    "https://api.leiapix.com/api/v1/create",
+                    files=files,
+                    data={"duration": 5},
+                    timeout=60,
+                )
+            resp.raise_for_status()
+            data = resp.json()
+            video_url = data.get("video_url")
+
+            if not video_url:
+                logger.warning(f"LeiaPix API returned no video URL")
+                return None
+
+            # Download video
+            video_resp = requests.get(video_url, timeout=120)
+            video_resp.raise_for_status()
+            with open(cache_path, "wb") as f:
+                f.write(video_resp.content)
+            size_mb = cache_path.stat().st_size / (1024 * 1024)
+            logger.info(f"LeiaPix video cached: {cache_path.name} ({size_mb:.1f}MB)")
+            return str(cache_path)
+
+        except Exception as e:
+            logger.warning(f"LeiaPix animation failed: {e}")
+            if cache_path.exists():
+                cache_path.unlink()
+            return None
 
     # ── Per-section Pexels clip fetching ─────────────────────────────────────
 

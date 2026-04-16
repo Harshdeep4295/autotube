@@ -1,0 +1,70 @@
+name: AutoTube Prefetch
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'   # every 3 hours — keeps queue full
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'Scripts to prefetch (default: 2)'
+        required: false
+        default: '2'
+
+jobs:
+  prefetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies (ffmpeg + fonts)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            ffmpeg \
+            fonts-dejavu-core \
+            fonts-liberation \
+            --no-install-recommends
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create required directories
+        run: |
+          mkdir -p data/music outputs/videos outputs/thumbnails outputs/audio outputs/video_cache logs
+
+      - name: Cache AI images and Pexels clips
+        uses: actions/cache@v4
+        with:
+          path: outputs/video_cache
+          key: media-cache-${{ github.run_number }}
+          restore-keys: media-cache-
+
+      - name: Run prefetch
+        env:
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY:        ${{ secrets.PEXELS_API_KEY }}
+          SUPABASE_URL:          ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
+          SCRIPT_MODEL_PROVIDER: ${{ vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
+          VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
+        run: |
+          python orchestrator.py --mode prefetch --count ${{ github.event.inputs.count || 2 }}
+
+      - name: Upload logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prefetch-logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 7

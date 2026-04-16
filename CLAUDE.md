@@ -95,10 +95,42 @@ CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
 SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
 SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
 VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
+VIDEO_ANIMATION_MODE             # "ken_burns" (default), "leiapix", or "pika" — switch without code change via env var
 MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: only use CC0 music, YouTube deducts 55% for licensed music
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
 PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V1/pexels mode only)
 ```
+
+---
+
+## Video Animation Modes (Switchable)
+
+Three modes for background video generation. Switch anytime via `VIDEO_ANIMATION_MODE` env var or GitHub Variable:
+
+| Mode | Approach | Cost | Speed | Quality | Cache |
+|---|---|---|---|---|---|
+| **ken_burns** (default) | Pollinations AI images + FFmpeg zoom/pan | Free | 1-2 min | Good | MP4 per effect |
+| **leiapix** | Pollinations AI images + 3D-depth animation | Free | 3-5 min | Very good | MP4 per image |
+| **pika** | Native video generation from text prompts | Free tier (~25/month) | 5-10 min | Excellent | MP4 per prompt |
+
+**How to switch:**
+```bash
+# Local testing
+VIDEO_ANIMATION_MODE=leiapix python orchestrator.py --dry-run --topic "Test"
+VIDEO_ANIMATION_MODE=pika python orchestrator.py --dry-run --topic "Test"
+
+# GitHub Actions: set Variable VIDEO_ANIMATION_MODE to "leiapix" or "pika" (Settings → Variables)
+```
+
+**Ken Burns** (current): Uses FFmpeg zoompan with 17 animation presets (zoom, pan, drift effects). Fastest, completely free.
+
+**LeiaPix**: Converts static images to 3D-depth animated videos. Adds parallax depth illusion. Free API, no key needed. More cinematic than Ken Burns.
+
+**Pika**: Generates videos directly from visual_queries prompts. Best quality but limited free tier (~25 videos/month). Requires `PIKA_API_KEY` secret in GitHub.
+
+**Caching**: All modes cache videos by hash in `outputs/video_cache/` (prefixed `pika_*`, `leiapix_*`, `fx_*`). Prefetch job builds cache over time; render job reuses.
+
+**Fallback chain**: If active mode fails (API down, quota hit, network error) → gracefully falls back to gradient background for that section. Video continues playing with text overlays.
 
 ---
 
@@ -124,3 +156,6 @@ PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V
 
 ## Secrets required in GitHub
 `ANTHROPIC_API_KEY`, `YOUTUBE_TOKEN_JSON`, `YOUTUBE_CLIENT_SECRETS`, `PEXELS_API_KEY`
+
+**Optional (for Pika mode):**
+`PIKA_API_KEY` — Only needed if `VIDEO_ANIMATION_MODE=pika` is set. Get free API key at https://pika.art/api

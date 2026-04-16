@@ -92,10 +92,11 @@ jobs:
           VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
-          ARGS="--count $COUNT"
+          MODE="render"
+          ARGS="--mode $MODE --count $COUNT"
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
           if [ -n "${{ github.event.inputs.force_topic }}" ]; then
-            ARGS="$ARGS --topic \"${{ github.event.inputs.force_topic }}\""
+            ARGS="$ARGS --topic \"${{ github.event.inputs.force_topic }}\" --mode auto"
           fi
           echo "Running: python orchestrator.py $ARGS"
           eval "python orchestrator.py $ARGS"
