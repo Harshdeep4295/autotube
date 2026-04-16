@@ -4,6 +4,19 @@ Autonomous faceless YouTube channel pipeline. Runs 4×/day on GitHub Actions, pr
 
 ---
 
+## Git Workflow — IMPORTANT
+
+**Never run `git add`, `git commit`, or `git push` without explicit instruction from the user.**
+
+After completing code changes, tell the user:
+- Which files were changed and what was changed
+- That they should review with `git diff` before committing
+- Suggest a commit message, but let them run the command
+
+The user reviews all changes before committing. Do not automate git operations.
+
+---
+
 ## How to Run Locally
 
 ```bash
