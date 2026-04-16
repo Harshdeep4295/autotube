@@ -336,7 +336,7 @@ class VideoAgent:
 
             # fal.ai endpoint for Pika text-to-video
             resp = requests.post(
-                "https://api.fal.ai/v1/queuee/text-to-video",
+                "https://api.fal.ai/v1/queue/text-to-video",
                 headers={"Authorization": f"Key {config.FAL_API_KEY}"},
                 json={
                     "prompt": full_prompt,
