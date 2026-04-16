@@ -99,8 +99,8 @@ class Config:
         return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
 
     # ── Script / content ──────────────────────────────────────────────────────
-    SCRIPT_WORD_COUNT: int = 650   # ~4.5 min at 150 wpm
-    TARGET_VIDEO_SECONDS: int = 270  # 4.5 minutes
+    SCRIPT_WORD_COUNT: int = 750   # ~5 min at 150 wpm
+    TARGET_VIDEO_SECONDS: int = 300  # 5 minutes
 
     # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
     TTS_VOICE: str = "en-US-GuyNeural"   # US male, authoritative tone

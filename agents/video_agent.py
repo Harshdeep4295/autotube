@@ -94,20 +94,20 @@ class VideoAgent:
         # 4. Bold opening title card (shown first ~3.5s)
         hook_card = self._build_hook_title_card(hook_title_text, min(3.5, total_duration * 0.08))
 
-        # 5. Generate SRT captions file (uploaded to YouTube after publish — not burned in)
-        self._generate_srt(sections, total_duration, str(Path(output_path).parent))
+        # 5. Section title cards — brief chapter heading at the start of each non-hook section
+        section_title_clips = self._build_section_title_clips(sections, total_duration)
 
-        # 6. Progress bar
-        progress_clips = self._build_progress_clips(sections, total_duration)
+        # 6. Generate SRT captions file (uploaded to YouTube after publish — not burned in)
+        self._generate_srt(sections, total_duration, str(Path(output_path).parent))
 
         # 7. Watermark — TOP LEFT
         watermark = self._make_watermark(total_duration)
 
-        # 8. Composite all layers (no burned-in captions — they live in captions.srt)
+        # 8. Composite all layers (no burned-in captions, no progress bar — YouTube provides its own)
         all_clips = (
             [base_video, overlay]
             + ([hook_card] if hook_card else [])
-            + progress_clips
+            + section_title_clips
             + [watermark]
         )
         final = CompositeVideoClip(all_clips, size=(self.W, self.H))
@@ -542,6 +542,82 @@ class VideoAgent:
 
         return canvas
 
+    # ── Section title cards ───────────────────────────────────────────────────
+
+    def _build_section_title_clips(self, sections: List[Dict], total_duration: float) -> List:
+        """
+        Shows a brief 2.5s chapter title card at the start of each non-hook/non-cta section.
+        Uses section_display_title from the script if available, else skips.
+        Positioned upper-center so it doesn't clash with watermark (top-left).
+        """
+        from moviepy import ImageClip
+
+        total_chars = sum(len(s.get("text", "")) for s in sections)
+        clips = []
+        t = 0.0
+        CARD_DURATION = 2.5  # seconds the title card is visible
+
+        for section in sections:
+            text = section.get("text", "").strip()
+            section_chars = len(text)
+            section_dur = max(2.0, (section_chars / max(total_chars, 1)) * total_duration)
+
+            display_title = section.get("section_display_title", "").strip()
+            name = section.get("section_name", "")
+
+            # Show title card for context and main sections only (skip hook & cta)
+            if display_title and name not in ("hook", "cta"):
+                try:
+                    img = self._render_section_title_image(display_title)
+                    clip = (
+                        ImageClip(np.array(img))
+                        .with_duration(min(CARD_DURATION, section_dur * 0.4))
+                        .with_start(t)
+                        .with_position(("center", 140))  # upper area, below watermark zone
+                    )
+                    clips.append(clip)
+                except Exception as e:
+                    logger.warning(f"Section title card failed for '{display_title}': {e}")
+
+            t += section_dur
+
+        return clips
+
+    def _render_section_title_image(self, text: str) -> Image.Image:
+        """Renders a minimal chapter title — small accent bar + bold text, upper center."""
+        _, _, accent = self.colors
+        font = self.fonts["section_title"]
+
+        dummy = Image.new("RGBA", (1, 1))
+        d = ImageDraw.Draw(dummy)
+        bbox = d.textbbox((0, 0), text.upper(), font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+
+        pad_x, pad_y = 48, 20
+        bar_h = 4
+        img_w = tw + pad_x * 2
+        img_h = th + pad_y * 2 + bar_h + 8
+
+        canvas = Image.new("RGBA", (self.W, img_h + 20), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(canvas)
+
+        x0 = (self.W - img_w) // 2
+        y0 = 10
+
+        # Semi-transparent dark pill
+        draw.rounded_rectangle([x0, y0, x0 + img_w, y0 + img_h], radius=10, fill=(0, 0, 0, 160))
+
+        # Accent bar on left inside pill
+        draw.rectangle([x0, y0, x0 + bar_h + 4, y0 + img_h], fill=(*accent, 220))
+
+        # Bold white text centered in pill
+        tx = self.W // 2
+        ty = y0 + pad_y + th // 2
+        draw.text((tx, ty), text.upper(), font=font, fill=(255, 255, 255, 240), anchor="mm")
+
+        return canvas
+
     # ── Caption clips ─────────────────────────────────────────────────────────
 
     def _build_caption_clips(self, sections: List[Dict], total_duration: float) -> List:
@@ -619,29 +695,41 @@ class VideoAgent:
 
     def _generate_srt(self, sections: List[Dict], total_duration: float, output_dir: str) -> Optional[str]:
         """
-        Generate an SRT subtitle file synced to section word-count timing.
-        Writes captions.srt alongside the video — uploaded to YouTube after publish.
+        Generate an SRT subtitle file synced to audio timing.
+        Uses CHARACTER COUNT (not word count) for section duration proportioning —
+        character count matches TTS phoneme density much more accurately than word count,
+        which fixes the "subtitles running ahead of audio" problem.
+        Each chunk also gets a small trailing gap (0.15s) so text clears before next line.
         """
-        total_words = sum(len(s.get("text", "").split()) for s in sections)
+        # Character count proportioning — more accurate than word count for TTS sync
+        total_chars = sum(len(s.get("text", "")) for s in sections)
         entries = []
         t = 0.0
         idx = 1
+        TRAILING_GAP = 0.15  # seconds of silence after each caption before next one starts
 
         for section in sections:
             text = section.get("text", "").strip()
             if not text:
                 continue
             words = text.split()
-            section_words = len(words)
-            section_dur = max(2.0, (section_words / max(total_words, 1)) * total_duration)
+            section_chars = len(text)
+            # Proportion by characters, not words — accounts for long vs short words in TTS
+            section_dur = max(2.0, (section_chars / max(total_chars, 1)) * total_duration)
 
             chunk_size = config.CAPTION_WORDS_PER_LINE * 2
             chunks = [words[i:i + chunk_size] for i in range(0, len(words), chunk_size)]
-            chunk_dur = section_dur / max(len(chunks), 1)
 
-            for chunk in chunks:
+            # Distribute section duration proportionally by chunk character count too
+            chunk_chars = [len(" ".join(c)) for c in chunks]
+            total_chunk_chars = max(sum(chunk_chars), 1)
+
+            for i, chunk in enumerate(chunks):
+                chunk_dur = (chunk_chars[i] / total_chunk_chars) * section_dur
+                display_dur = max(0.5, chunk_dur - TRAILING_GAP)
+
                 start_str = self._seconds_to_srt_timestamp(t)
-                end_str = self._seconds_to_srt_timestamp(t + chunk_dur)
+                end_str = self._seconds_to_srt_timestamp(t + display_dur)
 
                 cpw = config.CAPTION_WORDS_PER_LINE
                 line1 = " ".join(chunk[:cpw])
@@ -650,7 +738,7 @@ class VideoAgent:
 
                 entries.append(f"{idx}\n{start_str} --> {end_str}\n{caption_text}")
                 idx += 1
-                t += chunk_dur
+                t += chunk_dur  # advance by full chunk_dur (including gap)
 
         srt_path = str(Path(output_dir) / "captions.srt")
         with open(srt_path, "w", encoding="utf-8") as f:
@@ -669,39 +757,6 @@ class VideoAgent:
         return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
     # ── Progress bar ──────────────────────────────────────────────────────────
-
-    def _build_progress_clips(self, sections: List[Dict], total_duration: float) -> List:
-        """Thin accent-colored progress bar at very bottom of screen."""
-        from moviepy import ImageClip
-
-        total_words = sum(len(s.get("text", "").split()) for s in sections)
-        clips = []
-        t = 0.0
-
-        for i, section in enumerate(sections):
-            words = len(section.get("text", "").split())
-            dur = max(2.0, (words / max(total_words, 1)) * total_duration)
-            progress = (i + 1) / len(sections)
-
-            img = self._render_progress_bar(progress)
-            clip = (
-                ImageClip(np.array(img))
-                .with_duration(dur)
-                .with_start(t)
-                .with_position((0, self.H - 6))
-            )
-            clips.append(clip)
-            t += dur
-
-        return clips
-
-    def _render_progress_bar(self, progress: float) -> Image.Image:
-        _, _, accent = self.colors
-        bar_w = int(self.W * progress)
-        img = Image.new("RGBA", (self.W, 6), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([0, 0, bar_w, 6], fill=(*accent, 220))
-        return img
 
     # ── Watermark — TOP LEFT ──────────────────────────────────────────────────
 
@@ -801,7 +856,8 @@ class VideoAgent:
             return ImageFont.load_default()
 
         return {
-            "hook":    load(96),   # large bold title card text
-            "caption": load(config.CAPTION_FONT_SIZE),
-            "label":   load(26),
+            "hook":          load(96),   # large bold title card text
+            "section_title": load(48),   # chapter heading cards
+            "caption":       load(config.CAPTION_FONT_SIZE),
+            "label":         load(26),
         }

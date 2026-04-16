@@ -75,49 +75,62 @@ Return this exact JSON structure (no extra text outside the JSON):
   "sections": [
     {{
       "section_name": "hook",
-      "text": "Hook using one of the 4 proven formulas. Under 75 words. End with: '[micro-cliffhanger phrase to tease next section]'",
-      "word_count": 70
+      "section_display_title": "",
+      "text": "Hook using one of the 4 proven formulas. Under 75 words. End with a micro-cliffhanger teasing the next section.",
+      "word_count": 75
     }},
     {{
       "section_name": "context",
-      "text": "Why this matters NOW. Specific numbers and recent data. Short sentences max 15 words. End with a micro-cliffhanger teasing the next section.",
-      "word_count": 90
+      "section_display_title": "2-4 WORDS, ALL CAPS — viewer-facing chapter heading shown on screen (e.g. 'WHY THIS MATTERS', 'THE PROBLEM', 'WHAT CHANGED')",
+      "text": "Why this matters NOW. Specific numbers and recent data. Short sentences max 15 words. End with a micro-cliffhanger.",
+      "word_count": 110
     }},
     {{
       "section_name": "main_1",
-      "text": "First key insight or point. Use a specific example with real numbers. Every sentence under 15 words. End with micro-cliffhanger.",
-      "word_count": 140
+      "section_display_title": "2-4 WORDS ALL CAPS chapter heading for this point (e.g. 'THE FIRST SIGN', 'MISTAKE #1', 'THE DATA')",
+      "text": "First key insight. Specific example with real numbers. Every sentence under 15 words. End with micro-cliffhanger.",
+      "word_count": 160
     }},
     {{
       "section_name": "main_2",
-      "text": "Second key insight — contrasting or escalating the first. Specific data. Short sentences. End with micro-cliffhanger.",
-      "word_count": 140
+      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'IT GETS WORSE', 'THE TWIST', 'WHAT THEY MISSED')",
+      "text": "Second key insight — contrasting or escalating. Specific data. Short sentences. End with micro-cliffhanger.",
+      "word_count": 160
     }},
     {{
       "section_name": "main_3",
-      "text": "Third insight — the most surprising or counterintuitive point. Save the most compelling fact for here. Short sentences.",
-      "word_count": 130
+      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE REAL ANSWER', 'THE FIX', 'WHAT WORKS')",
+      "text": "Third insight — the most surprising or counterintuitive point. Short sentences.",
+      "word_count": 155
     }},
     {{
       "section_name": "cta",
-      "text": "Quick summary of the 3 key takeaways (1 sentence each). Then CTA: like + subscribe + ask a specific question for viewers to answer in comments.",
-      "word_count": 80
+      "section_display_title": "",
+      "text": "Quick summary of the 3 key takeaways (1 sentence each). CTA: like + subscribe + ask a specific question.",
+      "word_count": 90
     }}
   ],
   "visual_queries": [
-    "cinematic aerial cityscape golden hour",
-    "abstract digital technology network dark",
-    "futuristic data visualization blue glow",
-    "modern city skyline night lights",
-    "artificial intelligence circuit board close-up",
-    "global network connections earth orbit"
+    "TOPIC-RELEVANT cinematic query for section 1 — see rules below",
+    "TOPIC-RELEVANT cinematic query for section 2",
+    "TOPIC-RELEVANT cinematic query for section 3",
+    "TOPIC-RELEVANT cinematic query for section 4",
+    "TOPIC-RELEVANT cinematic query for section 5",
+    "TOPIC-RELEVANT cinematic query for section 6"
   ],
   "thumbnail_text": "3-4 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47 TOOLS TESTED', 'AI KILLED THIS', '$50K MISTAKE')",
   "thumbnail_subtext": "2-3 word VALUE PROPOSITION shown below main text — use ROI/outcome framing like 'SAVES 3 HRS', 'EARN MORE', 'FREE TOOL', 'IN 2026' — NOT a description of the video",
   "thumbnail_stat": "A bold number or stat from the video to use as a badge (e.g. '47', '$50K', '10X', '2026') — leave empty string if none",
   "pexels_search_query": "2-3 word search term for stock footage",
-  "total_word_count": 650
+  "total_word_count": 750
 }}
 
-CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta.
-CRITICAL for visual_queries: 6 AI image generation prompts (one per section). These are prompts for Flux/Stable Diffusion — cinematic, atmospheric, beautiful scenes. NOT literal topic keywords. Think: emotional tone, visual mood, not topic illustration. Include lighting descriptors like "golden hour", "blue glow", "neon lit"."""
+CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count must reach ~750.
+
+CRITICAL for visual_queries — RULES FOR EACH QUERY:
+  1. Must be TOPIC-RELEVANT: if the topic is about coding, use "dark code terminal screen glow" not "ocean waves". If about AI, use "futuristic robot hand circuit board" not "mountain sunrise".
+  2. Must be CINEMATIC: include lighting/mood descriptors — "dramatic lighting", "neon glow", "golden hour", "dark moody", "blue backlight"
+  3. Format: "[topic-relevant subject] [cinematic style/lighting]"
+  Examples for a dev topic: "programmer typing keyboard dark backlit", "code terminal green glow dark", "server room blue light dramatic", "abstract circuit board macro close-up", "laptop screen code reflection dark desk", "futuristic data center corridor blue"
+  Examples for AI topic: "neural network visualization blue glow", "robot hand human hand meeting cinematic", "data center servers dramatic lighting", "AI chip circuit board macro", "screen showing AI interface dark room", "futuristic city drone shot golden hour"
+  NEVER use: random landscapes, ocean waves, mountains, forests — unless the topic is literally about nature."""
