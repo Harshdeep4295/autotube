@@ -103,7 +103,7 @@ class Config:
     TARGET_VIDEO_SECONDS: int = 300  # 5 minutes
 
     # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
-    TTS_VOICE: str = "en-US-GuyNeural"   # US male, authoritative tone
+    TTS_VOICE: str = "en-US-JennyNeural"  # US female, warm and professional
     TTS_RATE: str = "+8%"                # slightly faster = more engaging
     TTS_PITCH: str = "+0Hz"
 
