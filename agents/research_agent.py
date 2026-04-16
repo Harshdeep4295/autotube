@@ -345,14 +345,22 @@ class ResearchAgent:
 
     def _deduplicate(self, topics: List[Dict], history: List[Dict]) -> List[Dict]:
         """Filter out topics too similar to anything in recent history."""
-        cutoff = datetime.utcnow() - timedelta(days=config.TOPIC_HISTORY_DAYS)
-        recent_normalized = [
-            h.get("normalized_topic") or self._normalize(h["topic"])
-            for h in history
-            if datetime.fromisoformat(
-                h.get("used_at") or h.get("timestamp", "2000-01-01")
-            ) > cutoff
-        ]
+        from datetime import timezone
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=config.TOPIC_HISTORY_DAYS)
+        recent_normalized = []
+        for h in history:
+            raw = h.get("used_at") or h.get("timestamp", "2000-01-01")
+            try:
+                dt = datetime.fromisoformat(raw)
+                # Make offset-naive timestamps UTC-aware for comparison
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                if dt > cutoff:
+                    recent_normalized.append(
+                        h.get("normalized_topic") or self._normalize(h["topic"])
+                    )
+            except (ValueError, TypeError):
+                pass
 
         filtered = []
         for t in topics:
