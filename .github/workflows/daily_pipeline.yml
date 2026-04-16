@@ -90,6 +90,8 @@ jobs:
           SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
+          VIDEO_ANIMATION_MODE:  ${{ vars.VIDEO_ANIMATION_MODE || 'ken_burns' }}
+          FAL_API_KEY:           ${{ secrets.FAL_API_KEY || '' }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
           MODE="render"
