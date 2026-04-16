@@ -148,17 +148,17 @@ class Config:
     )
 
     # ── Video animation mode ──────────────────────────────────────────────────
-    # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (current, free)
-    # "leiapix"    → Pollinations AI images + LeiaPix 3D-depth animation (free API)
-    # "pika"       → Pika API native video generation from prompts (free tier: ~25 videos/month)
-    # Default: "ken_burns" (current approach). Switch without code change via env var.
+    # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (COMPLETELY FREE ✓)
+    # "pika"       → Pika via fal.ai native video generation (REQUIRES PAID ACCOUNT)
+    # Default: "ken_burns" (free, reliable). Switch via env var if you have fal.ai account.
     VIDEO_ANIMATION_MODE: str = field(
         default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "ken_burns")
     )
 
-    # ── Pika API (for video generation mode) ───────────────────────────────────
-    PIKA_API_KEY: str = field(
-        default_factory=lambda: os.getenv("PIKA_API_KEY", "")
+    # ── Pika API via fal.ai (for video generation mode) ─────────────────────────
+    # Pika officially uses fal.ai infrastructure. Get key at https://fal.ai
+    FAL_API_KEY: str = field(
+        default_factory=lambda: os.getenv("FAL_API_KEY", "")
     )
 
     # ── Video caption / B-roll settings ──────────────────────────────────────

@@ -175,18 +175,106 @@ class VideoAgent:
         self._save_used_clips()
         return output_path
 
-    # ── Dispatcher: animation mode selection ──────────────────────────────────
+    # ── Per-scene fallback chain ─────────────────────────────────────────────
 
     def _get_section_videos(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
-        """Dispatch to appropriate animation mode: ken_burns, leiapix, or pika."""
-        mode = config.VIDEO_ANIMATION_MODE.lower()
+        """Generate videos for each section with per-scene fallback chain.
+        Primary mode (from config) → LeiaPix → Ken Burns → Pexels → Gradient.
+        On 429 rate limit, immediately switch to next mode for that scene."""
+        primary_mode = config.VIDEO_ANIMATION_MODE.lower()
+        cinematic_fallbacks = [
+            "cinematic aerial cityscape golden hour",
+            "abstract technology neural network visualization",
+            "futuristic data visualization dark background",
+            "modern office skyline sunset",
+            "artificial intelligence digital brain",
+            "global network connections blue",
+        ]
 
-        if mode == "pika":
-            return self._generate_videos_pika(sections, visual_queries)
-        elif mode == "leiapix":
-            return self._animate_images_leiapix(sections, visual_queries)
-        else:  # ken_burns (default)
-            return self._fetch_section_images(sections, visual_queries)
+        results: Dict[int, Optional[str]] = {}
+        for i, section in enumerate(sections):
+            query = (
+                visual_queries[i].strip()
+                if i < len(visual_queries) and visual_queries[i].strip()
+                else cinematic_fallbacks[i % len(cinematic_fallbacks)]
+            )
+            video_path = self._try_section_video_chain(i, query, primary_mode)
+            results[i] = video_path
+            status = f"'{video_path}'" if video_path else "gradient fallback"
+            logger.info(f"Section {i+1}/{len(sections)} video: {status}")
+
+        return results
+
+    def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
+        """Try to generate a video for one section, falling back on errors.
+        Chain: primary_mode (if not paid) → Ken Burns → Pexels → Gradient.
+        Note: "pika" requires fal.ai paid account; not in fallback chain (opt-in only).
+        """
+        modes = []
+        # Try primary mode ONLY if it's free (ken_burns)
+        # Pika (paid) is opt-in only, skip in fallback
+        if primary_mode == "ken_burns":
+            modes.append("ken_burns")
+        elif primary_mode == "pika":
+            modes.append("pika")  # Try pika first if explicitly set
+
+        # Fallback chain (always free options)
+        if "ken_burns" not in modes:
+            modes.append("ken_burns")
+        modes.append("pexels")
+
+        for mode in modes:
+            try:
+                if mode == "pika":
+                    path = self._fetch_pika_video(query, section_idx)
+                elif mode == "ken_burns":
+                    img = self._fetch_ai_image(query, section_idx)
+                    if img:
+                        # _image_to_ken_burns_clip caches to disk automatically; we just need the cache key
+                        effect = self.animation_effects[0] if self.animation_effects else ANIMATION_EFFECTS[0]
+                        cache_key = hashlib.md5(
+                            f"{img}|{effect['name']}|{5.0:.2f}".encode()
+                        ).hexdigest()[:12]
+                        path = str(Path(config.VIDEO_CACHE_DIR) / f"fx_{cache_key}.mp4")
+                        # Ensure it was actually created by calling the method
+                        try:
+                            self._image_to_ken_burns_clip(img, 5.0, effect=effect)
+                        except Exception:
+                            path = None
+                    else:
+                        path = None
+                elif mode == "pexels":
+                    cinematic_fallbacks = [
+                        "aerial cityscape drone",
+                        "ocean waves cinematic",
+                        "mountain landscape sunrise",
+                        "forest path light",
+                        "city night lights",
+                        "abstract light motion",
+                    ]
+                    fb_query = cinematic_fallbacks[section_idx % len(cinematic_fallbacks)]
+                    paths = self._fetch_pexels_clips(fb_query, n=1)
+                    path = paths[0] if paths else None
+                else:
+                    path = None
+
+                if path:
+                    logger.info(f"Section {section_idx+1}: {mode} succeeded")
+                    return path
+
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:
+                    logger.warning(f"Section {section_idx+1}: {mode} rate limited (429) → trying next mode")
+                    continue
+                else:
+                    logger.warning(f"Section {section_idx+1}: {mode} failed ({e}) → trying next mode")
+                    continue
+            except Exception as e:
+                logger.warning(f"Section {section_idx+1}: {mode} failed ({e}) → trying next mode")
+                continue
+
+        logger.warning(f"Section {section_idx+1}: all modes exhausted → gradient fallback")
+        return None
 
     # ── Animation Mode 1: Pika (native video generation) ───────────────────────
 
@@ -224,7 +312,14 @@ class VideoAgent:
         return results
 
     def _fetch_pika_video(self, prompt: str, section_idx: int) -> Optional[str]:
-        """Request a video from Pika API. Cached by prompt hash."""
+        """Request a video from Pika via fal.ai. Cached by prompt hash. Re-raises 429 for fallback chain.
+
+        Pika is now officially hosted on fal.ai. Requires FAL_API_KEY from https://fal.ai
+        """
+        if not config.FAL_API_KEY:
+            logger.warning("FAL_API_KEY not set — Pika mode unavailable (skipping to fallback)")
+            raise ValueError("FAL_API_KEY not configured")
+
         import time
         prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"pika_{prompt_hash}.mp4"
@@ -235,19 +330,29 @@ class VideoAgent:
 
         try:
             import requests
+            import json as json_module
+
             full_prompt = f"cinematic high quality {prompt}, 4K, professional cinematography"
+
+            # fal.ai endpoint for Pika text-to-video
             resp = requests.post(
-                "https://api.pika.art/v1/videos/generations",
-                headers={"Authorization": f"Bearer {config.PIKA_API_KEY}"},
-                json={"prompt": full_prompt, "duration": 5},
-                timeout=30,
+                "https://api.fal.ai/v1/queuee/text-to-video",
+                headers={"Authorization": f"Key {config.FAL_API_KEY}"},
+                json={
+                    "prompt": full_prompt,
+                    "duration": 5,
+                    "aspect_ratio": "16:9",
+                },
+                timeout=60,
             )
             resp.raise_for_status()
             data = resp.json()
-            video_url = data.get("video", {}).get("url")
+
+            # fal.ai returns data with 'video' field containing URL
+            video_url = data.get("video", {}).get("url") if isinstance(data.get("video"), dict) else data.get("video")
 
             if not video_url:
-                logger.warning(f"Pika API returned no video URL for '{prompt}'")
+                logger.warning(f"Pika/fal.ai API returned no video URL for '{prompt}'")
                 return None
 
             # Download video
@@ -256,14 +361,25 @@ class VideoAgent:
             with open(cache_path, "wb") as f:
                 f.write(video_resp.content)
             size_mb = cache_path.stat().st_size / (1024 * 1024)
-            logger.info(f"Pika video downloaded: {cache_path.name} ({size_mb:.1f}MB)")
+            logger.info(f"Pika video (via fal.ai) downloaded: {cache_path.name} ({size_mb:.1f}MB)")
             return str(cache_path)
 
+        except requests.exceptions.HTTPError as e:
+            if e.response and e.response.status_code == 429:
+                logger.warning(f"Pika/fal.ai rate limited (429) for '{prompt}' — re-raising for fallback chain")
+                if cache_path.exists():
+                    cache_path.unlink()
+                raise  # Re-raise so fallback chain catches it
+            else:
+                logger.warning(f"Pika/fal.ai video generation failed for '{prompt}': {e}")
+                if cache_path.exists():
+                    cache_path.unlink()
+                raise  # Re-raise HTTP errors
         except Exception as e:
-            logger.warning(f"Pika video generation failed for '{prompt}': {e}")
+            logger.warning(f"Pika/fal.ai video generation failed for '{prompt}': {e}")
             if cache_path.exists():
                 cache_path.unlink()
-            return None
+            raise  # Re-raise all errors for fallback chain to handle
 
     # ── Animation Mode 2: LeiaPix (3D-depth animation from images) ──────────────
 
@@ -290,7 +406,7 @@ class VideoAgent:
         return results
 
     def _animate_leiapix_image(self, img_path: str, section_idx: int) -> Optional[str]:
-        """Animate a static image using LeiaPix 3D-depth API (free, no key needed)."""
+        """Animate a static image using LeiaPix 3D-depth API (free, no key needed). Re-raises 429 for fallback."""
         import requests
         img_hash = hashlib.md5(f"{img_path}_{section_idx}".encode()).hexdigest()[:12]
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"leiapix_{img_hash}.mp4"
@@ -326,11 +442,22 @@ class VideoAgent:
             logger.info(f"LeiaPix video cached: {cache_path.name} ({size_mb:.1f}MB)")
             return str(cache_path)
 
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                logger.warning(f"LeiaPix rate limited (429) — re-raising for fallback chain")
+                if cache_path.exists():
+                    cache_path.unlink()
+                raise
+            else:
+                logger.warning(f"LeiaPix animation failed: {e}")
+                if cache_path.exists():
+                    cache_path.unlink()
+                raise
         except Exception as e:
             logger.warning(f"LeiaPix animation failed: {e}")
             if cache_path.exists():
                 cache_path.unlink()
-            return None
+            raise
 
     # ── Per-section Pexels clip fetching ─────────────────────────────────────
 

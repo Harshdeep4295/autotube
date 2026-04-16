@@ -82,15 +82,24 @@ class Orchestrator:
         for topic in topics[:count]:
             try:
                 script = self.scripter.generate(topic)
-                image_cache = self.video._fetch_section_images(
+                # Generate videos for all sections (with per-scene fallback chain)
+                video_cache = self.video._get_section_videos(
                     script.get("sections", []),
                     script.get("visual_queries", [])
                 )
                 # Convert absolute paths to relative for portability across jobs
-                relative_cache = {
-                    str(k): str(Path(v).relative_to(Path.cwd())) if v else None
-                    for k, v in image_cache.items()
-                }
+                relative_cache = {}
+                for idx, path in video_cache.items():
+                    if path:
+                        try:
+                            rel_path = str(Path(path).relative_to(Path.cwd()))
+                        except ValueError:
+                            # Path is already relative or cannot be made relative
+                            rel_path = str(path)
+                    else:
+                        rel_path = None
+                    relative_cache[str(idx)] = rel_path
+
                 self._save_pending_video(topic["topic"], script, relative_cache)
                 queued_count += 1
                 self.logger.info(f"Queued: {script.get('title', topic['topic'])[:60]}")

@@ -103,15 +103,26 @@ PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V
 
 ---
 
-## Video Animation Modes (Switchable)
+## Video Animation Modes
 
-Three modes for background video generation. Switch anytime via `VIDEO_ANIMATION_MODE` env var or GitHub Variable:
+**Default (Recommended):** Ken Burns — completely free, no API setup needed
 
-| Mode | Approach | Cost | Speed | Quality | Cache |
+| Mode | Approach | Cost | Speed | Quality | Fallback |
 |---|---|---|---|---|---|
-| **ken_burns** (default) | Pollinations AI images + FFmpeg zoom/pan | Free | 1-2 min | Good | MP4 per effect |
-| **leiapix** | Pollinations AI images + 3D-depth animation | Free | 3-5 min | Very good | MP4 per image |
-| **pika** | Native video generation from text prompts | Free tier (~25/month) | 5-10 min | Excellent | MP4 per prompt |
+| **ken_burns** (default ✓) | Pollinations AI images + FFmpeg zoom/pan | FREE | 1-2 min | Good | Always available |
+| **pika** (optional) | Native video from text (via fal.ai) | PAID | 5-10 min | Excellent | Falls back to Ken Burns |
+
+**Fallback Chain (always free):**
+`Ken Burns → Pexels clips → Gradient background`
+
+**To use Pika (optional, requires payment):**
+```bash
+# Set in .env or GitHub Variable
+VIDEO_ANIMATION_MODE=pika
+FAL_API_KEY=your_paid_fal_key
+```
+
+**Note:** LeiaPix removed (requires OAuth2 client credentials). Ken Burns is the reliable default.
 
 **How to switch:**
 ```bash
@@ -157,5 +168,14 @@ VIDEO_ANIMATION_MODE=pika python orchestrator.py --dry-run --topic "Test"
 ## Secrets required in GitHub
 `ANTHROPIC_API_KEY`, `YOUTUBE_TOKEN_JSON`, `YOUTUBE_CLIENT_SECRETS`, `PEXELS_API_KEY`
 
-**Optional (for Pika mode):**
-`PIKA_API_KEY` — Only needed if `VIDEO_ANIMATION_MODE=pika` is set. Get free API key at https://pika.art/api
+**Optional (for Pika video generation mode):**
+`FAL_API_KEY` — Only needed if `VIDEO_ANIMATION_MODE=pika` is set.
+
+**To set up Pika mode:**
+1. Go to https://fal.ai (free tier available)
+2. Create account and sign in
+3. Copy API key from dashboard
+4. Add to GitHub Secrets as `FAL_API_KEY`
+5. Set GitHub Variable `VIDEO_ANIMATION_MODE=pika`
+
+**Why fal.ai?** Pika Labs officially moved to fal.ai infrastructure in 2025. This provides better reliability, official support, and proper billing.
