@@ -62,7 +62,7 @@ class Orchestrator:
         self.voice      = VoiceAgent()
         self.video      = VideoAgent()
         self.thumbnail  = ThumbnailAgent()
-        self.uploader   = None if dry_run else UploadAgent()
+        self.uploader   = None  # Lazy-loaded only when needed (render/upload)
 
     def run_prefetch(self, count: int = 2) -> None:
         """Job 1: Research trending topics, generate scripts, pre-download images → Supabase queue."""
@@ -197,8 +197,10 @@ class Orchestrator:
                 result["url"] = f"file://{video_path}"
             else:
                 self.logger.info("Step 6/6: Uploading to YouTube…")
-                upload_result = self.uploader.publish(video_path, thumb_path, script, slot_index)
-                result.update(upload_result)
+                uploader = self._get_uploader()
+                if uploader:
+                    upload_result = uploader.publish(video_path, thumb_path, script, slot_index)
+                    result.update(upload_result)
 
             result["success"]   = True
             result["completed"] = datetime.now().isoformat()
@@ -269,8 +271,10 @@ class Orchestrator:
                 result["url"] = f"file://{video_path}"
             else:
                 self.logger.info("Step 6/6: Uploading to YouTube…")
-                upload_result = self.uploader.publish(video_path, thumb_path, script, slot_index)
-                result.update(upload_result)
+                uploader = self._get_uploader()
+                if uploader:
+                    upload_result = uploader.publish(video_path, thumb_path, script, slot_index)
+                    result.update(upload_result)
 
             result["success"]   = True
             result["completed"] = datetime.now().isoformat()
@@ -375,6 +379,14 @@ class Orchestrator:
         except Exception as e:
             self.logger.error(f"Failed to count pending videos from Supabase: {e}")
             return 0
+
+    def _get_uploader(self) -> Optional[UploadAgent]:
+        """Lazy-load UploadAgent only when needed (not in dry-run or prefetch modes)."""
+        if self.dry_run or self.uploader is not None:
+            return self.uploader
+        if not self.dry_run:
+            self.uploader = UploadAgent()
+        return self.uploader
 
     def _print_summary(self, results: List[Dict]) -> None:
         ok = [r for r in results if r.get("success")]
