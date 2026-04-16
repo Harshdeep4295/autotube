@@ -236,7 +236,8 @@ class VideoAgent:
             return i, path
 
         results: Dict[int, Optional[str]] = {}
-        with ThreadPoolExecutor(max_workers=min(len(sections), 6)) as ex:
+        # Limit to 2 concurrent requests to avoid Pollinations.ai rate limiting (429 errors)
+        with ThreadPoolExecutor(max_workers=min(len(sections), 2)) as ex:
             futures = {ex.submit(fetch_one, (i, s)): i for i, s in enumerate(sections)}
             for future in as_completed(futures):
                 try:
@@ -249,8 +250,13 @@ class VideoAgent:
         return results
 
     def _fetch_ai_image(self, prompt: str, section_idx: int) -> Optional[str]:
-        """Download a Pollinations.ai (Flux) image. Cached by prompt hash. No API key needed."""
+        """
+        Download a Pollinations.ai (Flux) image. Cached by prompt hash. No API key needed.
+        Retries with exponential backoff on rate limit (429) errors.
+        """
+        import time
         import urllib.parse
+
         prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"{prompt_hash}.jpg"
 
@@ -265,19 +271,37 @@ class VideoAgent:
             f"https://image.pollinations.ai/prompt/{encoded}"
             f"?width=1920&height=1080&nologo=true&model=flux&seed={seed}"
         )
-        try:
-            resp = requests.get(url, timeout=90)
-            resp.raise_for_status()
-            with open(cache_path, "wb") as f:
-                f.write(resp.content)
-            size_kb = cache_path.stat().st_size // 1024
-            logger.info(f"AI image downloaded: {cache_path.name} ({size_kb}KB)")
-            return str(cache_path)
-        except Exception as e:
-            logger.warning(f"Pollinations image failed for '{prompt}': {e}")
-            if cache_path.exists():
-                cache_path.unlink()
-            return None
+
+        max_retries = 3
+        retry_delay = 2  # seconds, doubles on each retry
+
+        for attempt in range(max_retries):
+            try:
+                resp = requests.get(url, timeout=120)
+                resp.raise_for_status()
+                with open(cache_path, "wb") as f:
+                    f.write(resp.content)
+                size_kb = cache_path.stat().st_size // 1024
+                logger.info(f"AI image downloaded: {cache_path.name} ({size_kb}KB)")
+                return str(cache_path)
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429 and attempt < max_retries - 1:
+                    logger.info(f"Rate limited (429) — retrying in {retry_delay}s (attempt {attempt+1}/{max_retries})")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    logger.warning(f"Pollinations image failed for '{prompt}': {e}")
+                    if cache_path.exists():
+                        cache_path.unlink()
+                    return None
+            except Exception as e:
+                logger.warning(f"Pollinations image failed for '{prompt}': {e}")
+                if cache_path.exists():
+                    cache_path.unlink()
+                return None
+
+        return None
 
     # ── Animation effects — DB-driven ─────────────────────────────────────────
 
