@@ -148,17 +148,17 @@ class Config:
     )
 
     # ── Video animation mode ──────────────────────────────────────────────────
+    # "seedance"   → Seedance 2.0 via Replicate (100 free videos/day, no API key needed)
     # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (COMPLETELY FREE ✓)
-    # "pika"       → Pika via fal.ai native video generation (REQUIRES PAID ACCOUNT)
-    # Default: "ken_burns" (free, reliable). Switch via env var if you have fal.ai account.
+    # Default: "seedance" (free, high quality). Always falls back to Ken Burns if Seedance fails.
     VIDEO_ANIMATION_MODE: str = field(
-        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "ken_burns")
+        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "seedance")
     )
 
-    # ── Pika API via fal.ai (for video generation mode) ─────────────────────────
-    # Pika officially uses fal.ai infrastructure. Get key at https://fal.ai
-    FAL_API_KEY: str = field(
-        default_factory=lambda: os.getenv("FAL_API_KEY", "")
+    # ── Replicate API (for Seedance video generation) ────────────────────────────
+    # Free tier available. Get API key at https://replicate.com/account
+    REPLICATE_API_KEY: str = field(
+        default_factory=lambda: os.getenv("REPLICATE_API_KEY", "")
     )
 
     # ── Video caption / B-roll settings ──────────────────────────────────────

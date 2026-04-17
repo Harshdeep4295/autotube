@@ -207,18 +207,16 @@ class VideoAgent:
 
     def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
         """Try to generate a video for one section, falling back on errors.
-        Chain: primary_mode (if not paid) → Ken Burns → Pexels → Gradient.
-        Note: "pika" requires fal.ai paid account; not in fallback chain (opt-in only).
+        Chain: primary_mode (seedance/ken_burns) → Ken Burns → Pexels → Gradient.
         """
         modes = []
-        # Try primary mode ONLY if it's free (ken_burns)
-        # Pika (paid) is opt-in only, skip in fallback
-        if primary_mode == "ken_burns":
-            modes.append("ken_burns")
-        elif primary_mode == "pika":
-            modes.append("pika")  # Try pika first if explicitly set
+        # Try primary mode if it's free (seedance or ken_burns)
+        if primary_mode in ["seedance", "ken_burns"]:
+            modes.append(primary_mode)
 
         # Fallback chain (always free options)
+        if "seedance" not in modes:
+            modes.append("seedance")  # Free tier: 100 videos/day
         if "ken_burns" not in modes:
             modes.append("ken_burns")
         modes.append("pexels")
@@ -255,6 +253,8 @@ class VideoAgent:
                     fb_query = cinematic_fallbacks[section_idx % len(cinematic_fallbacks)]
                     paths = self._fetch_pexels_clips(fb_query, n=1)
                     path = paths[0] if paths else None
+                elif mode == "seedance":
+                    path = self._fetch_seedance_video(query, section_idx)
                 else:
                     path = None
 
@@ -380,6 +380,54 @@ class VideoAgent:
             if cache_path.exists():
                 cache_path.unlink()
             raise  # Re-raise all errors for fallback chain to handle
+
+    def _fetch_seedance_video(self, prompt: str, section_idx: int) -> Optional[str]:
+        """Fetch video from Seedance 2.0 via Replicate Python SDK. Free tier available.
+        Requires REPLICATE_API_KEY from https://replicate.com/account"""
+        if not config.REPLICATE_API_KEY:
+            logger.warning("REPLICATE_API_KEY not set — Seedance unavailable (skipping to fallback)")
+            raise ValueError("REPLICATE_API_KEY not configured")
+
+        import os
+        os.environ["REPLICATE_API_TOKEN"] = config.REPLICATE_API_KEY
+
+        prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"seedance_{prompt_hash}.mp4"
+
+        if cache_path.exists() and cache_path.stat().st_size > 100_000:
+            logger.info(f"Seedance video cache hit: {cache_path.name}")
+            return str(cache_path)
+
+        try:
+            import replicate
+            import requests
+
+            full_prompt = f"cinematic high quality {prompt}, 4K, professional cinematography"
+
+            # Use Replicate Python SDK (handles auth, polling, everything)
+            output = replicate.run(
+                "bytedance/seedance-2.0",
+                input={"prompt": full_prompt}
+            )
+
+            # Output is video URL
+            if not output:
+                logger.warning(f"Seedance returned no output for '{prompt}'")
+                return None
+
+            # Download video
+            video_resp = requests.get(output, timeout=120)
+            video_resp.raise_for_status()
+            with open(cache_path, "wb") as f:
+                f.write(video_resp.content)
+
+            size_mb = cache_path.stat().st_size / (1024 * 1024)
+            logger.info(f"Seedance video downloaded: {cache_path.name} ({size_mb:.1f}MB)")
+            return str(cache_path)
+
+        except Exception as e:
+            logger.warning(f"Seedance video generation failed: {e}")
+            return None
 
     # ── Animation Mode 2: LeiaPix (3D-depth animation from images) ──────────────
 

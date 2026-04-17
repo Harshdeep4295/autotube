@@ -58,8 +58,8 @@ jobs:
           SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
-          VIDEO_ANIMATION_MODE:  ${{ vars.VIDEO_ANIMATION_MODE || 'ken_burns' }}
-          FAL_API_KEY:           ${{ secrets.FAL_API_KEY || '' }}
+          VIDEO_ANIMATION_MODE:  ${{ vars.VIDEO_ANIMATION_MODE || 'seedance' }}
+          REPLICATE_API_KEY:     ${{ secrets.REPLICATE_API_KEY }}
         run: |
           python orchestrator.py --mode prefetch --count ${{ github.event.inputs.count || 2 }}
 

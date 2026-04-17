@@ -145,6 +145,40 @@ VIDEO_ANIMATION_MODE=pika python orchestrator.py --dry-run --topic "Test"
 
 ---
 
+## Critical Lesson: Integration Testing Before Commit
+
+**LESSON LEARNED (2026-04-17):** A typo in the Pika API endpoint (`queuee` instead of `queue`) went undetected during implementation and wasn't caught until videos were failing in production. This bug should have been caught immediately.
+
+### Rule: Never commit external API integration code without testing it
+
+Before committing ANY code that makes API calls:
+1. **Verify the endpoint URL** against official API documentation — do not assume or copy blindly
+2. **Test with a real API call** in dry-run mode — at least one successful request before commit
+3. **Check error logs carefully** — typos in URLs are obvious in 404/403 responses
+4. **Review URLs character-by-character** — `queue` vs `queuee`, `v1` vs `v2`, typos are easy to miss
+
+### Specific to this codebase:
+- **Pika endpoint** (MUST be exact): `https://api.fal.ai/v1/queue/text-to-video` 
+  - NOT `queuee` (double-e typo)
+  - NOT `v2` or other versions — always check fal.ai docs
+- **Pollinations endpoint** (no key required): `https://image.pollinations.ai/prompt/{encoded}?width=1920&height=1080&nologo=true&model=flux`
+- **Supabase endpoints** (from config.SUPABASE_URL): Always use the exact URL from your Supabase project settings
+
+### How to test before commit:
+```bash
+# For Pika integration:
+python orchestrator.py --dry-run --topic "Test Topic" 2>&1 | grep -i "pika\|fal.ai\|error"
+
+# Check for these patterns in logs:
+# ✓ "Pika video (via fal.ai) downloaded" = working
+# ✗ "403 Client Error" or "404 Client Error" = URL/auth problem
+# ✗ "Pika/fal.ai video generation failed" = something is wrong
+```
+
+If you see ANY API error in logs before committing, **trace back to the endpoint URL first** — typos are the most common cause.
+
+---
+
 ## Common Pitfalls
 
 - **`multiply_volume` AttributeError** — use `MultiplyVolume` effect, not `.multiply_volume()` method
