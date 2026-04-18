@@ -34,3 +34,5 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
+# Added by code-review-graph
+.code-review-graph/
