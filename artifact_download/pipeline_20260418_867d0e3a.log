@@ -1,0 +1,55 @@
+2026-04-18 11:29:56,914 [INFO] orchestrator: === AutoTube Pipeline ===
+2026-04-18 11:29:56,914 [INFO] orchestrator: Run ID     : 867d0e3a
+2026-04-18 11:29:56,914 [INFO] orchestrator: Provider   : claude
+2026-04-18 11:29:56,914 [INFO] orchestrator: Mode       : LIVE
+2026-04-18 11:29:56,914 [INFO] orchestrator: Niche      : AI & Tech
+2026-04-18 11:29:59,182 [INFO] httpx: HTTP Request: GET https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/animation_effects?select=id&limit=1 "HTTP/2 200 OK"
+2026-04-18 11:29:59,448 [INFO] httpx: HTTP Request: GET https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/animation_effects?select=name%2Cz_expr%2Cx_expr%2Cy_expr%2Cweight&enabled=eq.True&order=weight.desc "HTTP/2 200 OK"
+2026-04-18 11:29:59,449 [INFO] agents.video_agent: Loaded 17 animation effects from Supabase
+2026-04-18 11:30:00,214 [INFO] httpx: HTTP Request: GET https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/pending_videos?select=%2A&status=eq.pending&approved=eq.True&order=created_at.asc&limit=1 "HTTP/2 200 OK"
+2026-04-18 11:30:00,997 [INFO] httpx: HTTP Request: PATCH https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/pending_videos?id=eq.9 "HTTP/2 200 OK"
+2026-04-18 11:30:00,998 [INFO] orchestrator: Updated Supabase row 9: status=rendering
+2026-04-18 11:30:00,998 [INFO] orchestrator: Step 3/6: Synthesizing voiceover…
+2026-04-18 11:30:00,999 [INFO] agents.voice_agent: Synthesizing 663 words of narration…
+2026-04-18 11:30:14,991 [INFO] agents.voice_agent: Voiceover saved (edge-tts): outputs/20260418_448a59/audio.mp3
+2026-04-18 11:30:14,992 [INFO] orchestrator: Step 4/6: Rendering video…
+2026-04-18 11:30:15,102 [INFO] agents.video_agent: Audio duration: 277.5s — rendering 6 sections
+2026-04-18 11:30:15,102 [INFO] agents.video_agent: Animation mode: seedance
+2026-04-18 11:30:15,102 [INFO] agents.video_agent: Using prefetched images from queue
+2026-04-18 11:30:15,102 [INFO] agents.video_agent: Section 1 animation: drift_bl
+2026-04-18 11:30:15,103 [INFO] agents.video_agent: Section 2 animation: zoom_in_tr
+2026-04-18 11:30:15,103 [INFO] agents.video_agent: Section 3 animation: zoom_in_tl
+2026-04-18 11:30:15,103 [INFO] agents.video_agent: Section 4 animation: drift_br
+2026-04-18 11:30:15,103 [INFO] agents.video_agent: Section 5 animation: zoom_in_br
+2026-04-18 11:30:15,103 [INFO] agents.video_agent: Section 6 animation: zoom_in_bl
+2026-04-18 11:30:15,105 [WARNING] agents.video_agent: Section 0 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_c83450c7098a.mp4' not found) — using gradient
+2026-04-18 11:30:15,121 [WARNING] agents.video_agent: Section 1 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_2b3436c6248e.mp4' not found) — using gradient
+2026-04-18 11:30:15,134 [WARNING] agents.video_agent: Section 2 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_c92981e16e3b.mp4' not found) — using gradient
+2026-04-18 11:30:15,144 [WARNING] agents.video_agent: Section 3 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_993019a5f3b6.mp4' not found) — using gradient
+2026-04-18 11:30:15,154 [WARNING] agents.video_agent: Section 4 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_8405c19b2c95.mp4' not found) — using gradient
+2026-04-18 11:30:15,163 [WARNING] agents.video_agent: Section 5 clip failed ('/home/runner/work/autotube/autotube/outputs/video_cache/fx_00c9e6c5489c.mp4' not found) — using gradient
+2026-04-18 11:30:15,236 [INFO] agents.video_agent: Generated SRT: outputs/20260418_448a59/captions.srt (35 entries)
+2026-04-18 11:30:15,267 [INFO] agents.video_agent: Writing video: outputs/20260418_448a59/video.mp4 (~4.6 min of footage, est. 5-8 min render)
+2026-04-18 11:51:59,714 [INFO] agents.video_agent: Video saved: outputs/20260418_448a59/video.mp4
+2026-04-18 11:51:59,715 [INFO] agents.video_agent: Used-clips registry: 6 total hashes saved
+2026-04-18 11:51:59,718 [INFO] orchestrator: Step 5/6: Creating thumbnail…
+2026-04-18 11:52:00,549 [INFO] agents.thumbnail_agent: AI thumbnail background generated: thumb_f061285dd239.jpg
+2026-04-18 11:52:00,573 [INFO] agents.thumbnail_agent: Thumbnail saved: outputs/20260418_448a59/thumbnail.jpg
+2026-04-18 11:52:00,573 [INFO] orchestrator: Step 6/6: Uploading to YouTube…
+2026-04-18 11:52:00,622 [INFO] googleapiclient.discovery_cache: file_cache is only supported with oauth2client<4.0.0
+2026-04-18 11:52:00,624 [INFO] agents.upload_agent: Uploading: The Engineering Trick That Starts Wars — Casus Belli Explain → publish at 2026-04-19T03:30:00.000Z UTC
+2026-04-18 11:52:00,743 [INFO] google_auth_httplib2: Refreshing credentials due to a 401 response. Attempt 1/2.
+2026-04-18 11:52:02,680 [WARNING] googleapiclient.http: Encountered 403 Forbidden with reason "forbidden"
+2026-04-18 11:52:02,680 [WARNING] agents.upload_agent: Thumbnail upload failed (video still uploaded): <HttpError 403 when requesting https://youtube.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=PtrMFvjw880&alt=json&uploadType=media returned "The authenticated user doesn't have permissions to upload and set custom video thumbnails.". Details: "[{'message': "The authenticated user doesn't have permissions to upload and set custom video thumbnails.", 'domain': 'youtube.thumbnail', 'reason': 'forbidden', 'location': 'Authorization', 'locationType': 'header'}]">
+2026-04-18 11:52:03,145 [INFO] agents.upload_agent: Captions uploaded for video PtrMFvjw880
+2026-04-18 11:52:03,146 [INFO] agents.upload_agent: Uploaded successfully: https://youtube.com/watch?v=PtrMFvjw880
+2026-04-18 11:52:04,589 [INFO] httpx: HTTP Request: PATCH https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/pending_videos?id=eq.9 "HTTP/2 200 OK"
+2026-04-18 11:52:04,590 [INFO] orchestrator: Updated Supabase row 9: status=published
+2026-04-18 11:52:04,590 [INFO] orchestrator:   ✓ Rendered & uploaded: https://youtube.com/watch?v=PtrMFvjw880
+2026-04-18 11:52:04,590 [INFO] orchestrator: 
+============================================================
+2026-04-18 11:52:04,590 [INFO] orchestrator: SUMMARY: 1 succeeded / 0 failed
+2026-04-18 11:52:04,590 [INFO] orchestrator:   ✓ The Engineering Trick That Starts Wars — Casus Belli Ex
+2026-04-18 11:52:04,590 [INFO] orchestrator:     https://youtube.com/watch?v=PtrMFvjw880
+2026-04-18 11:52:04,590 [INFO] orchestrator: ============================================================
+2026-04-18 11:52:04,591 [INFO] orchestrator: Report saved: logs/report_20260418.json

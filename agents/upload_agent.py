@@ -29,18 +29,23 @@ class UploadAgent:
         thumb_path: str,
         script: Dict,
         slot_index: int = 0,
+        publish_immediately: bool = True,
     ) -> Dict:
         """
         Args:
             video_path: Path to the rendered MP4
             thumb_path: Path to the JPEG thumbnail
             script: Script dict (title, description, tags)
-            slot_index: Which IST slot to schedule (0=morning, 1=noon, 2=afternoon, 3=evening)
+            slot_index: Which IST slot to schedule (ignored if publish_immediately=True)
+            publish_immediately: If True, publish now. If False, schedule for slot_index time.
         Returns:
             dict with video_id, url, publish_at, uploaded_at
         """
-        publish_at = self._get_publish_time(slot_index)
-        logger.info(f"Uploading: {script['title'][:60]} → publish at {publish_at} UTC")
+        publish_at = None if publish_immediately else self._get_publish_time(slot_index)
+        if publish_immediately:
+            logger.info(f"Uploading: {script['title'][:60]} → publish immediately (NOW)")
+        else:
+            logger.info(f"Uploading: {script['title'][:60]} → schedule for {publish_at} UTC")
 
         video_id = self._upload_video(video_path, script, publish_at)
         self._set_thumbnail(video_id, thumb_path)
@@ -55,7 +60,7 @@ class UploadAgent:
         result = {
             "video_id": video_id,
             "url": f"https://youtube.com/watch?v={video_id}",
-            "publish_at": publish_at,
+            "publish_at": publish_at or datetime.utcnow().isoformat(),
             "uploaded_at": datetime.utcnow().isoformat(),
             "success": True,
         }
@@ -75,11 +80,13 @@ class UploadAgent:
                 "categoryId": config.VIDEO_CATEGORY_ID,
             },
             "status": {
-                "privacyStatus": "private" if publish_at else config.VIDEO_PRIVACY,
-                "publishAt": publish_at,
+                "privacyStatus": config.VIDEO_PRIVACY,
                 "madeForKids": config.VIDEO_MADE_FOR_KIDS,
             },
         }
+        # Only add publishAt if scheduling (not publishing immediately)
+        if publish_at:
+            body["status"]["publishAt"] = publish_at
 
         media = MediaFileUpload(
             video_path,
