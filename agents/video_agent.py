@@ -746,7 +746,8 @@ class VideoAgent:
             try:
                 result = subprocess.run(cmd, capture_output=True, timeout=120)
                 if result.returncode != 0:
-                    raise RuntimeError(result.stderr.decode()[-400:])
+                    stderr_full = result.stderr.decode()
+                    raise RuntimeError(f"FFmpeg zoompan failed: {stderr_full}")
                 kb = cache_path.stat().st_size // 1024
                 logger.info(f"FFmpeg effect '{effect['name']}': {cache_path.name} ({kb}KB)")
             except Exception as e:
@@ -802,7 +803,38 @@ class VideoAgent:
                     t += section_dur
                     continue
                 except Exception as e:
-                    logger.warning(f"Section {i} animation failed ({e}) — using gradient")
+                    logger.warning(f"Section {i} Ken Burns animation failed ({e}) — trying gradient")
+
+            elif clip_path and clip_path.endswith(".mp4"):
+                # Prefetched cached video from prior job (may not exist due to cache isolation)
+                # Validate file exists before trying to use it
+                if not Path(clip_path).exists():
+                    logger.warning(f"Section {i} prefetched video not found ({clip_path}), regenerating with Ken Burns...")
+                    try:
+                        # Regenerate Ken Burns from the original image query
+                        img = self._fetch_ai_image(query, i)
+                        if img:
+                            clip = self._image_to_ken_burns_clip(img, section_dur, effect=effect)
+                            section_clips.append(clip)
+                            t += section_dur
+                            continue
+                    except Exception as e2:
+                        logger.warning(f"Section {i} Ken Burns regeneration failed ({e2})")
+                    # If regeneration failed, fall through to gradient
+                else:
+                    try:
+                        raw = VideoFileClip(clip_path)
+                        clip = self._resize_and_crop(raw, self.W, self.H)
+                        if clip.duration < section_dur:
+                            loops = math.ceil(section_dur / clip.duration)
+                            from moviepy import concatenate_videoclips as cv
+                            clip = cv([clip] * loops, method="compose")
+                        clip = clip.subclipped(0, section_dur)
+                        section_clips.append(clip)
+                        t += section_dur
+                        continue
+                    except Exception as e:
+                        logger.warning(f"Section {i} cached video loading failed ({e}) — using gradient")
 
             elif clip_path:
                 # V1: Pexels video clip
