@@ -25,7 +25,7 @@ from config import config
 logger = logging.getLogger(__name__)
 
 # Configuration
-KLING_API_BASE = "https://api.evolink.ai/v1"
+KLING_API_BASE = "https://api.klingai.com"
 JWT_EXPIRATION_SECONDS = 1800  # 30 minutes
 POLL_INTERVAL_SECONDS = 5
 MAX_POLLING_SECONDS = 300  # 5 minutes timeout
@@ -153,21 +153,16 @@ class KlingAPIClient:
         Returns: task_id (use for polling)
         """
         body = {
-            "model": "kling-v3-text-to-video",
-            "task_type": "video_generation",
-            "input": {
-                "prompt": prompt[:2500],  # Max 2500 chars
-                "negative_prompt": negative_prompt[:2500],
-                "duration": min(duration, 15),  # Max 15 seconds
-                "aspect_ratio": aspect_ratio,
-                "mode": mode
-            },
-            "config": {}
+            "prompt": prompt[:2500],  # Max 2500 chars
+            "negative_prompt": negative_prompt[:2500],
+            "duration": min(duration, 15),  # Max 15 seconds
+            "aspect_ratio": aspect_ratio,
+            "model": "kling-v3-pro"
         }
 
         self.logger.info(f"Submitting Kling generation: {prompt[:100]}...")
 
-        data = await self._request("POST", "/videos/generations", json=body)
+        data = await self._request("POST", "/v1/videos/text2video", json=body)
         task_id = data.get("task_id")
 
         if not task_id:
@@ -181,7 +176,7 @@ class KlingAPIClient:
         Check generation status
         Returns: status, progress, videos (if complete), error (if failed)
         """
-        data = await self._request("GET", f"/tasks/{task_id}")
+        data = await self._request("GET", f"/v1/tasks/{task_id}")
 
         return {
             "task_id": task_id,
@@ -250,6 +245,7 @@ class KlingVideoGenerator:
             raise ValueError("KLING_ACCESS_KEY and KLING_SECRET_KEY required")
 
         self.client = KlingAPIClient(self.access_key, self.secret_key)
+        self.logger = logger
         self.storage_dir = storage_dir or str(
             Path(config.VIDEO_CACHE_DIR) / "kling"
         )
