@@ -30,3 +30,8 @@ supabase>=2.0.0
 
 # Utilities
 python-dotenv>=1.0.0
+
+# Kling AI integration (Path A)
+kling-api>=0.1.0
+httpx>=0.24.0
+pyjwt>=2.8.0

@@ -29,6 +29,7 @@ import numpy as np
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
+from agents.kling_video_agent import KlingVideoGenerator
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,7 @@ class VideoAgent:
         self._used_hashes: set = self._load_used_clips()
         self._new_hashes: set = set()   # hashes used in this run, saved after render
         self.animation_effects: List[Dict] = self._load_animation_effects()
+        self.kling_generator = None
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -207,7 +209,7 @@ class VideoAgent:
 
     def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
         """Try to generate a video for one section, falling back on errors.
-        Chain: primary_mode (seedance/ken_burns) → Ken Burns → Pexels → Gradient.
+        Chain: primary_mode (seedance/ken_burns) → Seedance → Kling → Ken Burns → Pexels → Gradient.
         """
         modes = []
         # Try primary mode if it's free (seedance or ken_burns)
@@ -217,6 +219,7 @@ class VideoAgent:
         # Fallback chain (always free options)
         if "seedance" not in modes:
             modes.append("seedance")  # Free tier: 100 videos/day
+        modes.append("kling")  # Kling: 66 free credits/day
         if "ken_burns" not in modes:
             modes.append("ken_burns")
         modes.append("pexels")
@@ -225,6 +228,16 @@ class VideoAgent:
             try:
                 if mode == "pika":
                     path = self._fetch_pika_video(query, section_idx)
+                elif mode == "kling":
+                    # Initialize generator if needed
+                    if not self.kling_generator:
+                        self.kling_generator = KlingVideoGenerator()
+
+                    # Use asyncio to run async function
+                    import asyncio
+                    path = asyncio.run(
+                        self.kling_generator.generate(query, section_idx)
+                    )
                 elif mode == "ken_burns":
                     img = self._fetch_ai_image(query, section_idx)
                     if img:

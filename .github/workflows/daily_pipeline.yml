@@ -92,6 +92,9 @@ jobs:
           VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
           VIDEO_ANIMATION_MODE:  ${{ vars.VIDEO_ANIMATION_MODE || 'seedance' }}
           REPLICATE_API_KEY:     ${{ secrets.REPLICATE_API_KEY }}
+          KLING_ACCESS_KEY:      ${{ secrets.KLING_ACCESS_KEY }}
+          KLING_SECRET_KEY:      ${{ secrets.KLING_SECRET_KEY }}
+          KLING_WEBHOOK_SECRET:  ${{ secrets.KLING_WEBHOOK_SECRET }}
         run: |
           COUNT="${{ github.event.inputs.count || '1' }}"
           MODE="render"
