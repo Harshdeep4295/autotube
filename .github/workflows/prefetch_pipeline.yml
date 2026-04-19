@@ -2,7 +2,7 @@ name: AutoTube Prefetch
 
 on:
   schedule:
-    - cron: '0 */3 * * *'   # every 3 hours — keeps queue full
+    - cron: '0 */6 * * *'   # every 3 hours — keeps queue full
   workflow_dispatch:
     inputs:
       count:
