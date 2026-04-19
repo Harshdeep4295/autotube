@@ -25,10 +25,10 @@ from config import config
 logger = logging.getLogger(__name__)
 
 # Configuration
-KLING_API_BASE = "https://api.klingai.com"
+KLING_API_BASE = "https://api-singapore.klingai.com"  # Updated: new API domain (was api.klingai.com)
 JWT_EXPIRATION_SECONDS = 1800  # 30 minutes
 POLL_INTERVAL_SECONDS = 5
-MAX_POLLING_SECONDS = 300  # 5 minutes timeout
+MAX_POLLING_SECONDS = 300  # 5 minutes timeout (videos take ~60s + exponential backoff delays)
 VIDEO_URL_EXPIRATION_HOURS = 24
 
 
@@ -118,6 +118,11 @@ class KlingAPIClient:
                 raise AuthenticationError("Invalid or expired credentials")
             elif response.status_code == 402:
                 raise InsufficientCreditsError("Daily quota exhausted")
+            elif response.status_code == 404:
+                # Task not found - likely account has no credits or task was rejected
+                error_msg = response.text
+                self.logger.warning(f"404 response: {error_msg}")
+                raise APIError(f"Task not found (404): {error_msg}")
             elif response.status_code == 429:
                 raise RateLimitError("Too many requests, retry later")
             elif response.status_code >= 500:
@@ -125,8 +130,11 @@ class KlingAPIClient:
 
             data = response.json()
 
-            # Handle API-level errors
-            if data.get("code") != 200:
+            # Handle API-level errors (code can be 200, 0, or "SUCCEED")
+            code = data.get("code")
+            is_success = code == 200 or code == 0 or code == "SUCCEED"
+
+            if not is_success:
                 message = data.get("message", "Unknown error")
                 if "invalid content" in message.lower():
                     raise ContentPolicyViolation(message)
@@ -157,35 +165,44 @@ class KlingAPIClient:
             "negative_prompt": negative_prompt[:2500],
             "duration": min(duration, 15),  # Max 15 seconds
             "aspect_ratio": aspect_ratio,
-            "model": "kling-v3-pro"
+            "model": "kling-v2.6-pro"
         }
 
         self.logger.info(f"Submitting Kling generation: {prompt[:100]}...")
+        self.logger.debug(f"Request body: {body}")
 
         data = await self._request("POST", "/v1/videos/text2video", json=body)
-        task_id = data.get("task_id")
+        self.logger.info(f"API response data: {json.dumps(data, indent=2)}")
+
+        # Try multiple possible field names for task_id
+        task_id = (
+            data.get("task_id") or
+            data.get("task") or
+            data.get("id") or
+            data.get("task_id_str") or
+            data.get("taskId")
+        )
 
         if not task_id:
-            raise APIError("No task_id in response")
+            raise APIError(f"No task_id in response. Available keys: {list(data.keys())}")
 
-        self.logger.info(f"Generation submitted: {task_id}")
+        self.logger.info(f"Generation submitted: task_id={task_id}")
         return task_id
 
     async def get_task_status(self, task_id: str) -> Dict:
         """
         Check generation status
-        Returns: status, progress, videos (if complete), error (if failed)
+        Returns: task_status, videos (if complete), error message (if failed)
         """
-        data = await self._request("GET", f"/v1/tasks/{task_id}")
+        data = await self._request("GET", f"/v1/videos/text2video/{task_id}")
 
         return {
             "task_id": task_id,
-            "status": data.get("status"),  # COMPLETED, FAILED, IN_PROGRESS, PENDING
-            "progress": data.get("progress", 0),
-            "videos": data.get("videos", []),
-            "error": data.get("error"),
-            "consumed_credits": data.get("consumed_credits"),
-            "completed_at": data.get("completed_at")
+            "task_status": data.get("task_status"),  # submitted, processing, succeed, failed
+            "task_status_msg": data.get("task_status_msg"),
+            "videos": data.get("task_result", {}).get("videos", []),
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at")
         }
 
     async def poll_until_complete(
@@ -194,6 +211,12 @@ class KlingAPIClient:
         timeout_seconds: int = MAX_POLLING_SECONDS
     ) -> Dict:
         """Poll status until COMPLETED or timeout"""
+        import asyncio
+
+        # Brief wait for task to be processed on server
+        self.logger.info(f"Polling for task {task_id}...")
+        await asyncio.sleep(2)
+
         start_time = time.time()
 
         while True:
@@ -205,18 +228,19 @@ class KlingAPIClient:
                 )
 
             status = await self.get_task_status(task_id)
+            task_status = status.get("task_status") or status.get("status")
 
-            if status["status"] == "COMPLETED":
+            if task_status == "succeed":
                 self.logger.info(f"Generation complete: {task_id}")
                 return status
 
-            elif status["status"] == "FAILED":
-                error = status.get("error", "Unknown error")
-                raise GenerationError(f"Generation failed: {error}")
+            elif task_status == "failed":
+                error_msg = status.get("task_status_msg", "Unknown error")
+                raise GenerationError(f"Generation failed: {error_msg}")
 
             # Still processing
             self.logger.debug(
-                f"Polling {task_id}: {status['progress']}% "
+                f"Polling {task_id}: status={task_status} "
                 f"({elapsed:.0f}s elapsed)"
             )
 
