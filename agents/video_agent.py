@@ -209,20 +209,22 @@ class VideoAgent:
 
     def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
         """Try to generate a video for one section, falling back on errors.
-        Chain: primary_mode (seedance/ken_burns) → Seedance → Kling → Ken Burns → Pexels → Gradient.
+        Chain respects primary_mode: if kling/seedance, don't fall back to other video generators.
         """
         modes = []
-        # Try primary mode if it's free (seedance or ken_burns)
-        if primary_mode in ["seedance", "ken_burns"]:
-            modes.append(primary_mode)
 
-        # Fallback chain (always free options)
-        if "seedance" not in modes:
-            modes.append("seedance")  # Free tier: 100 videos/day
-        modes.append("kling")  # Kling: 66 free credits/day
-        if "ken_burns" not in modes:
-            modes.append("ken_burns")
-        modes.append("pexels")
+        # Primary mode first (no fallback to competing generators)
+        if primary_mode == "kling":
+            modes = ["kling", "ken_burns", "pexels"]
+        elif primary_mode == "seedance":
+            modes = ["seedance", "ken_burns", "pexels"]
+        elif primary_mode == "ken_burns":
+            modes = ["ken_burns", "pexels"]
+        elif primary_mode == "pika":
+            modes = ["pika", "ken_burns", "pexels"]
+        else:
+            # Default fallback chain
+            modes = ["seedance", "kling", "ken_burns", "pexels"]
 
         for mode in modes:
             try:
@@ -233,11 +235,22 @@ class VideoAgent:
                     if not self.kling_generator:
                         self.kling_generator = KlingVideoGenerator()
 
-                    # Use asyncio to run async function
+                    # Use asyncio to run async function (handle event loop properly)
                     import asyncio
-                    path = asyncio.run(
-                        self.kling_generator.generate(query, section_idx)
-                    )
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_closed():
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        path = loop.run_until_complete(
+                            self.kling_generator.generate(query, section_idx)
+                        )
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        path = loop.run_until_complete(
+                            self.kling_generator.generate(query, section_idx)
+                        )
                 elif mode == "ken_burns":
                     img = self._fetch_ai_image(query, section_idx)
                     if img:

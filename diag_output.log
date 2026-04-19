@@ -1,0 +1,42 @@
+
+======================================================================
+KLING API DIAGNOSTIC TEST
+======================================================================
+
+[1] Checking credentials...
+✅ Credentials found
+
+[2] Importing Kling generator...
+✅ Import successful
+
+[3] Initializing KlingVideoGenerator...
+✅ Generator initialized
+
+[4] Testing API submission...
+   Prompt: A beautiful sunset over mountains with golden light
+   Sending request to: POST https://api.klingai.com/v1/videos/text2video
+✅ Submission successful!
+   Task ID: 874855866158162006
+   Task ID type: <class 'str'>
+   Task ID length: 18
+
+[5] Testing task status polling...
+   Getting status for task: 874855866158162006
+   Polling: GET https://api.klingai.com/v1/tasks/874855866158162006
+404 response: {"timestamp":"2026-04-19T14:53:31.959+0000","status":404,"error":"Not Found","message":"No message available","path":"/v1/videos/874855866158162006"}
+❌ Polling failed: Task not found (404): {"timestamp":"2026-04-19T14:53:31.959+0000","status":404,"error":"Not Found","message":"No message available","path":"/v1/videos/874855866158162006"}
+
+   This usually means:
+   1. Account doesn't have credits/quota
+   2. Task ID format is wrong
+   3. Polling endpoint format is wrong
+   4. API changed response format
+
+[6] Attempting detailed error diagnosis...
+   Checking if credits are available...
+   Making request with headers: ['Authorization', 'Content-Type']
+   Response status: 404
+   Response body: {"timestamp":"2026-04-19T14:53:32.357+0000","status":404,"error":"Not Found","message":"No message available","path":"/v1/tasks/874855866158162006"}
+
+======================================================================
+
