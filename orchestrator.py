@@ -507,23 +507,25 @@ class Orchestrator:
             from supabase import create_client
             client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
-            # Fetch all pending videos with kling_task_ids
+            # Fetch all pending videos and filter for those with kling_task_ids
             res = (
                 client.table("pending_videos")
                 .select("id, topic, script_json, kling_task_ids, image_cache")
-                .not_("kling_task_ids", "is", None)
                 .eq("status", "pending")
                 .limit(10)  # Don't harvest too many at once
                 .execute()
             )
 
-            if not res.data:
+            # Filter for rows with kling_task_ids
+            rows_with_tasks = [r for r in res.data if r.get("kling_task_ids")]
+
+            if not rows_with_tasks:
                 self.logger.info("No pending Kling tasks to harvest")
                 return
 
-            self.logger.info(f"Harvesting {len(res.data)} pending Kling tasks...")
+            self.logger.info(f"Harvesting {len(rows_with_tasks)} pending Kling tasks...")
 
-            for row in res.data:
+            for row in rows_with_tasks:
                 row_id = row["id"]
                 topic = row["topic"]
                 kling_task_ids = row.get("kling_task_ids", {})
