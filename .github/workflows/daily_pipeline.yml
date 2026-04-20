@@ -90,7 +90,7 @@ jobs:
           SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE: ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
-          VIDEO_ANIMATION_MODE:  ${{ vars.VIDEO_ANIMATION_MODE || 'seedance' }}
+          VIDEO_ANIMATION_MODE:  ${{ secrets.VIDEO_ANIMATION_MODE || 'kling' }}
           REPLICATE_API_KEY:     ${{ secrets.REPLICATE_API_KEY }}
           KLING_ACCESS_KEY:      ${{ secrets.KLING_ACCESS_KEY }}
           KLING_SECRET_KEY:      ${{ secrets.KLING_SECRET_KEY }}

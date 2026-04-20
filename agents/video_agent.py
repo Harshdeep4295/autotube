@@ -820,6 +820,7 @@ class VideoAgent:
             section_dur = max(2.0, (words / max(total_words, 1)) * total_duration)
             clip_path = clip_paths.get(i)
             effect = section_effects[i] if section_effects and i < len(section_effects) else None
+            visual_query = section.get("visual_query", "")
 
             if clip_path and clip_path.endswith(".jpg"):
                 # V2: AI-generated image → animated effect clip via FFmpeg
@@ -829,7 +830,7 @@ class VideoAgent:
                     t += section_dur
                     continue
                 except Exception as e:
-                    logger.warning(f"Section {i} Ken Burns animation failed ({e}) — trying gradient")
+                    logger.warning(f"Section {i} Ken Burns animation failed ({e}) — using gradient")
 
             elif clip_path and clip_path.endswith(".mp4"):
                 # Prefetched cached video from prior job (may not exist due to cache isolation)
@@ -837,8 +838,8 @@ class VideoAgent:
                 if not Path(clip_path).exists():
                     logger.warning(f"Section {i} prefetched video not found ({clip_path}), regenerating with Ken Burns...")
                     try:
-                        # Regenerate Ken Burns from the original image query
-                        img = self._fetch_ai_image(query, i)
+                        # Regenerate Ken Burns from the section's visual query
+                        img = self._fetch_ai_image(visual_query, i) if visual_query else None
                         if img:
                             clip = self._image_to_ken_burns_clip(img, section_dur, effect=effect)
                             section_clips.append(clip)
