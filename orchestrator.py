@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -65,7 +66,7 @@ class Orchestrator:
         self.uploader   = None  # Lazy-loaded only when needed (render/upload)
 
     def run_prefetch(self, count: int = 2) -> None:
-        """Job 1: Research trending topics, generate scripts, pre-download images → Supabase queue."""
+        """Job 1: Research topics, generate scripts, submit Kling tasks async → Supabase queue."""
         # Check queue level — only prefetch if pending count < 3
         pending_count = self._count_pending_videos()
         if pending_count >= 3:
@@ -86,44 +87,81 @@ class Orchestrator:
                 # Step 1: Save script to DB immediately — this must succeed before any video work
                 row_id = self._save_pending_video(topic["topic"], script, {})
                 if not row_id:
-                    self.logger.warning(f"Could not get row_id for '{topic['topic']}' — skipping video prefetch")
+                    self.logger.warning(f"Could not get row_id for '{topic['topic']}' — skipping async Kling tasks")
                     queued_count += 1
                     continue
 
                 self.logger.info(f"Queued (script saved): {script.get('title', topic['topic'])[:60]}")
 
-                # Step 2: Attempt video pre-generation (best-effort — if this times out or fails, script is already safe in DB)
+                # Step 2: Submit Kling tasks async (fire-and-forget) — do NOT wait for completion
                 try:
-                    video_cache = self.video._get_section_videos(
+                    kling_task_ids = self._submit_kling_tasks_async(
                         script.get("sections", []),
                         script.get("visual_queries", [])
                     )
-                    # Convert absolute paths to relative for portability across jobs
-                    relative_cache = {}
-                    for idx, path in video_cache.items():
-                        if path:
-                            try:
-                                rel_path = str(Path(path).relative_to(Path.cwd()))
-                            except ValueError:
-                                rel_path = str(path)
-                        else:
-                            rel_path = None
-                        relative_cache[str(idx)] = rel_path
 
-                    # Step 3: Update DB row with video paths (only if we got some)
-                    if any(v for v in relative_cache.values()):
-                        self._update_pending_image_cache(row_id, relative_cache)
-                        self.logger.info(f"Video cache updated: {sum(1 for v in relative_cache.values() if v)}/6 sections cached")
+                    # Step 3: Save task IDs to DB for later polling at render time
+                    if kling_task_ids:
+                        self._save_kling_task_ids(row_id, kling_task_ids)
+                        self.logger.info(f"Submitted {sum(1 for v in kling_task_ids.values() if v)} Kling tasks (will poll at render time)")
                     else:
-                        self.logger.info(f"No videos cached — render job will generate at runtime")
+                        self.logger.info(f"No Kling tasks submitted (videos may be cached or skipped)")
+
                 except Exception as e:
-                    self.logger.warning(f"Video pre-generation failed (script already saved): {e}")
+                    self.logger.warning(f"Kling task submission failed (script already saved): {e}")
 
                 queued_count += 1
             except Exception as e:
                 self.logger.error(f"Prefetch failed for '{topic['topic']}': {e}")
 
-        self.logger.info(f"Prefetch complete: {queued_count} scripts queued (video generation deferred to render job if needed)")
+        self.logger.info(f"Prefetch complete: {queued_count} scripts queued with async Kling tasks")
+
+    def _submit_kling_tasks_async(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+        """Submit Kling tasks asynchronously for all sections. Returns task_id dict (fires and forgets)."""
+        import asyncio
+        from agents.kling_video_agent import KlingVideoGenerator
+
+        async def _submit_all():
+            try:
+                generator = KlingVideoGenerator()
+                results = {}
+
+                for i, section in enumerate(sections):
+                    query = (
+                        visual_queries[i].strip()
+                        if i < len(visual_queries) and visual_queries[i].strip()
+                        else f"cinematic section {i+1}"
+                    )
+
+                    # Submit task (returns task_id or None if cached)
+                    task_id = await generator.submit(
+                        prompt=query,
+                        section_idx=i,
+                        duration=5
+                    )
+                    results[i] = task_id
+
+                await generator.close()
+                return results
+            except Exception as e:
+                self.logger.warning(f"Error submitting Kling tasks: {e}")
+                return {}
+
+        # Run async tasks
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        try:
+            return loop.run_until_complete(_submit_all())
+        except Exception as e:
+            self.logger.warning(f"Failed to submit Kling tasks: {e}")
+            return {}
 
     def run_render(self, count: int = 1) -> List[Dict]:
         """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
@@ -276,6 +314,37 @@ class Orchestrator:
             # If image_cache is empty, pass None so render job generates videos at runtime
             prefetched_images = image_cache if image_cache else None
 
+            # Check for Kling tasks submitted during prefetch — poll briefly (60s timeout)
+            kling_task_ids = row.get("kling_task_ids")
+            if kling_task_ids:
+                self.logger.info(f"Checking {len(kling_task_ids)} pending Kling tasks from prefetch...")
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                try:
+                    kling_results = loop.run_until_complete(
+                        self._check_kling_tasks(row["id"], kling_task_ids, script)
+                    )
+
+                    # Merge Kling results with prefetched images (Kling takes priority)
+                    if prefetched_images is None:
+                        prefetched_images = {}
+                    for section_idx, video_path in kling_results.items():
+                        if video_path:
+                            prefetched_images[section_idx] = video_path
+                            self.logger.info(f"Using Kling video for section {section_idx}")
+
+                except Exception as e:
+                    self.logger.warning(f"Error checking Kling tasks: {e} (will generate at runtime)")
+            else:
+                self.logger.info("No pending Kling tasks found")
+
             # Step 3: Voiceover
             self.logger.info("Step 3/6: Synthesizing voiceover…")
             audio_path = str(out_dir / "audio.mp3")
@@ -424,6 +493,63 @@ class Orchestrator:
         except Exception as e:
             self.logger.error(f"Failed to count pending videos from Supabase: {e}")
             return 0
+
+    def _save_kling_task_ids(self, row_id: int, kling_task_ids: Dict[int, Optional[str]]) -> None:
+        """Store Kling task IDs in Supabase after async submission."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            return
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            # Filter out None values (cached/skipped sections)
+            tasks = {str(k): v for k, v in kling_task_ids.items() if v is not None}
+            if tasks:
+                client.table("pending_videos").update(
+                    {"kling_task_ids": tasks, "kling_submitted_at": datetime.now().isoformat()}
+                ).eq("id", row_id).execute()
+                self.logger.info(f"Saved {len(tasks)} Kling task IDs for row {row_id}")
+            else:
+                self.logger.info(f"No Kling task IDs to save (all sections cached/skipped)")
+        except Exception as e:
+            self.logger.warning(f"Failed to save Kling task IDs for row {row_id}: {e}")
+
+    async def _check_kling_tasks(self, row_id: int, kling_task_ids: Dict[str, str], script: Dict) -> Dict[int, Optional[str]]:
+        """Check and download Kling videos at render time (60s timeout per task)."""
+        from agents.kling_video_agent import KlingVideoGenerator
+
+        if not kling_task_ids:
+            return {}
+
+        try:
+            generator = KlingVideoGenerator()
+            results = {}
+
+            visual_queries = script.get("visual_queries", [])
+
+            for section_idx_str, task_id in kling_task_ids.items():
+                section_idx = int(section_idx_str)
+                query = visual_queries[section_idx] if section_idx < len(visual_queries) else "cinematic"
+
+                # Poll briefly (60s) for this section
+                path = await generator.check_and_download(
+                    task_id=task_id,
+                    prompt=query,
+                    section_idx=section_idx,
+                    duration=5,
+                    timeout_seconds=60
+                )
+                results[section_idx] = path
+                if path:
+                    self.logger.info(f"[KLING-RENDER] Section {section_idx}: downloaded {Path(path).name}")
+                else:
+                    self.logger.info(f"[KLING-RENDER] Section {section_idx}: not ready in 60s, will use fallback")
+
+            await generator.close()
+            return results
+
+        except Exception as e:
+            self.logger.warning(f"Failed to check Kling tasks: {e}")
+            return {}
 
     def _get_uploader(self) -> Optional[UploadAgent]:
         """Lazy-load UploadAgent only when needed (not in dry-run or prefetch modes)."""

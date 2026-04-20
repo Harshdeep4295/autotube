@@ -259,7 +259,7 @@ class KlingAPIClient:
 
 
 class KlingVideoGenerator:
-    """High-level video generation orchestrator"""
+    """High-level video generation orchestrator with async task submission"""
 
     def __init__(self, storage_dir: str = None):
         self.access_key = os.getenv("KLING_ACCESS_KEY")
@@ -275,6 +275,93 @@ class KlingVideoGenerator:
         )
         Path(self.storage_dir).mkdir(parents=True, exist_ok=True)
 
+    def _get_cache_path(self, prompt: str, section_idx: int, duration: int = 5) -> Path:
+        """Get cache path for a prompt (shared between submit and check_and_download)"""
+        cache_key = hashlib.md5(
+            f"kling_{prompt}_{section_idx}_{duration}".encode()
+        ).hexdigest()[:12]
+        return Path(self.storage_dir) / f"kling_{cache_key}.mp4"
+
+    async def submit(
+        self,
+        prompt: str,
+        section_idx: int,
+        duration: int = 5
+    ) -> Optional[str]:
+        """
+        Submit a Kling task and return task_id immediately (fire-and-forget).
+        If video is already cached, returns None (no task needed).
+        Returns: task_id if submitted, None if cached or failed to submit
+        """
+        cache_path = self._get_cache_path(prompt, section_idx, duration)
+
+        # Check cache first
+        if cache_path.exists() and cache_path.stat().st_size > 100_000:
+            self.logger.info(f"[KLING] Using cached video: {cache_path.name}")
+            return None  # No task needed
+
+        try:
+            # Submit generation task
+            task_id = await self.client.submit_text_to_video(
+                prompt=prompt,
+                duration=duration
+            )
+            self.logger.info(f"[KLING] Task submitted for section {section_idx}: {task_id}")
+            return task_id
+
+        except InsufficientCreditsError:
+            self.logger.warning("[KLING] Daily quota exhausted")
+            return None
+
+        except ContentPolicyViolation as e:
+            self.logger.warning(f"[KLING] Prompt blocked by policy: {e}")
+            return None
+
+        except Exception as e:
+            self.logger.warning(f"[KLING] Task submission failed: {e}")
+            return None
+
+    async def check_and_download(
+        self,
+        task_id: str,
+        prompt: str,
+        section_idx: int,
+        duration: int = 5,
+        timeout_seconds: int = 60
+    ) -> Optional[str]:
+        """
+        Poll Kling task briefly (60s default), download if ready.
+        Returns: path to cached video file, or None if not ready / failed
+        """
+        cache_path = self._get_cache_path(prompt, section_idx, duration)
+
+        try:
+            # Brief polling with shorter timeout for render job
+            status = await self.client.poll_until_complete(task_id, timeout_seconds=timeout_seconds)
+
+            # Download video
+            video_url = status["videos"][0]["url"]
+            video_data = await self.client.download_video(video_url)
+
+            # Save to cache
+            cache_path.write_bytes(video_data)
+
+            size_mb = len(video_data) / (1024 * 1024)
+            self.logger.info(
+                f"[KLING] Video downloaded: {cache_path.name} "
+                f"({size_mb:.1f}MB)"
+            )
+
+            return str(cache_path)
+
+        except asyncio.TimeoutError:
+            self.logger.warning(f"[KLING] Task {task_id} not ready after {timeout_seconds}s")
+            return None
+
+        except Exception as e:
+            self.logger.warning(f"[KLING] Failed to download task {task_id}: {e}")
+            return None
+
     async def generate(
         self,
         prompt: str,
@@ -282,18 +369,15 @@ class KlingVideoGenerator:
         duration: int = 5
     ) -> Optional[str]:
         """
-        Generate video from prompt
+        Full generate (submit + wait for completion).
+        Used only by render job when no prefetch task_id exists.
         Returns: path to cached video file, or None if failed
         """
-        # Create cache key
-        cache_key = hashlib.md5(
-            f"kling_{prompt}_{section_idx}_{duration}".encode()
-        ).hexdigest()[:12]
-        cache_path = Path(self.storage_dir) / f"kling_{cache_key}.mp4"
+        cache_path = self._get_cache_path(prompt, section_idx, duration)
 
         # Check cache
         if cache_path.exists() and cache_path.stat().st_size > 100_000:
-            self.logger.info(f"Using cached Kling video: {cache_path.name}")
+            self.logger.info(f"[KLING] Using cached Kling video: {cache_path.name}")
             return str(cache_path)
 
         try:
@@ -303,7 +387,7 @@ class KlingVideoGenerator:
                 duration=duration
             )
 
-            # Poll until complete
+            # Poll until complete (full timeout)
             status = await self.client.poll_until_complete(task_id)
 
             # Download video
@@ -315,22 +399,22 @@ class KlingVideoGenerator:
 
             size_mb = len(video_data) / (1024 * 1024)
             self.logger.info(
-                f"Kling video generated: {cache_path.name} "
-                f"({size_mb:.1f}MB, {status['consumed_credits']} credits)"
+                f"[KLING] Video generated: {cache_path.name} "
+                f"({size_mb:.1f}MB)"
             )
 
             return str(cache_path)
 
         except InsufficientCreditsError:
-            self.logger.warning("Kling daily quota exhausted")
+            self.logger.warning("[KLING] Daily quota exhausted")
             return None
 
         except ContentPolicyViolation as e:
-            self.logger.warning(f"Prompt blocked by policy: {e}")
+            self.logger.warning(f"[KLING] Prompt blocked by policy: {e}")
             return None
 
         except Exception as e:
-            self.logger.warning(f"Kling generation failed: {e}")
+            self.logger.warning(f"[KLING] Generation failed: {e}")
             return None
 
     async def close(self):
