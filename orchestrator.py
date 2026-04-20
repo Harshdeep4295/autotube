@@ -67,6 +67,10 @@ class Orchestrator:
 
     def run_prefetch(self, count: int = 2) -> None:
         """Job 1: Research topics, generate scripts, submit Kling tasks async → Supabase queue."""
+        # Pre-flight: harvest any completed Kling videos from existing queue before generating new scripts
+        self.logger.info("Pre-flight: Checking for completed Kling tasks in queue...")
+        self._harvest_completed_kling_tasks()
+
         # Check queue level — only prefetch if pending count < 3
         pending_count = self._count_pending_videos()
         if pending_count >= 3:
@@ -494,6 +498,82 @@ class Orchestrator:
             self.logger.error(f"Failed to count pending videos from Supabase: {e}")
             return 0
 
+    def _harvest_completed_kling_tasks(self) -> None:
+        """Pre-flight: Check if any pending videos have completed Kling tasks, download and cache them."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            return
+
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+
+            # Fetch all pending videos with kling_task_ids
+            res = (
+                client.table("pending_videos")
+                .select("id, topic, script_json, kling_task_ids, image_cache")
+                .not_("kling_task_ids", "is", None)
+                .eq("status", "pending")
+                .limit(10)  # Don't harvest too many at once
+                .execute()
+            )
+
+            if not res.data:
+                self.logger.info("No pending Kling tasks to harvest")
+                return
+
+            self.logger.info(f"Harvesting {len(res.data)} pending Kling tasks...")
+
+            for row in res.data:
+                row_id = row["id"]
+                topic = row["topic"]
+                kling_task_ids = row.get("kling_task_ids", {})
+                script = row.get("script_json", {})
+                image_cache = row.get("image_cache") or {}
+
+                if not kling_task_ids:
+                    continue
+
+                try:
+                    # Poll Kling tasks with short timeout (30s)
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                try:
+                    kling_results = loop.run_until_complete(
+                        self._check_kling_tasks(row_id, kling_task_ids, script, timeout_per_task=30)
+                    )
+
+                    # Update image_cache with any newly downloaded videos
+                    if kling_results:
+                        for section_idx, video_path in kling_results.items():
+                            if video_path:
+                                try:
+                                    rel_path = str(Path(video_path).relative_to(Path.cwd()))
+                                except ValueError:
+                                    rel_path = str(video_path)
+                                image_cache[str(section_idx)] = rel_path
+                                self.logger.info(f"[HARVEST] {topic[:40]} section {section_idx}: cached Kling video")
+
+                        # Update DB: new image_cache + clear kling_task_ids (no need to re-check)
+                        client.table("pending_videos").update({
+                            "image_cache": image_cache,
+                            "kling_task_ids": None  # Clear to avoid re-checking at render time
+                        }).eq("id", row_id).execute()
+                        self.logger.info(f"[HARVEST] Updated cache for {topic[:40]} — {sum(1 for v in image_cache.values() if v)}/6 sections")
+                    else:
+                        self.logger.info(f"[HARVEST] No completed tasks yet for {topic[:40]}")
+
+                except Exception as e:
+                    self.logger.warning(f"[HARVEST] Error checking tasks for {topic[:40]}: {e}")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to harvest completed Kling tasks: {e}")
+
     def _save_kling_task_ids(self, row_id: int, kling_task_ids: Dict[int, Optional[str]]) -> None:
         """Store Kling task IDs in Supabase after async submission."""
         if not (config.SUPABASE_URL and config.SUPABASE_KEY):
@@ -513,8 +593,8 @@ class Orchestrator:
         except Exception as e:
             self.logger.warning(f"Failed to save Kling task IDs for row {row_id}: {e}")
 
-    async def _check_kling_tasks(self, row_id: int, kling_task_ids: Dict[str, str], script: Dict) -> Dict[int, Optional[str]]:
-        """Check and download Kling videos at render time (60s timeout per task)."""
+    async def _check_kling_tasks(self, row_id: int, kling_task_ids: Dict[str, str], script: Dict, timeout_per_task: int = 60) -> Dict[int, Optional[str]]:
+        """Check and download Kling videos (at render time or during harvest). Default 60s timeout per task."""
         from agents.kling_video_agent import KlingVideoGenerator
 
         if not kling_task_ids:
@@ -530,19 +610,21 @@ class Orchestrator:
                 section_idx = int(section_idx_str)
                 query = visual_queries[section_idx] if section_idx < len(visual_queries) else "cinematic"
 
-                # Poll briefly (60s) for this section
+                # Poll with configurable timeout
                 path = await generator.check_and_download(
                     task_id=task_id,
                     prompt=query,
                     section_idx=section_idx,
                     duration=5,
-                    timeout_seconds=60
+                    timeout_seconds=timeout_per_task
                 )
                 results[section_idx] = path
                 if path:
-                    self.logger.info(f"[KLING-RENDER] Section {section_idx}: downloaded {Path(path).name}")
+                    log_prefix = "[HARVEST]" if timeout_per_task == 30 else "[KLING-RENDER]"
+                    self.logger.info(f"{log_prefix} Section {section_idx}: downloaded {Path(path).name}")
                 else:
-                    self.logger.info(f"[KLING-RENDER] Section {section_idx}: not ready in 60s, will use fallback")
+                    log_prefix = "[HARVEST]" if timeout_per_task == 30 else "[KLING-RENDER]"
+                    self.logger.info(f"{log_prefix} Section {section_idx}: not ready in {timeout_per_task}s")
 
             await generator.close()
             return results
