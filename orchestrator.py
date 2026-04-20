@@ -82,7 +82,7 @@ class Orchestrator:
         for topic in topics[:count]:
             try:
                 script = self.scripter.generate(topic)
-                # Generate videos for all sections (with per-scene fallback chain)
+                # Always generate images for Ken Burns/Pexels fallback (fast render, failsafe if Kling fails)
                 video_cache = self.video._get_section_videos(
                     script.get("sections", []),
                     script.get("visual_queries", [])

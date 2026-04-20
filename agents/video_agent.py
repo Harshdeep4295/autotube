@@ -110,7 +110,12 @@ class VideoAgent:
         logger.info(f"Animation mode: {config.VIDEO_ANIMATION_MODE}")
 
         # 1. Fetch background media — dispatch based on config + background mode + animation mode
-        if prefetched_images is not None:
+        if config.VIDEO_ANIMATION_MODE == "kling" and (prefetched_images is None or not prefetched_images):
+            # KLING MODE: Generate ONE combined video instead of per-section
+            kling_path = self._generate_kling_video(sections, visual_queries, total_duration)
+            section_clip_paths = {0: kling_path}  # Treat as section 0, will be looped
+            logger.info(f"Kling full-video: {kling_path if kling_path else 'FAILED (gradient fallback)'}")
+        elif prefetched_images is not None:
             section_clip_paths = prefetched_images
             logger.info(f"Using prefetched images from queue")
         elif config.VIDEO_BACKGROUND_MODE == "pexels":
@@ -301,6 +306,47 @@ class VideoAgent:
 
         logger.warning(f"Section {section_idx+1}: all modes exhausted → gradient fallback")
         return None
+
+    # ── Kling: Single combined video (all sections into one) ─────────────────────
+
+    def _generate_kling_video(self, sections: List[Dict], visual_queries: List[str], total_duration: float) -> Optional[str]:
+        """Generate ONE combined Kling video from all sections instead of 6 separate ones.
+
+        Combines visual queries from all sections into a single cinematic montage prompt.
+        This uses 1 API call instead of 6, optimizing for cost and avoiding cache issues.
+        """
+        if not self.kling_generator:
+            try:
+                self.kling_generator = KlingVideoGenerator()
+            except ValueError as e:
+                logger.warning(f"Kling API keys not configured: {e}")
+                return None
+
+        # Build combined prompt from all visual queries
+        cinematic_queries = [q for q in visual_queries if q and q.strip()]
+        if not cinematic_queries:
+            logger.warning("No visual queries found for Kling video generation")
+            return None
+
+        # Kling max duration is ~15 seconds, so use 10s for safety
+        combined_prompt = "cinematic montage transitions: " + " → ".join(cinematic_queries[:4])  # Limit to 4 to avoid prompt overload
+        combined_prompt = combined_prompt[:1500]  # Kling prompt limit
+
+        logger.info(f"Generating combined Kling video: {combined_prompt[:80]}...")
+
+        import asyncio
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            video_path = loop.run_until_complete(
+                self.kling_generator.generate(combined_prompt, section_idx=0, duration=10)
+            )
+            if video_path:
+                logger.info(f"Kling combined video generated: {Path(video_path).name}")
+            return video_path
+        except Exception as e:
+            logger.warning(f"Kling combined video generation failed: {e} — gradient fallback")
+            return None
 
     # ── Animation Mode 1: Pika (native video generation) ───────────────────────
 
@@ -810,6 +856,24 @@ class VideoAgent:
         section_effects: Optional[List[Dict]] = None,
     ):
         from moviepy import VideoFileClip, concatenate_videoclips, ImageClip
+
+        # KLING MODE SHORTCUT: If we have only section 0 (single Kling video), loop it
+        if len(clip_paths) == 1 and 0 in clip_paths and clip_paths[0]:
+            kling_path = clip_paths[0]
+            if kling_path.endswith(".mp4"):
+                try:
+                    raw = VideoFileClip(kling_path)
+                    clip = self._resize_and_crop(raw, self.W, self.H)
+                    # Loop to fill total duration
+                    if clip.duration < total_duration:
+                        loops = math.ceil(total_duration / clip.duration)
+                        from moviepy import concatenate_videoclips as cv
+                        clip = cv([clip] * loops, method="compose")
+                    clip = clip.subclipped(0, total_duration)
+                    logger.info(f"Kling video looped: {clip.duration:.1f}s from {kling_path}")
+                    return clip
+                except Exception as e:
+                    logger.warning(f"Kling video looping failed ({e}) — gradient fallback")
 
         total_words = sum(len(s.get("text", "").split()) for s in sections)
         section_clips = []
