@@ -108,15 +108,21 @@ class VideoAgent:
 
         logger.info(f"Audio duration: {total_duration:.1f}s — rendering {len(sections)} sections")
         logger.info(f"Animation mode: {config.VIDEO_ANIMATION_MODE}")
+        logger.info(f"Background mode: {config.VIDEO_BACKGROUND_MODE}")
+        logger.info(f"Visual queries available: {len(visual_queries)} queries: {visual_queries}")
 
         # 1. Fetch background media — dispatch based on config + background mode + animation mode
         if prefetched_images is not None:
             section_clip_paths = prefetched_images
-            logger.info(f"Using prefetched images from queue")
+            logger.info(f"[RENDER] Using prefetched images from queue")
+            for idx, path in prefetched_images.items():
+                logger.info(f"  [PREFETCH] Section {idx}: {path}")
         elif config.VIDEO_BACKGROUND_MODE == "pexels":
+            logger.info(f"[RENDER] Fetching Pexels clips (V1 mode)")
             section_clip_paths = self._fetch_section_clips(sections, visual_queries)   # V1: Pexels clips
         else:
             # V2: AI images with animation mode dispatch
+            logger.info(f"[RENDER] Fetching section videos (V2 mode with {config.VIDEO_ANIMATION_MODE} animation)")
             section_clip_paths = self._get_section_videos(sections, visual_queries)
 
         # 1b. Assign a random animation effect to each section (no repeats within video)
@@ -623,10 +629,14 @@ class VideoAgent:
         prompt_hash = hashlib.md5(f"{prompt}_{section_idx}".encode()).hexdigest()[:12]
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"{prompt_hash}.jpg"
 
+        logger.info(f"    [_fetch_ai_image] Prompt: '{prompt}' | Hash: {prompt_hash}")
+
         if cache_path.exists() and cache_path.stat().st_size > 5_000:
-            logger.info(f"AI image cache hit: {cache_path.name}")
+            size_kb = cache_path.stat().st_size // 1024
+            logger.info(f"    [_fetch_ai_image] ✓ CACHE HIT: {cache_path.name} ({size_kb}KB)")
             return str(cache_path)
 
+        logger.info(f"    [_fetch_ai_image] Cache miss, fetching from Pollinations.ai...")
         full_prompt = f"cinematic high quality {prompt}, 4K, professional photography, no text"
         encoded = urllib.parse.quote(full_prompt)
         seed = random.randint(1, 99999)
@@ -634,36 +644,39 @@ class VideoAgent:
             f"https://image.pollinations.ai/prompt/{encoded}"
             f"?width=1920&height=1080&nologo=true&model=flux&seed={seed}"
         )
+        logger.info(f"    [_fetch_ai_image] URL: {url[:100]}...")
 
         max_retries = 3
         retry_delay = 2  # seconds, doubles on each retry
 
         for attempt in range(max_retries):
             try:
+                logger.info(f"    [_fetch_ai_image] Attempt {attempt+1}/{max_retries}: GET request...")
                 resp = requests.get(url, timeout=120)
                 resp.raise_for_status()
                 with open(cache_path, "wb") as f:
                     f.write(resp.content)
                 size_kb = cache_path.stat().st_size // 1024
-                logger.info(f"AI image downloaded: {cache_path.name} ({size_kb}KB)")
+                logger.info(f"    [_fetch_ai_image] ✓ Downloaded: {cache_path.name} ({size_kb}KB)")
                 return str(cache_path)
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429 and attempt < max_retries - 1:
-                    logger.info(f"Rate limited (429) — retrying in {retry_delay}s (attempt {attempt+1}/{max_retries})")
+                    logger.warning(f"    [_fetch_ai_image] ⏳ Rate limited (429) — retrying in {retry_delay}s (attempt {attempt+1}/{max_retries})")
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
                 else:
-                    logger.warning(f"Pollinations image failed for '{prompt}': {e}")
+                    logger.warning(f"    [_fetch_ai_image] ✗ HTTP {e.response.status_code}: {e}")
                     if cache_path.exists():
                         cache_path.unlink()
                     return None
             except Exception as e:
-                logger.warning(f"Pollinations image failed for '{prompt}': {e}")
+                logger.warning(f"    [_fetch_ai_image] ✗ Exception: {type(e).__name__}: {e}")
                 if cache_path.exists():
                     cache_path.unlink()
                 return None
 
+        logger.error(f"    [_fetch_ai_image] ✗ All retries exhausted")
         return None
 
     # ── Animation effects — DB-driven ─────────────────────────────────────────
@@ -734,6 +747,8 @@ class VideoAgent:
         if effect is None:
             effect = ANIMATION_EFFECTS[0]  # default: zoom_in
 
+        logger.info(f"    [ken_burns] Image: {Path(img_path).name} | Duration: {duration:.1f}s | Effect: {effect['name']}")
+
         n_frames = max(int(self.FPS * duration), 1)
 
         # Build per-frame expressions (replace N placeholder with actual frame count)
@@ -744,13 +759,19 @@ class VideoAgent:
         x_expr = expr(effect["x"])
         y_expr = expr(effect["y"])
 
+        logger.info(f"    [ken_burns] Frames: {n_frames} | FFmpeg filter: zoom={z_expr[:30]}...")
+
         # Cache key: image path + effect name + duration
         cache_key = hashlib.md5(
             f"{img_path}|{effect['name']}|{duration:.2f}".encode()
         ).hexdigest()[:12]
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"fx_{cache_key}.mp4"
 
-        if not (cache_path.exists() and cache_path.stat().st_size > 10_000):
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            kb = cache_path.stat().st_size // 1024
+            logger.info(f"    [ken_burns] ✓ Cache hit: {cache_path.name} ({kb}KB)")
+        else:
+            logger.info(f"    [ken_burns] Cache miss, generating with FFmpeg...")
             vf = (
                 f"zoompan="
                 f"z='{z_expr}':"
@@ -770,18 +791,24 @@ class VideoAgent:
                 str(cache_path),
             ]
             try:
+                logger.info(f"    [ken_burns] Running FFmpeg command...")
                 result = subprocess.run(cmd, capture_output=True, timeout=120)
                 if result.returncode != 0:
                     stderr_full = result.stderr.decode()
+                    logger.error(f"    [ken_burns] FFmpeg stderr: {stderr_full[:200]}...")
                     raise RuntimeError(f"FFmpeg zoompan failed: {stderr_full}")
                 kb = cache_path.stat().st_size // 1024
-                logger.info(f"FFmpeg effect '{effect['name']}': {cache_path.name} ({kb}KB)")
+                logger.info(f"    [ken_burns] ✓ Generated: {cache_path.name} ({kb}KB)")
             except Exception as e:
-                logger.warning(f"FFmpeg zoompan failed for effect '{effect['name']}': {e} — PIL fallback")
+                logger.warning(f"    [ken_burns] ✗ FFmpeg failed: {type(e).__name__}: {e}")
+                logger.info(f"    [ken_burns] Falling back to PIL (slower)...")
                 return self._image_to_ken_burns_pil(img_path, duration)
 
+        logger.info(f"    [ken_burns] Loading video clip from cache...")
         from moviepy import VideoFileClip
-        return VideoFileClip(str(cache_path))
+        clip = VideoFileClip(str(cache_path))
+        logger.info(f"    [ken_burns] ✓ Clip loaded, duration: {clip.duration:.1f}s")
+        return clip
 
     def _image_to_ken_burns_pil(self, img_path: str, duration: float):
         """PIL per-frame fallback — only used if FFmpeg unavailable."""
@@ -824,57 +851,81 @@ class VideoAgent:
             # Get visual_query from the visual_queries list, fallback to empty
             visual_query = (visual_queries[i] if i < len(visual_queries) else "") if visual_queries else ""
 
+            logger.info(f"\n[SECTION {i+1}/{len(sections)}] ─────────────────────────────────────")
+            logger.info(f"  Duration: {section_dur:.1f}s | Words: {words} | Effect: {effect['name'] if effect else 'None'}")
+            logger.info(f"  Clip path: {clip_path}")
+            logger.info(f"  Visual query: '{visual_query}'")
+
             if clip_path and clip_path.endswith(".jpg"):
                 # V2: AI-generated image → animated effect clip via FFmpeg
+                logger.info(f"  [JPG] AI image found, applying Ken Burns animation")
                 try:
                     clip = self._image_to_ken_burns_clip(clip_path, section_dur, effect=effect)
                     section_clips.append(clip)
                     t += section_dur
+                    logger.info(f"  ✓ [CLIP ADDED] Ken Burns animation successful")
                     continue
                 except Exception as e:
-                    logger.warning(f"Section {i} Ken Burns animation failed ({e}) — using gradient")
+                    logger.warning(f"  ✗ [KEN BURNS FAILED] Section {i} Ken Burns animation failed: {e}")
 
             elif clip_path and clip_path.endswith(".mp4"):
                 # Prefetched cached video from prior job (may not exist due to cache isolation)
-                # Validate file exists before trying to use it
+                logger.info(f"  [MP4] Checking if prefetch video exists...")
                 if not Path(clip_path).exists():
-                    logger.warning(f"Section {i} prefetched video not found ({clip_path}), attempting runtime generation...")
+                    logger.warning(f"  ✗ [PREFETCH MISS] Prefetch video not found: {clip_path}")
+                    logger.info(f"  [FALLBACK] Attempting runtime video generation...")
+
                     # Try to regenerate Kling video at runtime if in kling mode
-                    if config.VIDEO_ANIMATION_MODE == "kling" and visual_query:
-                        try:
-                            if not self.kling_generator:
-                                self.kling_generator = KlingVideoGenerator()
-                            import asyncio
+                    if config.VIDEO_ANIMATION_MODE == "kling":
+                        logger.info(f"  [KLING] Mode is kling, attempting runtime generation with query: '{visual_query}'")
+                        if visual_query:
                             try:
-                                loop = asyncio.get_event_loop()
-                                if loop.is_closed():
+                                if not self.kling_generator:
+                                    logger.info(f"  [KLING] Initializing KlingVideoGenerator...")
+                                    self.kling_generator = KlingVideoGenerator()
+
+                                logger.info(f"  [KLING] Starting async generation for: '{visual_query}'")
+                                import asyncio
+                                try:
+                                    loop = asyncio.get_event_loop()
+                                    if loop.is_closed():
+                                        loop = asyncio.new_event_loop()
+                                        asyncio.set_event_loop(loop)
+                                    kling_path = loop.run_until_complete(
+                                        self.kling_generator.generate(visual_query, i)
+                                    )
+                                except RuntimeError:
                                     loop = asyncio.new_event_loop()
                                     asyncio.set_event_loop(loop)
-                                kling_path = loop.run_until_complete(
-                                    self.kling_generator.generate(visual_query, i)
-                                )
-                            except RuntimeError:
-                                loop = asyncio.new_event_loop()
-                                asyncio.set_event_loop(loop)
-                                kling_path = loop.run_until_complete(
-                                    self.kling_generator.generate(visual_query, i)
-                                )
-                            if kling_path and Path(kling_path).exists():
-                                logger.info(f"Section {i}: Kling video regenerated at runtime")
-                                raw = VideoFileClip(kling_path)
-                                clip = self._resize_and_crop(raw, self.W, self.H)
-                                if clip.duration < section_dur:
-                                    loops = math.ceil(section_dur / clip.duration)
-                                    from moviepy import concatenate_videoclips as cv
-                                    clip = cv([clip] * loops, method="compose")
-                                clip = clip.subclipped(0, section_dur)
-                                section_clips.append(clip)
-                                t += section_dur
-                                continue
-                        except Exception as e3:
-                            logger.warning(f"Section {i} runtime Kling generation failed ({e3}), falling back to Ken Burns")
+                                    kling_path = loop.run_until_complete(
+                                        self.kling_generator.generate(visual_query, i)
+                                    )
+
+                                if kling_path and Path(kling_path).exists():
+                                    logger.info(f"  ✓ [KLING SUCCESS] Video regenerated at runtime: {kling_path}")
+                                    raw = VideoFileClip(kling_path)
+                                    clip = self._resize_and_crop(raw, self.W, self.H)
+                                    if clip.duration < section_dur:
+                                        loops = math.ceil(section_dur / clip.duration)
+                                        from moviepy import concatenate_videoclips as cv
+                                        clip = cv([clip] * loops, method="compose")
+                                    clip = clip.subclipped(0, section_dur)
+                                    section_clips.append(clip)
+                                    t += section_dur
+                                    logger.info(f"  ✓ [CLIP ADDED] Kling video loaded and added to timeline")
+                                    continue
+                                else:
+                                    logger.warning(f"  ✗ [KLING FAILED] Generated path does not exist: {kling_path}")
+                            except Exception as e3:
+                                logger.warning(f"  ✗ [KLING ERROR] Runtime Kling generation failed: {type(e3).__name__}: {e3}")
+                                logger.info(f"  [FALLBACK] Falling back to Ken Burns...")
+                        else:
+                            logger.warning(f"  ✗ [KLING] No visual_query available, cannot attempt Kling generation")
+                    else:
+                        logger.info(f"  [FALLBACK] Not in kling mode (mode={config.VIDEO_ANIMATION_MODE}), skipping Kling generation")
 
                     # Fall back to Ken Burns if Kling not available or failed
+                    logger.info(f"  [KEN BURNS] Attempting Ken Burns fallback...")
                     try:
                         cinematic_fallbacks = [
                             "cinematic aerial cityscape golden hour",
@@ -885,15 +936,21 @@ class VideoAgent:
                             "global network connections blue",
                         ]
                         query_to_use = visual_query if visual_query else cinematic_fallbacks[i % len(cinematic_fallbacks)]
+                        logger.info(f"  [KEN BURNS] Fetching AI image with query: '{query_to_use}'")
                         img = self._fetch_ai_image(query_to_use, i)
                         if img:
+                            logger.info(f"  [KEN BURNS] Image fetched: {img}, applying Ken Burns effect...")
                             clip = self._image_to_ken_burns_clip(img, section_dur, effect=effect)
                             section_clips.append(clip)
                             t += section_dur
+                            logger.info(f"  ✓ [CLIP ADDED] Ken Burns fallback successful")
                             continue
+                        else:
+                            logger.warning(f"  ✗ [KEN BURNS] Failed to fetch AI image")
                     except Exception as e2:
-                        logger.warning(f"Section {i} Ken Burns regeneration failed ({e2})")
+                        logger.warning(f"  ✗ [KEN BURNS ERROR] Ken Burns regeneration failed: {type(e2).__name__}: {e2}")
                     # If all regeneration failed, fall through to gradient
+                    logger.info(f"  [FALLBACK] All regeneration attempts failed, will use gradient fallback")
                 else:
                     try:
                         raw = VideoFileClip(clip_path)
@@ -911,38 +968,55 @@ class VideoAgent:
 
             elif clip_path:
                 # V1: Pexels video clip
+                logger.info(f"  [PEXELS] Loading Pexels clip: {clip_path}")
                 try:
                     raw = VideoFileClip(clip_path)
+                    logger.info(f"  [PEXELS] Video loaded, duration: {raw.duration:.1f}s, size: {raw.size}")
                     # Resize to fill 1920×1080 (crop to fit aspect ratio)
                     clip = self._resize_and_crop(raw, self.W, self.H)
                     # Loop if section is longer than clip
                     if clip.duration < section_dur:
                         loops = math.ceil(section_dur / clip.duration)
+                        logger.info(f"  [PEXELS] Looping clip {loops}x to fill {section_dur:.1f}s duration")
                         from moviepy import concatenate_videoclips as cv
                         clip = cv([clip] * loops, method="compose")
                     clip = clip.subclipped(0, section_dur)
                     section_clips.append(clip)
                     t += section_dur
+                    logger.info(f"  ✓ [CLIP ADDED] Pexels clip loaded and added")
                     continue
                 except Exception as e:
-                    logger.warning(f"Section {i} clip failed ({e}) — using gradient")
+                    logger.warning(f"  ✗ [PEXELS ERROR] Section {i} clip failed: {type(e).__name__}: {e}")
+                    logger.info(f"  [FALLBACK] Using gradient fallback for this section")
 
             # Gradient fallback for this section
+            logger.warning(f"  [GRADIENT] Using solid gradient fallback for section {i}")
             section_clips.append(self._gradient_clip(section_dur))
             t += section_dur
 
         if not section_clips:
+            logger.error(f"[BUILD_BASE_VIDEO] No section clips available, using gradient fallback for entire video")
             return self._gradient_video(total_duration)
 
+        logger.info(f"\n[BUILD_BASE_VIDEO] ═════════════════════════════════════════")
+        logger.info(f"  Total sections: {len(section_clips)}")
+        logger.info(f"  Target duration: {total_duration:.1f}s")
+        logger.info(f"  Concatenating clips...")
         base = concatenate_videoclips(section_clips, method="compose")
+        logger.info(f"  Concatenated duration: {base.duration:.1f}s")
+
         # Trim or pad to exact duration
         if base.duration > total_duration:
+            logger.info(f"  [TRIM] Trimming {base.duration - total_duration:.1f}s excess")
             base = base.subclipped(0, total_duration)
         elif base.duration < total_duration - 0.1:
             # Pad with last section's gradient
-            pad = self._gradient_clip(total_duration - base.duration)
+            pad_duration = total_duration - base.duration
+            logger.info(f"  [PAD] Adding {pad_duration:.1f}s gradient padding")
+            pad = self._gradient_clip(pad_duration)
             base = concatenate_videoclips([base, pad], method="compose")
 
+        logger.info(f"  Final duration: {base.duration:.1f}s ✓")
         return base
 
     def _resize_and_crop(self, clip, target_w: int, target_h: int):
