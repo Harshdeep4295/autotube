@@ -29,7 +29,7 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # ultrafast preset renders in ~5 min; 45 min is a safe ceiling
+    timeout-minutes: 60   # Kling can take up to 30 min per video + render overhead; 60 min is needed for safety
     permissions:
       contents: write       # needed to push posted_videos.json back to repo
 

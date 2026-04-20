@@ -82,31 +82,48 @@ class Orchestrator:
         for topic in topics[:count]:
             try:
                 script = self.scripter.generate(topic)
-                # Always generate images for Ken Burns/Pexels fallback (fast render, failsafe if Kling fails)
-                video_cache = self.video._get_section_videos(
-                    script.get("sections", []),
-                    script.get("visual_queries", [])
-                )
-                # Convert absolute paths to relative for portability across jobs
-                relative_cache = {}
-                for idx, path in video_cache.items():
-                    if path:
-                        try:
-                            rel_path = str(Path(path).relative_to(Path.cwd()))
-                        except ValueError:
-                            # Path is already relative or cannot be made relative
-                            rel_path = str(path)
-                    else:
-                        rel_path = None
-                    relative_cache[str(idx)] = rel_path
 
-                self._save_pending_video(topic["topic"], script, relative_cache)
+                # Step 1: Save script to DB immediately — this must succeed before any video work
+                row_id = self._save_pending_video(topic["topic"], script, {})
+                if not row_id:
+                    self.logger.warning(f"Could not get row_id for '{topic['topic']}' — skipping video prefetch")
+                    queued_count += 1
+                    continue
+
+                self.logger.info(f"Queued (script saved): {script.get('title', topic['topic'])[:60]}")
+
+                # Step 2: Attempt video pre-generation (best-effort — if this times out or fails, script is already safe in DB)
+                try:
+                    video_cache = self.video._get_section_videos(
+                        script.get("sections", []),
+                        script.get("visual_queries", [])
+                    )
+                    # Convert absolute paths to relative for portability across jobs
+                    relative_cache = {}
+                    for idx, path in video_cache.items():
+                        if path:
+                            try:
+                                rel_path = str(Path(path).relative_to(Path.cwd()))
+                            except ValueError:
+                                rel_path = str(path)
+                        else:
+                            rel_path = None
+                        relative_cache[str(idx)] = rel_path
+
+                    # Step 3: Update DB row with video paths (only if we got some)
+                    if any(v for v in relative_cache.values()):
+                        self._update_pending_image_cache(row_id, relative_cache)
+                        self.logger.info(f"Video cache updated: {sum(1 for v in relative_cache.values() if v)}/6 sections cached")
+                    else:
+                        self.logger.info(f"No videos cached — render job will generate at runtime")
+                except Exception as e:
+                    self.logger.warning(f"Video pre-generation failed (script already saved): {e}")
+
                 queued_count += 1
-                self.logger.info(f"Queued: {script.get('title', topic['topic'])[:60]}")
             except Exception as e:
                 self.logger.error(f"Prefetch failed for '{topic['topic']}': {e}")
 
-        self.logger.info(f"Prefetch complete: {queued_count} scripts queued")
+        self.logger.info(f"Prefetch complete: {queued_count} scripts queued (video generation deferred to render job if needed)")
 
     def run_render(self, count: int = 1) -> List[Dict]:
         """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
@@ -247,7 +264,7 @@ class Orchestrator:
             script = row["script_json"]
             result["title"] = script.get("title", "")
 
-            # Resolve pre-cached image paths back to absolute
+            # Resolve pre-cached image paths back to absolute (if any exist)
             image_cache = {}
             for k, v in (row.get("image_cache") or {}).items():
                 if v:
@@ -256,16 +273,19 @@ class Orchestrator:
                 else:
                     image_cache[int(k)] = None
 
+            # If image_cache is empty, pass None so render job generates videos at runtime
+            prefetched_images = image_cache if image_cache else None
+
             # Step 3: Voiceover
             self.logger.info("Step 3/6: Synthesizing voiceover…")
             audio_path = str(out_dir / "audio.mp3")
             self.voice.synthesize(script, audio_path)
             result["audio_path"] = audio_path
 
-            # Step 4: Video (with prefetched images)
+            # Step 4: Video (with prefetched images, or None for runtime generation)
             self.logger.info("Step 4/6: Rendering video…")
             video_path = str(out_dir / "video.mp4")
-            self.video.render(script, audio_path, video_path, prefetched_images=image_cache)
+            self.video.render(script, audio_path, video_path, prefetched_images=prefetched_images)
             result["video_path"] = video_path
 
             # Step 5: Thumbnail
@@ -310,22 +330,24 @@ class Orchestrator:
 
         return result
 
-    def _save_pending_video(self, topic: str, script: Dict, image_cache: Dict) -> None:
-        """Insert a pending video into Supabase queue."""
+    def _save_pending_video(self, topic: str, script: Dict, image_cache: Dict) -> Optional[int]:
+        """Insert a pending video into Supabase queue. Returns row id if successful."""
         if not (config.SUPABASE_URL and config.SUPABASE_KEY):
             self.logger.warning("Supabase not configured — prefetch skipped")
-            return
+            return None
         try:
             from supabase import create_client
             client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
-            client.table("pending_videos").insert({
+            res = client.table("pending_videos").insert({
                 "topic": topic,
                 "script_json": script,
                 "image_cache": image_cache,
                 "status": "pending",
                 "approved": True,
             }).execute()
-            self.logger.info(f"Saved to Supabase: {topic}")
+            row_id = res.data[0]["id"] if res.data else None
+            self.logger.info(f"Saved to Supabase: {topic} (row_id={row_id})")
+            return row_id
         except Exception as e:
             self.logger.error(f"Failed to save pending video to Supabase: {e}")
             raise
@@ -367,6 +389,20 @@ class Orchestrator:
             self.logger.info(f"Updated Supabase row {row_id}: status={status}")
         except Exception as e:
             self.logger.error(f"Failed to update Supabase status: {e}")
+
+    def _update_pending_image_cache(self, row_id: int, image_cache: Dict) -> None:
+        """Update image_cache on an existing pending_videos row after video pre-generation."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            return
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            client.table("pending_videos").update(
+                {"image_cache": image_cache}
+            ).eq("id", row_id).execute()
+            self.logger.info(f"Updated image_cache for row {row_id}")
+        except Exception as e:
+            self.logger.warning(f"Failed to update image_cache for row {row_id}: {e}")
 
     def _count_pending_videos(self) -> int:
         """Count pending, approved videos in Supabase queue."""
