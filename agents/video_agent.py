@@ -127,7 +127,7 @@ class VideoAgent:
             logger.info(f"Section {i+1} animation: {eff['name']}")
 
         # 2. Build background video (per-section footage stitched together)
-        base_video = self._build_base_video(sections, section_clip_paths, total_duration, section_effects)
+        base_video = self._build_base_video(sections, section_clip_paths, total_duration, section_effects, visual_queries)
 
         # 3. Dark overlay for text contrast
         overlay = (
@@ -808,6 +808,7 @@ class VideoAgent:
         clip_paths: Dict[int, Optional[str]],
         total_duration: float,
         section_effects: Optional[List[Dict]] = None,
+        visual_queries: Optional[List[str]] = None,
     ):
         from moviepy import VideoFileClip, concatenate_videoclips, ImageClip
 
@@ -820,7 +821,8 @@ class VideoAgent:
             section_dur = max(2.0, (words / max(total_words, 1)) * total_duration)
             clip_path = clip_paths.get(i)
             effect = section_effects[i] if section_effects and i < len(section_effects) else None
-            visual_query = section.get("visual_query", "")
+            # Get visual_query from the visual_queries list, fallback to empty
+            visual_query = (visual_queries[i] if i < len(visual_queries) else "") if visual_queries else ""
 
             if clip_path and clip_path.endswith(".jpg"):
                 # V2: AI-generated image → animated effect clip via FFmpeg
@@ -836,10 +838,54 @@ class VideoAgent:
                 # Prefetched cached video from prior job (may not exist due to cache isolation)
                 # Validate file exists before trying to use it
                 if not Path(clip_path).exists():
-                    logger.warning(f"Section {i} prefetched video not found ({clip_path}), regenerating with Ken Burns...")
+                    logger.warning(f"Section {i} prefetched video not found ({clip_path}), attempting runtime generation...")
+                    # Try to regenerate Kling video at runtime if in kling mode
+                    if config.VIDEO_ANIMATION_MODE == "kling" and visual_query:
+                        try:
+                            if not self.kling_generator:
+                                self.kling_generator = KlingVideoGenerator()
+                            import asyncio
+                            try:
+                                loop = asyncio.get_event_loop()
+                                if loop.is_closed():
+                                    loop = asyncio.new_event_loop()
+                                    asyncio.set_event_loop(loop)
+                                kling_path = loop.run_until_complete(
+                                    self.kling_generator.generate(visual_query, i)
+                                )
+                            except RuntimeError:
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                kling_path = loop.run_until_complete(
+                                    self.kling_generator.generate(visual_query, i)
+                                )
+                            if kling_path and Path(kling_path).exists():
+                                logger.info(f"Section {i}: Kling video regenerated at runtime")
+                                raw = VideoFileClip(kling_path)
+                                clip = self._resize_and_crop(raw, self.W, self.H)
+                                if clip.duration < section_dur:
+                                    loops = math.ceil(section_dur / clip.duration)
+                                    from moviepy import concatenate_videoclips as cv
+                                    clip = cv([clip] * loops, method="compose")
+                                clip = clip.subclipped(0, section_dur)
+                                section_clips.append(clip)
+                                t += section_dur
+                                continue
+                        except Exception as e3:
+                            logger.warning(f"Section {i} runtime Kling generation failed ({e3}), falling back to Ken Burns")
+
+                    # Fall back to Ken Burns if Kling not available or failed
                     try:
-                        # Regenerate Ken Burns from the section's visual query
-                        img = self._fetch_ai_image(visual_query, i) if visual_query else None
+                        cinematic_fallbacks = [
+                            "cinematic aerial cityscape golden hour",
+                            "abstract technology neural network visualization",
+                            "futuristic data visualization dark background",
+                            "modern office skyline sunset",
+                            "artificial intelligence digital brain",
+                            "global network connections blue",
+                        ]
+                        query_to_use = visual_query if visual_query else cinematic_fallbacks[i % len(cinematic_fallbacks)]
+                        img = self._fetch_ai_image(query_to_use, i)
                         if img:
                             clip = self._image_to_ken_burns_clip(img, section_dur, effect=effect)
                             section_clips.append(clip)
@@ -847,7 +893,7 @@ class VideoAgent:
                             continue
                     except Exception as e2:
                         logger.warning(f"Section {i} Ken Burns regeneration failed ({e2})")
-                    # If regeneration failed, fall through to gradient
+                    # If all regeneration failed, fall through to gradient
                 else:
                     try:
                         raw = VideoFileClip(clip_path)
