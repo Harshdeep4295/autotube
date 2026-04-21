@@ -119,6 +119,14 @@ class VideoAgent:
         logger.info(f"Background mode: {config.VIDEO_BACKGROUND_MODE}")
         logger.info(f"Visual queries available: {len(visual_queries)} queries: {visual_queries}")
 
+        # Calculate section durations based on actual audio
+        total_words = sum(len(s.get("text", "").split()) for s in sections)
+        section_durations = {}
+        for i, section in enumerate(sections):
+            words = len(section.get("text", "").split())
+            section_durations[i] = max(2.0, (words / max(total_words, 1)) * total_duration)
+        logger.info(f"Section durations: {[f'{d:.1f}s' for d in section_durations.values()]}")
+
         # 1. Fetch background media — dispatch based on config + background mode + animation mode
         if prefetched_images is not None:
             section_clip_paths = prefetched_images
@@ -131,7 +139,7 @@ class VideoAgent:
         else:
             # V2: AI images with animation mode dispatch
             logger.info(f"[RENDER] Fetching section videos (V2 mode with {config.VIDEO_ANIMATION_MODE} animation)")
-            section_clip_paths = self._get_section_videos(sections, visual_queries)
+            section_clip_paths = self._get_section_videos(sections, visual_queries, section_durations)
 
         # 1b. Assign a random animation effect to each section (no repeats within video)
         pool = list(self.animation_effects) if self.animation_effects else list(ANIMATION_EFFECTS)
@@ -193,10 +201,11 @@ class VideoAgent:
 
     # ── Per-scene fallback chain ─────────────────────────────────────────────
 
-    def _get_section_videos(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
+    def _get_section_videos(self, sections: List[Dict], visual_queries: List[str], section_durations: Dict[int, float] = None) -> Dict[int, Optional[str]]:
         """Generate videos for each section with per-scene fallback chain.
         Primary mode (from config) → LeiaPix → Ken Burns → Pexels → Gradient.
-        On 429 rate limit, immediately switch to next mode for that scene."""
+        On 429 rate limit, immediately switch to next mode for that scene.
+        section_durations: dict mapping section index to required duration in seconds."""
         primary_mode = config.VIDEO_ANIMATION_MODE.lower()
         cinematic_fallbacks = [
             "cinematic aerial cityscape golden hour",
@@ -214,16 +223,18 @@ class VideoAgent:
                 if i < len(visual_queries) and visual_queries[i].strip()
                 else cinematic_fallbacks[i % len(cinematic_fallbacks)]
             )
-            video_path = self._try_section_video_chain(i, query, primary_mode)
+            section_dur = section_durations.get(i, 8.0) if section_durations else 8.0
+            video_path = self._try_section_video_chain(i, query, primary_mode, section_dur)
             results[i] = video_path
             status = f"'{video_path}'" if video_path else "gradient fallback"
             logger.info(f"Section {i+1}/{len(sections)} video: {status}")
 
         return results
 
-    def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
+    def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str, section_duration: float = 8.0) -> Optional[str]:
         """Try to generate a video for one section, falling back on errors.
         Veo test mode: ONLY Veo, no fallbacks (gradient only if Veo fails).
+        section_duration: required video duration in seconds (passed to Veo to generate correctly-sized videos).
         """
         modes = []
 
@@ -308,14 +319,16 @@ class VideoAgent:
                         if loop.is_closed():
                             loop = asyncio.new_event_loop()
                             asyncio.set_event_loop(loop)
+                        duration_int = min(int(round(section_duration)), 8)
                         path = loop.run_until_complete(
-                            self.veo_generator.generate(query, section_idx)
+                            self.veo_generator.generate(query, section_idx, duration=duration_int)
                         )
                     except RuntimeError:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
+                        duration_int = min(int(round(section_duration)), 8)
                         path = loop.run_until_complete(
-                            self.veo_generator.generate(query, section_idx)
+                            self.veo_generator.generate(query, section_idx, duration=duration_int)
                         )
                 else:
                     path = None
@@ -938,7 +951,7 @@ class VideoAgent:
                                     if clip.duration < section_dur:
                                         loops = math.ceil(section_dur / clip.duration)
                                         from moviepy import concatenate_videoclips as cv
-                                        clip = cv([clip] * loops, method="compose")
+                                        clip = cv([clip] * loops, method="chain")
                                     clip = clip.subclipped(0, section_dur)
                                     section_clips.append(clip)
                                     t += section_dur
@@ -988,7 +1001,7 @@ class VideoAgent:
                         if clip.duration < section_dur:
                             loops = math.ceil(section_dur / clip.duration)
                             from moviepy import concatenate_videoclips as cv
-                            clip = cv([clip] * loops, method="compose")
+                            clip = cv([clip] * loops, method="chain")
                         clip = clip.subclipped(0, section_dur)
                         section_clips.append(clip)
                         t += section_dur
@@ -1009,7 +1022,7 @@ class VideoAgent:
                         loops = math.ceil(section_dur / clip.duration)
                         logger.info(f"  [PEXELS] Looping clip {loops}x to fill {section_dur:.1f}s duration")
                         from moviepy import concatenate_videoclips as cv
-                        clip = cv([clip] * loops, method="compose")
+                        clip = cv([clip] * loops, method="chain")
                     clip = clip.subclipped(0, section_dur)
                     section_clips.append(clip)
                     t += section_dur
@@ -1032,7 +1045,7 @@ class VideoAgent:
         logger.info(f"  Total sections: {len(section_clips)}")
         logger.info(f"  Target duration: {total_duration:.1f}s")
         logger.info(f"  Concatenating clips...")
-        base = concatenate_videoclips(section_clips, method="compose")
+        base = concatenate_videoclips(section_clips, method="chain")
         logger.info(f"  Concatenated duration: {base.duration:.1f}s")
 
         # Trim or pad to exact duration
@@ -1044,7 +1057,7 @@ class VideoAgent:
             pad_duration = total_duration - base.duration
             logger.info(f"  [PAD] Adding {pad_duration:.1f}s gradient padding")
             pad = self._gradient_clip(pad_duration)
-            base = concatenate_videoclips([base, pad], method="compose")
+            base = concatenate_videoclips([base, pad], method="chain")
 
         logger.info(f"  Final duration: {base.duration:.1f}s ✓")
         return base
