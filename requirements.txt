@@ -34,3 +34,4 @@ python-dotenv>=1.0.0
 # Kling AI integration (Path A)
 httpx>=0.24.0
 pyjwt>=2.8.0
+google-cloud-storage>=2.0.0

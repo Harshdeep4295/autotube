@@ -42,9 +42,11 @@ Output lands in `outputs/<date>_<id>/video.mp4`. Open with `open outputs/`.
 | `agents/script_agent.py` | Claude or Gemini → structured script JSON |
 | `agents/voice_agent.py` | edge-tts (primary) + pyttsx3 (fallback) → audio.mp3 |
 | `agents/video_agent.py` | Pexels B-roll + Pillow captions → 1920×1080 MP4 |
+| `agents/gcp_veo_agent.py` | GCP Vertex AI Veo 3.1 → text-to-video (Phase 2) |
+| `agents/gcp_cost_tracker.py` | GCP credit usage monitoring vs $300 budget |
 | `agents/thumbnail_agent.py` | Pillow → 1280×720 JPEG thumbnail |
 | `agents/upload_agent.py` | YouTube Data API v3, OAuth2, resumable upload |
-| `templates/prompts.py` | All LLM prompt templates — script structure defined here |
+| `templates/prompts.py` | All LLM prompt templates — improved visual_queries guidance |
 | `.github/workflows/daily_pipeline.yml` | 4 cron triggers (09/12/15/18 IST) |
 
 ---
@@ -95,11 +97,17 @@ CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
 SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
 SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
 VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
-VIDEO_ANIMATION_MODE             # "ken_burns" (default), "leiapix", or "pika" — switch without code change via env var
+VIDEO_ANIMATION_MODE             # "ken_burns" (default), "veo" (Phase 2), "pika", "leiapix" — switch via env var
 MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: only use CC0 music, YouTube deducts 55% for licensed music
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
-PEXELS_CLIPS_PER_VIDEO = 6       # 1 per section — matches 6-section script (V1/pexels mode only)
+PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 based on script complexity)
 ```
+
+**VIDEO_ANIMATION_MODE options:**
+- `ken_burns` — Free, FFmpeg zoom/pan (default, no API setup)
+- `veo` — GCP Vertex AI Veo 3.1 native video (Phase 2, requires GCP setup + $300 credits)
+- `pika` — fal.ai Pika (paid, ~$0.20/video)
+- `leiapix` — 3D depth animation (free API)
 
 ---
 
@@ -142,6 +150,101 @@ VIDEO_ANIMATION_MODE=pika python orchestrator.py --dry-run --topic "Test"
 **Caching**: All modes cache videos by hash in `outputs/video_cache/` (prefixed `pika_*`, `leiapix_*`, `fx_*`). Prefetch job builds cache over time; render job reuses.
 
 **Fallback chain**: If active mode fails (API down, quota hit, network error) → gracefully falls back to gradient background for that section. Video continues playing with text overlays.
+
+---
+
+## GCP Veo 3.1 — Text-to-Video Generation (Phase 2)
+
+**NEW (2026-04-22):** Google Vertex AI Veo 3.1 integration for high-quality native video generation.
+
+### What is Veo?
+- **Text-to-video** generation via Google Cloud Vertex AI API
+- **Quality:** Native video, cinematic quality (8-second 1080p)
+- **Speed:** 2-4 minutes per video (async polling)
+- **Cost:** $0.10/sec → ~$0.80 per 8-sec video
+- **Budget:** $300 free trial (Phase 2 uses GCP free credits)
+
+### How to Enable Veo
+Set in `.env` or GitHub Variable:
+```bash
+VIDEO_ANIMATION_MODE=veo
+```
+
+This switches `video_agent.py` to Veo-only mode (no fallback to Ken Burns unless Veo fails).
+
+### Required GCP Setup
+1. Create GCP project (if not done)
+2. Enable **Vertex AI API** (`aiplatform.googleapis.com`)
+3. Enable **Cloud Storage API** (`storage.googleapis.com`)
+4. Create **GCS bucket** (e.g., `autotube-veo-output`)
+5. Create **service account** with roles:
+   - `Vertex AI User` (for Veo generation)
+   - `Storage Object Creator` + `Storage Object Viewer` (for GCS read/write)
+6. Download service account JSON key
+7. Set `.env` variables:
+   ```bash
+   GCP_PROJECT_ID=your-project-id
+   GCP_GCS_BUCKET=autotube-veo-output
+   AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON={...full JSON...}
+   ```
+
+### Visual Queries Requirements (CRITICAL)
+Veo fails silently on vague or abstract visual queries. Rules:
+
+**✅ DO:**
+- Concrete subjects: `"solar farm aerial"`, `"robot arm assembly"`, `"circuit board macro"`
+- Specific lighting: `"blue neon glow"`, `"golden hour backlight"`, `"orange dramatic lighting"`
+- Picture-able: `"holographic display blue glow"` (people can visualize it)
+
+**❌ DON'T:**
+- Generic roles: `"corporate worker"`, `"employee"` ← too vague
+- Abstract moods: `"dark moody"`, `"cinematic"` ← undefined
+- Abstract concepts: `"data visualization neon glow"` ← what does this look like?
+
+**Example (good):**
+```
+"quantum computer processor glowing orange dramatic lighting"
+"solar panel installation rooftop bright sunlight reflection"
+"holographic energy grid map blue neon glow"
+```
+
+The improved prompt (`templates/prompts.py`) now enforces these rules. Claude generates high-quality queries automatically.
+
+### How Veo Integration Works
+1. **Video Agent** calls `VeoVideoGenerator.generate(visual_query, section_idx, duration=8)`
+2. **VeoAPIClient** submits to Vertex AI API (async operation)
+3. **Polling loop** checks every 20s until `operation.done == True`
+4. **Download** from GCS bucket to local cache
+5. **Fallback chain:** If Veo returns empty response:
+   - Retry up to 2 more times (3 attempts total)
+   - If still empty after 3 retries → gradient background fallback
+6. **Caching** by MD5 hash: `outputs/video_cache/gcp_veo/veo_*.mp4`
+
+### Cost Tracking
+`agents/gcp_cost_tracker.py` monitors spending:
+```python
+tracker = GCPCostTracker(initial_credits=300.0)
+tracker.log_veo_generation(duration_seconds=8)  # logs $0.80
+print(tracker.summary())  # {spent: $0.80, remaining: $299.20, ...}
+```
+
+**Budget Alert:** Set $250 threshold in GCP Console to avoid surprise overages.
+
+### Troubleshooting Veo Failures
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `403 Forbidden` on GCS download | Service account lacks Storage permission | Add `Storage Object Viewer` role |
+| `No videos in response` | Veo API returned empty | Improved prompt fixes this; retry logic auto-retries |
+| `SERVICE_DISABLED` | Vertex AI API not enabled | Enable in GCP Console → APIs & Services |
+| `Permission denied: aiplatform.user` | Service account lacks Vertex AI role | Add `Vertex AI User` role |
+
+### Dynamic Sections (2026-04-22)
+Veo works with dynamic section counts (4-8 sections based on topic). Script agent generates:
+- Variable number of sections
+- Matching visual_queries array (one per section)
+- Video agent renders all sections
+
+This enables natural video length matching script length (no more forced 6 sections).
 
 ---
 

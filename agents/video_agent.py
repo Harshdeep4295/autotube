@@ -34,6 +34,13 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
+# Lazy import Veo if configured
+try:
+    from agents.gcp_veo_agent import VeoVideoGenerator
+    VEO_AVAILABLE = True
+except ImportError:
+    VEO_AVAILABLE = False
+
 NICHE_COLORS = {
     "AI & Tech":        ((10, 10, 35),  (3, 3, 18),   (70, 130, 255)),
     "Finance":          ((8, 30, 8),    (3, 12, 3),   (40, 190, 70)),
@@ -92,6 +99,7 @@ class VideoAgent:
         self._new_hashes: set = set()   # hashes used in this run, saved after render
         self.animation_effects: List[Dict] = self._load_animation_effects()
         self.kling_generator = None
+        self.veo_generator = None
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -215,12 +223,15 @@ class VideoAgent:
 
     def _try_section_video_chain(self, section_idx: int, query: str, primary_mode: str) -> Optional[str]:
         """Try to generate a video for one section, falling back on errors.
-        Chain respects primary_mode: if kling/seedance, don't fall back to other video generators.
+        Veo test mode: ONLY Veo, no fallbacks (gradient only if Veo fails).
         """
         modes = []
 
         # Primary mode first (no fallback to competing generators)
-        if primary_mode == "kling":
+        if primary_mode == "veo":
+            # Veo test mode: ONLY try Veo, no ken_burns or other fallbacks
+            modes = ["veo"]
+        elif primary_mode == "kling":
             modes = ["kling", "ken_burns", "pexels"]
         elif primary_mode == "seedance":
             modes = ["seedance", "ken_burns", "pexels"]
@@ -287,6 +298,25 @@ class VideoAgent:
                     path = paths[0] if paths else None
                 elif mode == "seedance":
                     path = self._fetch_seedance_video(query, section_idx)
+                elif mode == "veo":
+                    if not self.veo_generator:
+                        self.veo_generator = VeoVideoGenerator()
+
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_closed():
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        path = loop.run_until_complete(
+                            self.veo_generator.generate(query, section_idx)
+                        )
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        path = loop.run_until_complete(
+                            self.veo_generator.generate(query, section_idx)
+                        )
                 else:
                     path = None
 

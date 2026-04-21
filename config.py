@@ -163,7 +163,7 @@ class Config:
 
     # ── Video caption / B-roll settings ──────────────────────────────────────
     VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips and AI images
-    PEXELS_CLIPS_PER_VIDEO: int = 6                # 1 unique clip per section (V1/Pexels mode)
+    PEXELS_CLIPS_PER_VIDEO: int = 6                # Dynamic per actual sections (4-8 based on script complexity)
     CAPTION_FONT_SIZE: int = 52
     CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
     DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast

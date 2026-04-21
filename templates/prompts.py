@@ -100,7 +100,7 @@ Return this exact JSON structure (no extra text outside the JSON):
     {{
       "section_name": "main_3",
       "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE REAL ANSWER', 'THE FIX', 'WHAT WORKS')",
-      "text": "Third insight — the most surprising or counterintuitive point. Short sentences.",
+      "text": "Third insight — the most surprising or counterintuitive point. Short sentences. End with micro-cliffhanger.",
       "word_count": 155
     }},
     {{
@@ -111,12 +111,12 @@ Return this exact JSON structure (no extra text outside the JSON):
     }}
   ],
   "visual_queries": [
-    "TOPIC-RELEVANT cinematic query for section 1 — see rules below",
-    "TOPIC-RELEVANT cinematic query for section 2",
-    "TOPIC-RELEVANT cinematic query for section 3",
-    "TOPIC-RELEVANT cinematic query for section 4",
-    "TOPIC-RELEVANT cinematic query for section 5",
-    "TOPIC-RELEVANT cinematic query for section 6"
+    "TOPIC-RELEVANT cinematic query for section 1 (hook)",
+    "TOPIC-RELEVANT cinematic query for section 2 (context)",
+    "TOPIC-RELEVANT cinematic query for section 3 (main_1)",
+    "TOPIC-RELEVANT cinematic query for section 4 (main_2)",
+    "TOPIC-RELEVANT cinematic query for section 5 (main_3)",
+    "TOPIC-RELEVANT cinematic query for section 6 (cta)"
   ],
   "thumbnail_text": "3-4 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47 TOOLS TESTED', 'AI KILLED THIS', '$50K MISTAKE')",
   "thumbnail_subtext": "2-3 word VALUE PROPOSITION shown below main text — use ROI/outcome framing like 'SAVES 3 HRS', 'EARN MORE', 'FREE TOOL', 'IN 2026' — NOT a description of the video",
@@ -125,12 +125,28 @@ Return this exact JSON structure (no extra text outside the JSON):
   "total_word_count": 750
 }}
 
-CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count must reach ~750.
+DYNAMIC SECTIONS — If the topic has MORE than 3 key insights, add additional main_X sections (main_4, main_5, etc.). Each should have:
+  - section_name: "main_4", "main_5", etc.
+  - section_display_title: 2-4 WORDS ALL CAPS
+  - text: ~160 words with micro-cliffhanger
+  - word_count: ~160
+
+If you add N total sections, the visual_queries array MUST have exactly N strings (one per section in order).
+Keep total word count proportional: ~750 words for 6 sections, ~900 words for 8 sections.
+
+CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count should be proportional to section count.
 
 CRITICAL for visual_queries — RULES FOR EACH QUERY:
-  1. Must be TOPIC-RELEVANT: if the topic is about coding, use "dark code terminal screen glow" not "ocean waves". If about AI, use "futuristic robot hand circuit board" not "mountain sunrise".
-  2. Must be CINEMATIC: include lighting/mood descriptors — "dramatic lighting", "neon glow", "golden hour", "dark moody", "blue backlight"
-  3. Format: "[topic-relevant subject] [cinematic style/lighting]"
-  Examples for a dev topic: "programmer typing keyboard dark backlit", "code terminal green glow dark", "server room blue light dramatic", "abstract circuit board macro close-up", "laptop screen code reflection dark desk", "futuristic data center corridor blue"
-  Examples for AI topic: "neural network visualization blue glow", "robot hand human hand meeting cinematic", "data center servers dramatic lighting", "AI chip circuit board macro", "screen showing AI interface dark room", "futuristic city drone shot golden hour"
-  NEVER use: random landscapes, ocean waves, mountains, forests — unless the topic is literally about nature."""
+  1. CONCRETE SUBJECT: Use specific nouns/objects, NOT generic roles.
+     ❌ BAD: "corporate worker", "employee training" ← too generic
+     ✅ GOOD: "robot arm assembly line", "holographic display", "circuit board macro" ← specific objects
+  2. SPECIFIC LIGHTING: Use concrete lighting terms, NOT vague moods.
+     ❌ BAD: "dark moody", "cinematic" ← undefined
+     ✅ GOOD: "blue neon glow", "golden hour backlight", "dramatic orange lighting" ← concrete colors/sources
+  3. AVOID ABSTRACTIONS: Don't use abstract concepts like "data visualization" or "AI interface" alone.
+     ❌ BAD: "data visualization neon glow" ← what does this look like?
+     ✅ GOOD: "holographic chart display blue glow" ← people can picture it
+  4. Format: "[specific concrete subject] [concrete lighting effect]"
+  Examples for a dev topic: "programmer typing keyboard dark backlit", "green code terminal screen glow", "server rack blue light dramatic", "circuit board macro photography", "laptop screen reflection warm desk lamp", "fiber optic cables blue glow"
+  Examples for AI topic: "robot hand grasping blue glow", "holographic AI interface orange dramatic", "neural network nodes blue neon", "microchip circuit board gold backlight", "hologram display screen in dark room", "futuristic robot assembly line orange lighting"
+  NEVER use: generic roles ("worker", "employee", "person"), vague moods ("dark moody", "cinematic"), abstract concepts ("AI interface" alone), landscapes or nature unless explicitly topic-relevant."""
