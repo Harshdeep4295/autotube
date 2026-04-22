@@ -88,9 +88,9 @@ jobs:
           PEXELS_API_KEY:                 ${{ secrets.PEXELS_API_KEY }}
           SUPABASE_URL:                   ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY:              ${{ secrets.SUPABASE_ANON_KEY }}
-          SCRIPT_MODEL_PROVIDER:          ${{ github.event.inputs.model_provider || vars.SCRIPT_MODEL_PROVIDER || 'claude' }}
-          VIDEO_BACKGROUND_MODE:         ${{ vars.VIDEO_BACKGROUND_MODE || 'ai_images' }}
-          VIDEO_ANIMATION_MODE:          ${{ vars.VIDEO_ANIMATION_MODE || 'veo' }}
+          SCRIPT_MODEL_PROVIDER:          ${{ github.event.inputs.model_provider || secrets.SCRIPT_MODEL_PROVIDER || 'claude' }}
+          VIDEO_BACKGROUND_MODE:         ${{ secrets.VIDEO_BACKGROUND_MODE || 'ai_images' }}
+          VIDEO_ANIMATION_MODE:          ${{ secrets.VIDEO_ANIMATION_MODE || 'seedance' }}
           REPLICATE_API_KEY:              ${{ secrets.REPLICATE_API_KEY }}
           KLING_ACCESS_KEY:               ${{ secrets.KLING_ACCESS_KEY }}
           KLING_SECRET_KEY:               ${{ secrets.KLING_SECRET_KEY }}
