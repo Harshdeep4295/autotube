@@ -248,6 +248,127 @@ This enables natural video length matching script length (no more forced 6 secti
 
 ---
 
+## GCS Backup & Retry System — Resilient Video Uploads (2026-04-23)
+
+**NEW:** Automatic backup of failed YouTube uploads to Google Cloud Storage with intelligent retry on next pipeline run.
+
+### What It Does
+If YouTube upload fails (token expired, network error, quota exceeded, etc.):
+1. Video is **automatically backed up to GCS** (`autotube-veo-output` bucket)
+2. Upload metadata saved to manifest (`data/upload_status.json`)
+3. On **next pipeline run**, videos are automatically retried before generating new ones
+4. After successful upload, backup is deleted from GCS
+
+### How It Works
+
+**Files involved:**
+- `agents/gcs_backup_agent.py` — GCS upload/download + manifest tracking
+- `agents/upload_agent.py` — YouTube upload with GCS fallback
+- `orchestrator.py` — Retry pending uploads before rendering new videos
+- `data/upload_status.json` — Manifest tracking failed uploads
+
+**Flow:**
+```
+Video Generated ✓
+    ↓
+Attempt YouTube Upload
+    ├─ Success → Delete backup, done ✅
+    └─ Failure → Save to GCS + manifest ⚠️
+       
+Next Pipeline Run:
+    ↓
+Check Manifest for Pending Uploads
+    ├─ None → Proceed normally ✅
+    └─ Found (up to 5) → Retry from GCS
+       ├─ Success → Remove from manifest ✅
+       └─ Still fails → Increment attempt count ⚠️
+```
+
+### Manifest Structure
+```json
+[
+  {
+    "gcs_path": "gs://autotube-veo-output/videos/pending/video.mp4",
+    "title": "ChatGPT Images 2.0 — The Results Shocked Me",
+    "description": "...",
+    "tags": ["ChatGPT", "AI"],
+    "status": "pending_gcs",  // or "uploaded"
+    "attempts": 1,
+    "first_backed_up": "2026-04-23T12:34:56.789",
+    "last_retry": "2026-04-23T12:34:56.789"
+  }
+]
+```
+
+### Key Features
+
+✅ **No lost videos** — Stored in GCS for as long as needed
+✅ **Automatic retry** — Tried again on next run (configurable up to 5 per run)
+✅ **Cost-effective** — Videos cost ~$0.02/month to store in GCS
+✅ **Audit trail** — Full timestamp + attempt tracking
+✅ **Graceful fallback** — Works with existing GCP setup (reuses service account)
+✅ **Manifest in git** — Track failures across runs (committed to repo)
+
+### Handling Different Failure Types
+
+| Failure | Cause | Recovery |
+|---------|-------|----------|
+| `invalid_grant: Token expired` | YouTube OAuth token stale | Auto-retry ✓ |
+| `403 Forbidden` | Insufficient permissions | Check token setup |
+| `Network timeout` | Temporary network issue | Auto-retry ✓ |
+| `Quota exceeded` | YouTube daily limit hit | Retry next day ✓ |
+| `Service unavailable` | YouTube API down | Auto-retry ✓ |
+
+### Checking Status
+
+```bash
+# View pending uploads
+cat data/upload_status.json
+
+# Check GCS bucket (requires gcloud CLI)
+gsutil ls gs://autotube-veo-output/videos/pending/
+
+# View manifest in logs
+python orchestrator.py --dry-run 2>&1 | grep -i "pending\|gcs"
+```
+
+### Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Videos stuck in GCS | Check `data/upload_status.json` — verify YouTube token is fresh |
+| Manifest not updating | Ensure `data/` directory is writable |
+| Retry not happening | Check that `_retry_pending_uploads()` runs before new renders |
+| GCS backup disabled | Verify `AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON` env var is set |
+
+### Cleanup (if needed)
+
+To manually clear old backups from GCS:
+```bash
+# View pending videos
+gsutil ls gs://autotube-veo-output/videos/pending/
+
+# Delete specific video (replace FILENAME)
+gsutil rm gs://autotube-veo-output/videos/pending/FILENAME.mp4
+
+# Or delete old manifests
+rm data/upload_status.json
+# Will be recreated on next failed upload
+```
+
+### Cost Analysis
+
+**GCS storage pricing:** ~$0.02/GB/month (after free tier)
+
+If storing 100 videos (assume 150MB each):
+- Total size: ~15GB
+- Monthly cost: ~$0.30
+- Acceptable for backup reliability
+
+**No additional cost** if videos are uploaded within 30 days (automatic cleanup).
+
+---
+
 ## Critical Lesson: Integration Testing Before Commit
 
 **LESSON LEARNED (2026-04-17):** A typo in the Pika API endpoint (`queuee` instead of `queue`) went undetected during implementation and wasn't caught until videos were failing in production. This bug should have been caught immediately.

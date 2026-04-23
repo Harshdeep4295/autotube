@@ -10,7 +10,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from config import config
 
@@ -30,6 +30,7 @@ class UploadAgent:
         script: Dict,
         slot_index: int = 0,
         publish_immediately: bool = True,
+        gcs_path: Optional[str] = None,
     ) -> Dict:
         """
         Args:
@@ -38,8 +39,9 @@ class UploadAgent:
             script: Script dict (title, description, tags)
             slot_index: Which IST slot to schedule (ignored if publish_immediately=True)
             publish_immediately: If True, publish now. If False, schedule for slot_index time.
+            gcs_path: If set, this is a retry from GCS backup (skip local file check)
         Returns:
-            dict with video_id, url, publish_at, uploaded_at
+            dict with video_id, url, publish_at, uploaded_at, or failure dict if upload fails
         """
         publish_at = None if publish_immediately else self._get_publish_time(slot_index)
         if publish_immediately:
@@ -47,25 +49,43 @@ class UploadAgent:
         else:
             logger.info(f"Uploading: {script['title'][:60]} → schedule for {publish_at} UTC")
 
-        video_id = self._upload_video(video_path, script, publish_at)
-        self._set_thumbnail(video_id, thumb_path)
+        try:
+            video_id = self._upload_video(video_path, script, publish_at)
+            self._set_thumbnail(video_id, thumb_path)
 
-        # Upload SRT captions if generated alongside the video
-        srt_path = str(Path(video_path).parent / "captions.srt")
-        if Path(srt_path).exists():
-            self._upload_captions(video_id, srt_path)
+            # Upload SRT captions if generated alongside the video
+            srt_path = str(Path(video_path).parent / "captions.srt")
+            if Path(srt_path).exists():
+                self._upload_captions(video_id, srt_path)
 
-        self._save_to_log(script, video_id, publish_at)
+            self._save_to_log(script, video_id, publish_at)
 
-        result = {
-            "video_id": video_id,
-            "url": f"https://youtube.com/watch?v={video_id}",
-            "publish_at": publish_at or datetime.utcnow().isoformat(),
-            "uploaded_at": datetime.utcnow().isoformat(),
-            "success": True,
-        }
-        logger.info(f"Uploaded successfully: {result['url']}")
-        return result
+            result = {
+                "video_id": video_id,
+                "url": f"https://youtube.com/watch?v={video_id}",
+                "publish_at": publish_at or datetime.utcnow().isoformat(),
+                "uploaded_at": datetime.utcnow().isoformat(),
+                "success": True,
+            }
+            logger.info(f"Uploaded successfully: {result['url']}")
+
+            # If this was a GCS retry, clean up the backup
+            if gcs_path:
+                self._cleanup_gcs_backup(gcs_path)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"YouTube upload failed: {e}")
+            # Backup to GCS for later retry
+            if not gcs_path:  # Don't double-backup if already from GCS
+                self._backup_to_gcs(video_path, script)
+            return {
+                "success": False,
+                "error": str(e),
+                "title": script.get("title", ""),
+                "video_path": video_path,
+            }
 
     # ── Upload ────────────────────────────────────────────────────────────────
 
@@ -203,6 +223,34 @@ class UploadAgent:
             logger.info("OAuth token refreshed and saved")
 
         return build("youtube", "v3", credentials=creds)
+
+    # ── GCS Backup ────────────────────────────────────────────────────────────
+
+    def _backup_to_gcs(self, video_path: str, script: Dict) -> None:
+        """Backup failed video to GCS for later retry."""
+        try:
+            from agents.gcs_backup_agent import GCSBackupAgent
+            backup = GCSBackupAgent()
+            backup.upload_to_gcs(
+                video_path,
+                metadata={
+                    "title": script.get("title", ""),
+                    "description": script.get("description", ""),
+                    "tags": script.get("tags", []),
+                },
+                attempt=1,
+            )
+        except Exception as e:
+            logger.warning(f"Could not backup to GCS: {e}")
+
+    def _cleanup_gcs_backup(self, gcs_path: str) -> None:
+        """Delete backup from GCS after successful upload."""
+        try:
+            from agents.gcs_backup_agent import GCSBackupAgent
+            backup = GCSBackupAgent()
+            backup.delete_from_gcs(gcs_path)
+        except Exception as e:
+            logger.warning(f"Could not cleanup GCS backup: {e}")
 
     # ── Log ───────────────────────────────────────────────────────────────────
 

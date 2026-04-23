@@ -170,6 +170,12 @@ class Orchestrator:
     def run_render(self, count: int = 1) -> List[Dict]:
         """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
         results = []
+
+        # Pre-flight: Retry failed uploads from GCS before generating new videos
+        self.logger.info("Pre-flight: Checking for pending uploads from GCS…")
+        gcs_results = self._retry_pending_uploads()
+        results.extend(gcs_results)
+
         for slot_index in range(count):
             row = self._fetch_pending_video()
             if not row:
@@ -575,6 +581,81 @@ class Orchestrator:
 
         except Exception as e:
             self.logger.warning(f"Failed to harvest completed Kling tasks: {e}")
+
+    def _retry_pending_uploads(self) -> List[Dict]:
+        """Retry uploading videos from GCS that failed previously."""
+        from agents.gcs_backup_agent import GCSBackupAgent
+        from google.cloud import storage
+        import tempfile
+
+        results = []
+        try:
+            backup = GCSBackupAgent()
+            pending = backup.get_pending_uploads()
+
+            if not pending:
+                self.logger.info("No pending uploads in GCS — all caught up")
+                return results
+
+            self.logger.info(f"Found {len(pending)} pending uploads — retrying…")
+            uploader = self._get_uploader()
+            if not uploader:
+                self.logger.warning("Uploader not available — cannot retry uploads")
+                return results
+
+            for entry in pending[:5]:  # Retry up to 5 per run to avoid timeout
+                gcs_path = entry.get("gcs_path", "")
+                title = entry.get("title", "")
+                attempt = entry.get("attempts", 0) + 1
+
+                try:
+                    # Download from GCS to temp file
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                        tmp_path = tmp.name
+
+                    self.logger.info(f"Retrying upload ({attempt}): {title[:60]}")
+                    storage_client = backup.gcs_client
+                    bucket = storage_client.bucket(backup.bucket_name)
+                    blob = bucket.blob(gcs_path)
+                    blob.download_to_filename(tmp_path)
+
+                    # Retry YouTube upload
+                    upload_result = uploader.publish(
+                        tmp_path,
+                        thumb_path="",  # No thumbnail for retry
+                        script={
+                            "title": title,
+                            "description": entry.get("description", ""),
+                            "tags": entry.get("tags", []),
+                        },
+                        gcs_path=gcs_path,  # Mark as GCS retry
+                    )
+
+                    if upload_result.get("success"):
+                        self.logger.info(f"  ✓ Retry succeeded: {upload_result.get('url', '')}")
+                    else:
+                        # Update attempt count for next retry
+                        backup.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(backup.manifest_path) as f:
+                            manifest = json.load(f)
+                        for m in manifest:
+                            if m.get("gcs_path") == gcs_path:
+                                m["attempts"] = attempt
+                                m["last_retry"] = datetime.utcnow().isoformat()
+                        with open(backup.manifest_path, "w") as f:
+                            json.dump(manifest, f, indent=2)
+
+                    results.append(upload_result)
+                    Path(tmp_path).unlink(missing_ok=True)
+
+                except Exception as e:
+                    self.logger.warning(f"Retry failed for {title[:60]}: {e}")
+                    results.append({"success": False, "error": str(e), "title": title})
+
+        except Exception as e:
+            self.logger.warning(f"GCS retry pre-flight failed: {e}")
+
+        return results
 
     def _save_kling_task_ids(self, row_id: int, kling_task_ids: Dict[int, Optional[str]]) -> None:
         """Store Kling task IDs in Supabase after async submission."""
