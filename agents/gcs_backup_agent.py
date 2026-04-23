@@ -147,7 +147,7 @@ class GCSBackupAgent:
 
             import json as json_module
             sa_dict = json_module.loads(sa_json)
-            return storage.Client._from_service_account_info(sa_dict)
+            return storage.Client.from_service_account_info(sa_dict)
         except Exception as e:
             logger.warning(f"Could not initialize GCS client: {e}")
             return None

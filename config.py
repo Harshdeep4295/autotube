@@ -194,6 +194,14 @@ class Config:
         default_factory=lambda: os.getenv("SUPABASE_ANON_KEY", "")
     )
 
+    # ── GCP Configuration (for GCS backup & Veo video generation) ──────────────
+    GCP_PROJECT_ID: str = field(
+        default_factory=lambda: os.getenv("GCP_PROJECT_ID", "")
+    )
+    GCP_GCS_BUCKET: str = field(
+        default_factory=lambda: os.getenv("GCP_GCS_BUCKET", "autotube-veo-output")
+    )
+
     # ── Failure handling ──────────────────────────────────────────────────────
     SKIP_ON_FAIL: bool = True   # skip failed videos and continue pipeline
 
