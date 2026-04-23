@@ -148,17 +148,13 @@ class Config:
     )
 
     # ── Video animation mode ──────────────────────────────────────────────────
-    # "seedance"   → Seedance 2.0 via Replicate (100 free videos/day, no API key needed)
+    # "veo"        → GCP Vertex AI Veo 3.1 native video (requires GCP credits — free $300 trial)
+    # "kling"      → Kling API video generation (requires API key)
+    # "pika"       → Pika video generation (requires API key)
     # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (COMPLETELY FREE ✓)
-    # Default: "seedance" (free, high quality). Always falls back to Ken Burns if Seedance fails.
+    # Default: "veo" (best quality, uses GCP free credits). Falls back to Ken Burns if quota exceeded.
     VIDEO_ANIMATION_MODE: str = field(
-        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "seedance")
-    )
-
-    # ── Replicate API (for Seedance video generation) ────────────────────────────
-    # Free tier available. Get API key at https://replicate.com/account
-    REPLICATE_API_KEY: str = field(
-        default_factory=lambda: os.getenv("REPLICATE_API_KEY", "")
+        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "veo")
     )
 
     # ── Video caption / B-roll settings ──────────────────────────────────────

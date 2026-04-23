@@ -207,13 +207,14 @@ class VideoAgent:
         On 429 rate limit, immediately switch to next mode for that scene.
         section_durations: dict mapping section index to required duration in seconds."""
         primary_mode = config.VIDEO_ANIMATION_MODE.lower()
+        # Concrete, visualizable fallbacks for Veo (avoid abstractions)
         cinematic_fallbacks = [
-            "cinematic aerial cityscape golden hour",
-            "abstract technology neural network visualization",
-            "futuristic data visualization dark background",
-            "modern office skyline sunset",
-            "artificial intelligence digital brain",
-            "global network connections blue",
+            "drone camera flying over futuristic cityscape golden hour sunset",
+            "robot hand assembling circuit board under bright white light",
+            "holographic display showing 3D data visualization blue neon glow",
+            "modern glass office building with warm sunset reflection",
+            "android robot head with glowing blue eyes in dark background",
+            "fiber optic cables with flowing blue light in dark space",
         ]
 
         results: Dict[int, Optional[str]] = {}
@@ -238,10 +239,10 @@ class VideoAgent:
         """
         modes = []
 
-        # Primary mode first (no fallback to competing generators)
+        # Primary mode first, with intelligent fallbacks
         if primary_mode == "veo":
-            # Veo test mode: ONLY try Veo, no ken_burns or other fallbacks
-            modes = ["veo"]
+            # Veo primary, fall back to Ken Burns (free, reliable)
+            modes = ["veo", "ken_burns"]
         elif primary_mode == "kling":
             modes = ["kling", "ken_burns", "pexels"]
         elif primary_mode == "seedance":
@@ -251,8 +252,8 @@ class VideoAgent:
         elif primary_mode == "pika":
             modes = ["pika", "ken_burns", "pexels"]
         else:
-            # Default fallback chain
-            modes = ["seedance", "kling", "ken_burns", "pexels"]
+            # Default fallback chain (seedance disabled — requires Replicate API key)
+            modes = ["veo", "kling", "ken_burns", "pexels"]
 
         for mode in modes:
             try:
@@ -359,13 +360,14 @@ class VideoAgent:
             logger.warning("Pika API key not set — falling back to ken_burns")
             return self._fetch_section_images(sections, visual_queries)
 
+        # Concrete, visualizable fallbacks for Pika
         cinematic_fallbacks = [
-            "cinematic aerial cityscape golden hour",
-            "abstract technology neural network visualization",
-            "futuristic data visualization dark background",
-            "modern office skyline sunset",
-            "artificial intelligence digital brain",
-            "global network connections blue",
+            "drone flying over futuristic city at golden hour sunset",
+            "robot hand assembling technological component bright light",
+            "holographic 3D interface glowing blue in dark room",
+            "modern glass skyscraper reflecting warm sunset light",
+            "android robot head with glowing blue eyes dark background",
+            "flowing blue neon light through fiber optic cables dark",
         ]
 
         results: Dict[int, Optional[str]] = {}
@@ -626,13 +628,14 @@ class VideoAgent:
         """V2: Generate one Pollinations.ai image per section in parallel. Returns {idx: path_or_None}.
         Parallel fetch cuts download time from ~6-8 min (sequential) to ~1-2 min (concurrent).
         """
+        # Concrete, visualizable fallbacks for Pollinations AI image generation
         cinematic_fallbacks = [
-            "cinematic aerial cityscape golden hour",
-            "abstract technology neural network visualization",
-            "futuristic data visualization dark background",
-            "modern office skyline sunset",
-            "artificial intelligence digital brain",
-            "global network connections blue",
+            "drone flying over futuristic cityscape golden hour sunset",
+            "robot arm assembling circuit board bright white light",
+            "holographic 3D display showing data blue neon glow",
+            "modern glass office building sunset reflection",
+            "android head glowing blue eyes dark background",
+            "fiber optic cables blue light flowing dark space",
         ]
 
         def fetch_one(args):
@@ -970,13 +973,14 @@ class VideoAgent:
                     # Fall back to Ken Burns if Kling not available or failed
                     logger.info(f"  [KEN BURNS] Attempting Ken Burns fallback...")
                     try:
+                        # Concrete, visualizable fallbacks for Ken Burns AI image generation
                         cinematic_fallbacks = [
-                            "cinematic aerial cityscape golden hour",
-                            "abstract technology neural network visualization",
-                            "futuristic data visualization dark background",
-                            "modern office skyline sunset",
-                            "artificial intelligence digital brain",
-                            "global network connections blue",
+                            "drone flying over futuristic cityscape golden hour sunset",
+                            "robot arm assembling circuit board bright white light",
+                            "holographic 3D display showing data blue neon glow",
+                            "modern glass office building sunset reflection",
+                            "android head glowing blue eyes dark background",
+                            "fiber optic cables blue light flowing dark space",
                         ]
                         query_to_use = visual_query if visual_query else cinematic_fallbacks[i % len(cinematic_fallbacks)]
                         logger.info(f"  [KEN BURNS] Fetching AI image with query: '{query_to_use}'")

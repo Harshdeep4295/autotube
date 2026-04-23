@@ -136,17 +136,29 @@ Keep total word count proportional: ~750 words for 6 sections, ~900 words for 8 
 
 CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count should be proportional to section count.
 
-CRITICAL for visual_queries — RULES FOR EACH QUERY:
-  1. CONCRETE SUBJECT: Use specific nouns/objects, NOT generic roles.
-     ❌ BAD: "corporate worker", "employee training" ← too generic
-     ✅ GOOD: "robot arm assembly line", "holographic display", "circuit board macro" ← specific objects
-  2. SPECIFIC LIGHTING: Use concrete lighting terms, NOT vague moods.
-     ❌ BAD: "dark moody", "cinematic" ← undefined
-     ✅ GOOD: "blue neon glow", "golden hour backlight", "dramatic orange lighting" ← concrete colors/sources
-  3. AVOID ABSTRACTIONS: Don't use abstract concepts like "data visualization" or "AI interface" alone.
-     ❌ BAD: "data visualization neon glow" ← what does this look like?
-     ✅ GOOD: "holographic chart display blue glow" ← people can picture it
-  4. Format: "[specific concrete subject] [concrete lighting effect]"
-  Examples for a dev topic: "programmer typing keyboard dark backlit", "green code terminal screen glow", "server rack blue light dramatic", "circuit board macro photography", "laptop screen reflection warm desk lamp", "fiber optic cables blue glow"
-  Examples for AI topic: "robot hand grasping blue glow", "holographic AI interface orange dramatic", "neural network nodes blue neon", "microchip circuit board gold backlight", "hologram display screen in dark room", "futuristic robot assembly line orange lighting"
-  NEVER use: generic roles ("worker", "employee", "person"), vague moods ("dark moody", "cinematic"), abstract concepts ("AI interface" alone), landscapes or nature unless explicitly topic-relevant."""
+CRITICAL for visual_queries — RULES FOR EACH QUERY (Veo-specific):
+  1. CONCRETE SUBJECT WITH ACTION: Always describe a specific, visualizable thing + action.
+     ❌ BAD: "corporate worker", "employee training", "abstract concept" ← too generic
+     ✅ GOOD: "robot arm assembling circuit board", "holographic display showing data", "hands typing on mechanical keyboard" ← specific objects + action
+  2. SPECIFIC LIGHTING & ENVIRONMENT: Use concrete, physical lighting + location.
+     ❌ BAD: "dark moody", "cinematic feel" ← undefined, vague
+     ✅ GOOD: "blue neon glow dark room", "golden hour sunlight", "warm desk lamp on wood surface" ← concrete colors + sources
+  3. AVOID PURE ABSTRACTIONS: Veo fails on non-visualizable concepts. Must depict physical reality.
+     ❌ BAD: "data visualization", "AI thinking", "abstract energy" ← Veo can't render concepts
+     ✅ GOOD: "holographic 3D display showing stock chart blue glow", "robot thinking processing orange light" ← converts abstract to physical visualization
+  4. FORMAT: "[Concrete subject] + [action] + [lighting/environment]"
+     WORST: Single word ("technology", "AI")
+     BAD: Two words ("AI robot")
+     GOOD: "robot arm painting futuristic design blue light"
+     BEST: "robot arm painting detailed circuit board futuristic design blue neon glow dark studio"
+  5. MOTION HELPS: When possible, use active verbs to suggest motion.
+     ✅ "camera flying over futuristic city at sunset" (has motion)
+     ✅ "robot hand assembling component under bright light" (clear action)
+     ❌ "futuristic city" (static, vague)
+
+  EXAMPLES THAT WORK WELL WITH VEO:
+  Tech/Dev: "programmer typing green code on dark keyboard backlit", "circuit board macro photography with solder joints glowing orange", "fiber optic cables with blue light flowing through dark space", "laptop screen showing code with warm desk lamp reflection", "server rack with blue cooling lights in dark server room", "3D holographic circuit schematic displayed in dark blue environment"
+  AI/Future: "robot hand assembling microchip under bright white spotlight", "holographic AI neural network visualization with blue neon nodes floating", "android head with glowing orange circuitry in dark background", "futuristic robot arm welding metal under intense orange arc light", "holographic display screen floating in dark space with blue glow", "robot face with glowing blue eyes in dark metallic environment"
+  General: "sunrise over mountain landscape with warm golden light", "ocean waves crashing on beach with white foam spray", "forest path with filtered green sunlight", "city lights at night with reflections on wet street", "drone flying over desert canyon at golden hour", "waterfall with mist and rainbow light"
+
+  NEVER use: Generic roles ("worker", "employee", "person", "user"), undefined moods ("moody", "cinematic", "dark feel"), pure abstractions ("data", "AI", "information", "blockchain") without physical form, incomplete concepts ("tech", "business", "future" without context), or extremely common stock footage that may confuse the model."""

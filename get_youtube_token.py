@@ -3,7 +3,10 @@ import os
 from pathlib import Path
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = ["https://www.googleapis.com/auth/youtube"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
+]
 
 # Try to load OAuth credentials from client_secrets.json
 client_secrets_path = Path("client_secrets.json")
@@ -26,11 +29,14 @@ flow = InstalledAppFlow.from_client_config(
 # Get credentials (opens browser automatically)
 creds = flow.run_local_server(port=8080, open_browser=True)
 
-# Extract and save refresh token
+# Extract and save refresh token with all required fields for token refresh
 token_data = {
     "access_token": creds.token,
     "refresh_token": creds.refresh_token,
-    "scope": " ".join(SCOPES),
+    "token_uri": config.get("token_uri", "https://oauth2.googleapis.com/token"),
+    "client_id": config.get("installed", {}).get("client_id", ""),
+    "client_secret": config.get("installed", {}).get("client_secret", ""),
+    "scopes": SCOPES,
     "token_type": "Bearer",
     "expires_in": 3599
 }

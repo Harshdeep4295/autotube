@@ -220,7 +220,9 @@ class VeoVideoGenerator:
         duration: int = 8,
         retry_count: int = 0
     ) -> Optional[str]:
-        """Generate video from prompt. Returns path to cached video file, or None if failed."""
+        """Generate video from prompt. Returns path to cached video file, or None if failed.
+        No retries — single attempt only. Reduces costs to $0.80 per section max.
+        """
         cache_key = hashlib.md5(
             f"veo_{prompt}_{section_idx}_{duration}".encode()
         ).hexdigest()[:12]
@@ -242,11 +244,8 @@ class VeoVideoGenerator:
 
             generated_videos = result["result"].generated_videos
             if not generated_videos:
-                if retry_count < 2:
-                    self.logger.warning(f"Empty response (retry {retry_count+1}/2)...")
-                    await asyncio.sleep(5)
-                    return await self.generate(prompt, section_idx, duration, retry_count + 1)
-                raise Exception("No videos in response after 3 attempts")
+                self.logger.error(f"No videos in response — falling back to gradient")
+                return None
 
             gcs_uri = generated_videos[0].video.uri
 
