@@ -24,6 +24,14 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+# Google Cloud Platform libraries (imported conditionally for Cloud Run)
+try:
+    from google.cloud import storage, firestore, secretmanager
+    from google.api_core.exceptions import NotFound, PermissionDenied
+    HAS_GCP = True
+except ImportError:
+    HAS_GCP = False
+
 from config import config
 from agents.research_agent import ResearchAgent
 from agents.script_agent import ScriptAgent
@@ -47,11 +55,84 @@ def setup_logging(run_id: str) -> logging.Logger:
     return logging.getLogger("orchestrator")
 
 
+def load_secrets_from_gcp(run_id: str, logger: logging.Logger) -> None:
+    """Load secrets from GCP Secret Manager and set as environment variables."""
+    if not HAS_GCP:
+        logger.info("GCP libraries not installed — using .env (local mode)")
+        return
+
+    project_id = os.getenv("GCP_PROJECT_ID")
+    if not project_id:
+        logger.info("GCP_PROJECT_ID not set — using .env (local mode)")
+        return
+
+    logger.info(f"Loading secrets from GCP Secret Manager (project: {project_id})")
+
+    client = secretmanager.SecretManagerServiceClient()
+    secret_keys = [
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "YOUTUBE_TOKEN_JSON",
+        "YOUTUBE_CLIENT_SECRETS",
+        "PEXELS_API_KEY",
+        "AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+    ]
+
+    loaded_count = 0
+    for secret_name in secret_keys:
+        try:
+            name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+            response = client.access_secret_version(request={"name": name})
+            secret_value = response.payload.data.decode("UTF-8")
+            os.environ[secret_name] = secret_value
+
+            # Map SUPABASE_ANON_KEY to SUPABASE_KEY for config compatibility
+            if secret_name == "SUPABASE_ANON_KEY":
+                os.environ["SUPABASE_KEY"] = secret_value
+
+            loaded_count += 1
+            logger.info(f"  ✓ Loaded {secret_name}")
+        except NotFound:
+            logger.warning(f"  ✗ Secret not found: {secret_name}")
+        except PermissionDenied:
+            logger.error(f"  ✗ Permission denied accessing: {secret_name}")
+        except Exception as e:
+            logger.warning(f"  ✗ Error loading {secret_name}: {e}")
+
+    logger.info(f"Loaded {loaded_count}/{len(secret_keys)} secrets from GCP")
+
+
 class Orchestrator:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
         self.run_id = uuid.uuid4().hex[:8]
         self.logger = setup_logging(self.run_id)
+
+        # Load secrets from GCP Secret Manager (Cloud Run only, skipped locally)
+        load_secrets_from_gcp(self.run_id, self.logger)
+
+        # Initialize Cloud Storage client if in Cloud Run
+        self.gcs_client = None
+        self.gcs_bucket = None
+        if HAS_GCP and os.getenv("GCP_PROJECT_ID") and os.getenv("GCS_BUCKET_NAME"):
+            try:
+                self.gcs_client = storage.Client(project=os.getenv("GCP_PROJECT_ID"))
+                self.gcs_bucket = self.gcs_client.bucket(os.getenv("GCS_BUCKET_NAME", "autotube-veo-output"))
+                self.logger.info(f"Cloud Storage initialized: {self.gcs_bucket.name}")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Cloud Storage: {e}")
+
+        # Initialize Firestore client if in Cloud Run
+        self.firestore_client = None
+        if HAS_GCP and os.getenv("GCP_PROJECT_ID"):
+            try:
+                self.firestore_client = firestore.Client(project=os.getenv("GCP_PROJECT_ID"))
+                self.logger.info(f"Firestore initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Firestore: {e}")
+
         self.logger.info(f"=== AutoTube Pipeline ===")
         self.logger.info(f"Run ID     : {self.run_id}")
         self.logger.info(f"Provider   : {config.SCRIPT_MODEL_PROVIDER}")
@@ -279,6 +360,22 @@ class Orchestrator:
             result["success"]   = True
             result["completed"] = datetime.now().isoformat()
 
+            # If in Cloud Run, upload video to Cloud Storage
+            if self.gcs_bucket:
+                try:
+                    job_id_safe = job_id.replace("/", "_")
+                    gcs_video = self._write_output_to_cloud(
+                        video_path,
+                        f"videos/{job_id_safe}/video.mp4"
+                    )
+                    if gcs_video:
+                        result["gcs_video_path"] = gcs_video
+                except Exception as e:
+                    self.logger.warning(f"Cloud Storage upload skipped: {e}")
+
+            # Log to Firestore for monitoring/audit trail
+            self._log_to_firestore(result)
+
         except Exception as e:
             result["error"]     = str(e)
             result["traceback"] = traceback.format_exc()
@@ -386,6 +483,22 @@ class Orchestrator:
 
             result["success"]   = True
             result["completed"] = datetime.now().isoformat()
+
+            # If in Cloud Run, upload video to Cloud Storage
+            if self.gcs_bucket:
+                try:
+                    job_id_safe = job_id.replace("/", "_")
+                    gcs_video = self._write_output_to_cloud(
+                        video_path,
+                        f"videos/{job_id_safe}/video.mp4"
+                    )
+                    if gcs_video:
+                        result["gcs_video_path"] = gcs_video
+                except Exception as e:
+                    self.logger.warning(f"Cloud Storage upload skipped: {e}")
+
+            # Log to Firestore for monitoring/audit trail
+            self._log_to_firestore(result)
 
             # Update Supabase with success
             self._update_pending_status(
@@ -716,6 +829,46 @@ class Orchestrator:
             self.logger.warning(f"Failed to check Kling tasks: {e}")
             return {}
 
+    def _write_output_to_cloud(self, local_path: str, cloud_relative_path: str) -> Optional[str]:
+        """Upload a local file (video, audio, thumbnail) to Cloud Storage."""
+        if not self.gcs_bucket:
+            return None
+
+        try:
+            blob = self.gcs_bucket.blob(cloud_relative_path)
+            blob.upload_from_filename(local_path)
+            gcs_path = f"gs://{self.gcs_bucket.name}/{cloud_relative_path}"
+            self.logger.info(f"Uploaded to Cloud Storage: {gcs_path}")
+            return gcs_path
+        except Exception as e:
+            self.logger.warning(f"Failed to upload {cloud_relative_path} to Cloud Storage: {e}")
+            return None
+
+    def _log_to_firestore(self, result: Dict) -> None:
+        """Log job completion to Firestore collection 'pipeline_runs'."""
+        if not self.firestore_client:
+            return
+
+        try:
+            collection = self.firestore_client.collection("pipeline_runs")
+            doc_data = {
+                "run_id": self.run_id,
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "status": "success" if result.get("success") else "failure",
+                "topic": result.get("topic", ""),
+                "title": result.get("title", ""),
+                "youtube_url": result.get("url", ""),
+                "gcs_video_path": result.get("gcs_video_path", ""),
+                "error_message": result.get("error") if not result.get("success") else None,
+                "dry_run": self.dry_run,
+                "provider": config.SCRIPT_MODEL_PROVIDER,
+            }
+
+            collection.document(self.run_id).set(doc_data)
+            self.logger.info(f"Logged to Firestore: {self.run_id}")
+        except Exception as e:
+            self.logger.warning(f"Failed to log to Firestore: {e}")
+
     def _get_uploader(self) -> Optional[UploadAgent]:
         """Lazy-load UploadAgent only when needed (not in dry-run or prefetch modes)."""
         if self.dry_run or self.uploader is not None:
@@ -762,6 +915,8 @@ def main() -> None:
                         help="prefetch=research+script+images only; render=pull queue+produce video; auto=full pipeline (default)")
     args = parser.parse_args()
 
+    # Secrets are loaded in Orchestrator.__init__() via load_secrets_from_gcp()
+    # This happens before agents are created, so APIs are available in Cloud Run
     orchestrator = Orchestrator(dry_run=args.dry_run)
 
     if args.mode == "prefetch":

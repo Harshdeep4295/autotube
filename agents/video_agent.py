@@ -1466,7 +1466,7 @@ class VideoAgent:
                         .with_duration(min(CARD_DURATION, section_dur * 0.4))
                         .with_start(t)
                         .with_position(("center", 140))  # upper area, below watermark zone
-                        .with_opacity(lambda time: min(1.0, time / 0.4) if time < 0.4 else 1.0)  # PHASE 2A: fade-in
+                        .with_opacity(0.95)
                     )
                     clips.append(clip)
                 except Exception as e:
