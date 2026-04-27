@@ -1,0 +1,125 @@
+═══════════════════════════════════════════════════════════════════════════════
+MEMORY TRACKING LOGS — Quick Reference
+═══════════════════════════════════════════════════════════════════════════════
+
+After running: python3 orchestrator.py --dry-run --topic "..."
+
+Search for these patterns in logs:
+
+1. MEMORY CHECKPOINTS
+   [MEMORY RENDER_START]           - Process start
+   [MEMORY BEFORE_FETCH]           - Before video download
+   [MEMORY AFTER_FETCH]            - After video download
+   [MEMORY BEFORE_BUILD_BASE]      - Before section assembly
+   [MEMORY BEFORE_CONCATENATE]     - Critical: before clip joining
+   [MEMORY AFTER_CONCATENATE]      - After successful joining
+   [MEMORY BEFORE_WRITE_VIDEOFILE] - Before final encoding
+   [MEMORY AFTER_WRITE_VIDEOFILE]  - After successful write
+
+2. MEMORY NUMBERS EXPLAINED
+   Example log line:
+   [MEMORY BEFORE_CONCATENATE] Process RSS: 1124.5 MB | System available: 876.2 MB | Usage: 57.1%
+
+   - Process RSS: Memory used by just the Python AutoTube code (should be < 1400 MB)
+   - System available: Free RAM left on the VM (should be > 300 MB before concat)
+   - Usage: Total system memory in use (57.1% of 2GB = 1.142 GB used)
+
+3. CRITICAL THRESHOLDS (e2-small VM with 2GB RAM)
+   SAFE:
+   - Process RSS < 1200 MB AND System available > 500 MB
+
+   WARNING:
+   - Process RSS > 1300 MB OR System available < 200 MB
+
+   DANGER (will OOM):
+   - System available < 100 MB before concatenate
+   - Process RSS > 1400 MB before write_videofile
+
+4. FAILURE PATTERNS
+
+   Pattern A: OOM during concatenation
+   ───────────────────────────────────
+   [MEMORY BEFORE_CONCATENATE] Process RSS: 1350 MB | System available: 50 MB | Usage: 97.5%
+   [OOM_IN_CONCATENATE] MemoryError during concatenate_videoclips
+
+   Diagnosis: Too many large clips in memory
+   Solution: Use Ken Burns mode (smaller files)
+
+   Pattern B: OOM during encoding
+   ───────────────────────────────
+   [MEMORY BEFORE_WRITE_VIDEOFILE] Process RSS: 1200 MB | System available: 150 MB | Usage: 92.5%
+   [OOM_DETECTED] MemoryError during write_videofile
+
+   Diagnosis: FFmpeg needs buffer space for encoding
+   Solution: Reduce bitrate (4000k → 2000k) or upgrade VM
+
+   Pattern C: Memory leak (growing each section)
+   ─────────────────────────────────────────────
+   [MEMORY SECTION_1_END] Process RSS: 950 MB | System available: 1050 MB
+   [MEMORY SECTION_2_END] Process RSS: 1050 MB | System available: 950 MB
+   [MEMORY SECTION_3_END] Process RSS: 1150 MB | System available: 850 MB
+   [MEMORY SECTION_4_END] Process RSS: 1250 MB | System available: 750 MB
+
+   Diagnosis: VideoFileClip objects not released after use
+   Solution: Modify code to explicitly delete clips after appending
+
+   Pattern D: SUCCESS
+   ──────────────────
+   [MEMORY BEFORE_BUILD_BASE] Process RSS: 650 MB | System available: 1350 MB
+   [MEMORY BEFORE_CONCATENATE] Process RSS: 1100 MB | System available: 900 MB
+   [MEMORY AFTER_CONCATENATE] Process RSS: 950 MB | System available: 1050 MB
+   [MEMORY BEFORE_COMPOSITE] Process RSS: 1000 MB | System available: 1000 MB
+   [MEMORY AFTER_WRITE_VIDEOFILE] Process RSS: 300 MB | System available: 1700 MB
+   ✓ Video saved: outputs/.../video.mp4
+
+   Diagnosis: All memory operations within safe ranges
+   Result: SUCCESS
+
+5. HOW TO READ SECTION LOADS
+
+   For each section (6-8 per video):
+   [MEMORY SECTION_1_START] Process RSS: 900 MB | System available: 1100 MB
+   [MEMORY BEFORE_LOAD_PEXELS_SECTION_1] Process RSS: 900 MB | System available: 1100 MB
+   [MEMORY AFTER_LOAD_PEXELS_SECTION_1] Process RSS: 1150 MB | System available: 850 MB | Usage: 57.5%
+   [MEMORY AFTER_ADD_PEXELS_SECTION_1] Process RSS: 1150 MB | System available: 850 MB
+
+   Expected: +250 MB per large clip, +100 MB per small clip
+
+   If jump is > 400 MB: Video is very large
+   If no jump: Section used gradient fallback instead
+
+6. GREP COMMANDS FOR QUICK ANALYSIS
+
+   Find all memory readings:
+   $ grep "\[MEMORY " test_memory_logs.txt
+
+   Find only concatenation area:
+   $ grep -A2 -B2 "CONCATENATE" test_memory_logs.txt
+
+   Find highest memory usage:
+   $ grep "\[MEMORY " test_memory_logs.txt | awk -F'RSS: ' '{print $2}' | sort -rn | head -5
+
+   Find any errors:
+   $ grep -i "error\|oom\|failed\|exception" test_memory_logs.txt
+
+   Find where process exited:
+   $ tail -20 test_memory_logs.txt
+
+═══════════════════════════════════════════════════════════════════════════════
+
+NEXT STEPS AFTER GETTING LOGS:
+
+1. Run the test: .venv/bin/python3 orchestrator.py --dry-run --topic "test"
+2. Wait for completion or failure
+3. Search logs for failures:
+   $ grep -i "oom\|error\|traceback" test_memory_logs.txt
+4. Find the memory checkpoint just before failure:
+   $ grep "\[MEMORY " test_memory_logs.txt | tail -5
+5. Report those values to diagnose issue
+6. Choose solution:
+   - OOM before concatenate → Switch to Ken Burns mode
+   - OOM during encoding → Reduce bitrate or upgrade VM
+   - Memory leak → Code issue needs fixing
+   - All green → Problem solved!
+
+═══════════════════════════════════════════════════════════════════════════════

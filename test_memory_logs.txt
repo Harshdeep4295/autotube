@@ -1,0 +1,41 @@
+2026-04-27 21:02:35,813 [INFO] orchestrator: === AutoTube Pipeline ===
+2026-04-27 21:02:35,813 [INFO] orchestrator: Run ID     : adbbe71c
+2026-04-27 21:02:35,813 [INFO] orchestrator: Provider   : claude
+2026-04-27 21:02:35,813 [INFO] orchestrator: Mode       : DRY RUN (no upload)
+2026-04-27 21:02:35,813 [INFO] orchestrator: Niche      : AI & Tech
+2026-04-27 21:02:37,541 [INFO] httpx: HTTP Request: GET https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/animation_effects?select=id&limit=1 "HTTP/2 200 OK"
+2026-04-27 21:02:37,672 [INFO] httpx: HTTP Request: GET https://tdhiliojgtgtxmqjilai.supabase.co/rest/v1/animation_effects?select=name%2Cz_expr%2Cx_expr%2Cy_expr%2Cweight&enabled=eq.True&order=weight.desc "HTTP/2 200 OK"
+2026-04-27 21:02:37,673 [INFO] agents.video_agent: Loaded 17 animation effects from Supabase
+2026-04-27 21:02:37,683 [INFO] orchestrator: Topics: ['Is China Leads AI marketplace ?']
+2026-04-27 21:02:37,684 [INFO] orchestrator: 
+────────────────────────────────────────────────────────────
+2026-04-27 21:02:37,684 [INFO] orchestrator: Video 1/1: Is China Leads AI marketplace ?
+2026-04-27 21:02:37,684 [INFO] orchestrator: Step 2/6: Generating script…
+2026-04-27 21:02:37,684 [INFO] agents.script_agent: Generating script via provider='claude' for topic: Is China Leads AI marketplace ?
+2026-04-27 21:03:24,049 [INFO] httpx: HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2026-04-27 21:03:24,081 [INFO] agents.script_agent: Script generated: 'China's AI Dominance: 7 Stats That Should Worry Everyone' (1014 words, 8 sections)
+2026-04-27 21:03:24,081 [INFO] orchestrator: Step 3/6: Synthesizing voiceover…
+2026-04-27 21:03:24,082 [INFO] agents.voice_agent: Synthesizing 920 words of narration…
+2026-04-27 21:03:46,987 [INFO] agents.voice_agent: Voiceover saved (edge-tts): outputs/20260427_4c75dd/audio.mp3
+2026-04-27 21:03:46,988 [INFO] orchestrator: Step 4/6: Rendering video…
+2026-04-27 21:03:47,176 [INFO] agents.video_agent: [RENDER_START] ═══════════════════════════════════════
+2026-04-27 21:03:47,176 [INFO] agents.video_agent: [MEMORY RENDER_START] Process RSS: 88.9 MB | System available: 4120.7 MB | Usage: 74.8%
+2026-04-27 21:03:47,224 [WARNING] agents.video_agent: [PHASE 1C] Audio EQ failed: ffmpeg version 8.0 Copyright (c) 2000-2025 the FFmpeg developers
+  built with Apple clang version 17.0.0 (clang-1700.0.13.3)
+  configuration: --prefix=/opt/homebrew/Cellar/ffmpeg/8.0_1 --enable-shared
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: Audio duration: 422.2s — rendering 8 sections
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: Animation mode: veo
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: Background mode: ai_images
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: Visual queries available: 8 queries: ['dragon shaped neon light glowing over futuristic Shanghai skyline at night', 'holographic world map with glowing red data nodes expanding from China blue dark background', 'stack of patent documents stamped approved under bright white office spotlight', 'government official pointing at large digital investment chart in modern dark conference room', 'laptop screen showing DeepSeek AI interface with cool blue light reflection on desk', 'university students coding on laptops in bright modern Chinese tech campus', 'server rack surrounded by glowing blue data streams in dark cold server room', 'researcher analyzing glowing charts on large holographic screen in dimly lit lab']
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: [PHASE 1] Color grading applied: AI & Tech — {'saturation': 1.3, 'brightness': 0.05, 'contrast': 1.15}
+2026-04-27 21:03:47,261 [INFO] agents.video_agent: Section durations: ['30.7s', '40.8s', '51.4s', '59.2s', '64.7s', '64.7s', '65.6s', '45.0s']
+2026-04-27 21:03:47,262 [INFO] agents.video_agent: [PHASE_1_FETCH] Fetching section videos...
+2026-04-27 21:03:47,262 [INFO] agents.video_agent: [MEMORY BEFORE_FETCH] Process RSS: 97.1 MB | System available: 4112.7 MB | Usage: 74.9%
+2026-04-27 21:03:47,262 [INFO] agents.video_agent: [RENDER] Fetching section videos (V2 mode with veo animation)
+2026-04-27 21:03:47,312 [INFO] google_genai._api_client: The user provided Google Cloud credentials will take precedence over the API key from the environment variable.
+2026-04-27 21:03:47,324 [INFO] agents.gcp_veo_agent: Submitting Veo generation: dragon shaped neon light glowing over futuristic Shanghai skyline at night...
+2026-04-27 21:03:49,247 [INFO] httpx: HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/autotube-494611/locations/us-central1/publishers/google/models/veo-3.1-generate-001:predictLongRunning "HTTP/1.1 200 OK"
+2026-04-27 21:03:49,257 [INFO] agents.gcp_veo_agent: Generation submitted: projects/autotube-494611/locations/us-central1/publishers/google/models/veo-3.1-generate-001/operations/383ff33c-4876-4598-8f71-d512be0d7ea8
+2026-04-27 21:03:49,605 [INFO] httpx: HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/autotube-494611/locations/us-central1/publishers/google/models/veo-3.1-generate-001:fetchPredictOperation "HTTP/1.1 200 OK"
+2026-04-27 21:04:11,442 [INFO] httpx: HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/autotube-494611/locations/us-central1/publishers/google/models/veo-3.1-generate-001:fetchPredictOperation "HTTP/1.1 200 OK"
+2026-04-27 21:04:33,357 [INFO] httpx: HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/autotube-494611/locations/us-central1/publishers/google/models/veo-3.1-generate-001:fetchPredictOperation "HTTP/1.1 200 OK"
