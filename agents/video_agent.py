@@ -55,6 +55,17 @@ NICHE_COLORS = {
     "default":          ((18, 8, 28),   (7, 3, 12),   (140, 70, 240)),
 }
 
+# PHASE 1: Niche-specific color grading (saturation, brightness, contrast)
+NICHE_COLOR_GRADES = {
+    "AI & Tech":        {"saturation": 1.3, "brightness": 0.05, "contrast": 1.15},
+    "Finance":          {"saturation": 1.2, "brightness": 0.1,  "contrast": 1.2},
+    "Business":         {"saturation": 1.0, "brightness": 0.0,  "contrast": 1.25},
+    "Health":           {"saturation": 1.1, "brightness": 0.08, "contrast": 1.1},
+    "History":          {"saturation": 0.95,"brightness": 0.15, "contrast": 1.15},
+    "English Learning": {"saturation": 1.15,"brightness": 0.08, "contrast": 1.15},
+    "default":          {"saturation": 1.0, "brightness": 0.0,  "contrast": 1.1},
+}
+
 # Yellow accent for bold title cards (Analytics Vidhya style)
 TITLE_CARD_ACCENT = (255, 210, 40)
 
@@ -84,6 +95,12 @@ ANIMATION_EFFECTS = [
     # ── ZOOM + PAN COMBINED (2) ───────────────────────────────────────────────
     {"name": "zoom_in_drift_r",  "z": "min(1+0.12*on/N,1.12)", "x": "iw/2-(iw/zoom/2)+(on/N)*50",     "y": "ih/2-(ih/zoom/2)",              "weight": 1},
     {"name": "zoom_out_drift_l", "z": "max(1.12-0.12*on/N,1.0)","x": "iw/2-(iw/zoom/2)+(1-on/N)*50",  "y": "ih/2-(ih/zoom/2)",             "weight": 1},
+    # ── PHASE 1: NEW MOTION EFFECTS (5) ────────────────────────────────────────
+    {"name": "swing_pan",        "z": "1.15",                  "x": "iw/2-(iw/zoom/2)+(iw-iw/zoom)*0.3*sin(2*PI*on/N)", "y": "ih/2-(ih/zoom/2)", "weight": 2},
+    {"name": "spiral_zoom",      "z": "1+0.1*on/N",            "x": "iw/2-(iw/zoom/2)+(on/N)*(iw-iw/zoom)*0.3*cos(2*PI*on/N)", "y": "ih/2-(ih/zoom/2)+(on/N)*(ih-ih/zoom)*0.3*sin(2*PI*on/N)", "weight": 1},
+    {"name": "reverse_zoom",     "z": "max(1.15-0.2*on/N,1.0)","x": "iw/2-(iw/zoom/2)",               "y": "ih/2-(ih/zoom/2)",              "weight": 1},
+    {"name": "parallax",         "z": "1.08",                  "x": "iw/2-(iw/zoom/2)+(on/N)*(iw-iw/zoom)*0.15", "y": "ih/2-(ih/zoom/2)+(1-on/N)*(ih-ih/zoom)*0.1", "weight": 1},
+    {"name": "drift_slow",       "z": "1.1",                   "x": "iw/2-(iw/zoom/2)+(on/N)*(iw-iw/zoom)*0.2*sin(PI*on/N)", "y": "ih/2-(ih/zoom/2)+(on/N)*(ih-ih/zoom)*0.15", "weight": 1},
 ]
 
 
@@ -104,6 +121,7 @@ class VideoAgent:
         self.animation_effects: List[Dict] = self._load_animation_effects()
         self.kling_generator = None
         self.veo_generator = None
+        self.color_grade = NICHE_COLOR_GRADES.get(config.CHANNEL_NICHE, NICHE_COLOR_GRADES["default"])
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -112,6 +130,7 @@ class VideoAgent:
 
         os.makedirs(Path(output_path).parent, exist_ok=True)
 
+        audio_path = self._apply_audio_processing(audio_path)
         audio = AudioFileClip(audio_path)
         total_duration = audio.duration
         sections = script.get("sections", [])
@@ -122,6 +141,7 @@ class VideoAgent:
         logger.info(f"Animation mode: {config.VIDEO_ANIMATION_MODE}")
         logger.info(f"Background mode: {config.VIDEO_BACKGROUND_MODE}")
         logger.info(f"Visual queries available: {len(visual_queries)} queries: {visual_queries}")
+        logger.info(f"[PHASE 1] Color grading applied: {config.CHANNEL_NICHE} — {self.color_grade}")
 
         # Calculate section durations based on actual audio
         total_words = sum(len(s.get("text", "").split()) for s in sections)
@@ -848,6 +868,18 @@ class VideoAgent:
                 f"s={self.W}x{self.H}:"
                 f"fps={self.FPS}"
             )
+            # PHASE 1B: Add color grading (niche-specific saturation, brightness, contrast)
+            grade = self.color_grade
+            vf += f",eq=saturation={grade['saturation']}:brightness={grade['brightness']}:contrast={grade['contrast']}"
+
+            # PHASE 3A: Film grain + vignette (niche-conditional)
+            if config.CHANNEL_NICHE in ("History", "Finance"):
+                vf += ",noise=c0s=12:c1s=12:c2s=12:allf=t"
+            vf += ",vignette=PI/4"
+
+            # PHASE 3B: Chromatic aberration (AI & Tech only)
+            if config.CHANNEL_NICHE == "AI & Tech":
+                vf += ",rgbashift=rh=1:bh=-1"
             cmd = [
                 "ffmpeg", "-y",
                 "-loop", "1", "-i", img_path,
@@ -1070,7 +1102,14 @@ class VideoAgent:
         logger.info(f"  Total sections: {len(section_clips)}")
         logger.info(f"  Target duration: {total_duration:.1f}s")
         logger.info(f"  Concatenating clips...")
-        base = concatenate_videoclips(section_clips, method="chain")
+
+        # PHASE 2C: Add dip-to-black transitions between sections
+        clips_with_transitions = []
+        for i, clip in enumerate(section_clips):
+            clips_with_transitions.append(clip)
+            if i < len(section_clips) - 1:
+                clips_with_transitions.append(self._make_dip_to_black_transition(0.3))
+        base = concatenate_videoclips(clips_with_transitions, method="chain")
         logger.info(f"  Concatenated duration: {base.duration:.1f}s")
 
         # Trim or pad to exact duration
@@ -1098,6 +1137,11 @@ class VideoAgent:
         x1 = (new_w - target_w) // 2
         y1 = (new_h - target_h) // 2
         return resized.cropped(x1=x1, y1=y1, x2=x1 + target_w, y2=y1 + target_h)
+
+    def _make_dip_to_black_transition(self, duration: float = 0.3):
+        """PHASE 2C: Returns a black ColorClip for dip-to-black transitions between sections."""
+        from moviepy import ColorClip
+        return ColorClip(size=(self.W, self.H), color=(0, 0, 0)).with_duration(duration)
 
     def _gradient_clip(self, duration: float):
         """Single gradient ImageClip for the given duration."""
@@ -1341,6 +1385,7 @@ class VideoAgent:
                         .with_duration(min(CARD_DURATION, section_dur * 0.4))
                         .with_start(t)
                         .with_position(("center", 140))  # upper area, below watermark zone
+                        .with_opacity(lambda time: min(1.0, time / 0.4) if time < 0.4 else 1.0)  # PHASE 2A: fade-in
                     )
                     clips.append(clip)
                 except Exception as e:
@@ -1564,11 +1609,12 @@ class VideoAgent:
                       font=font, fill=(255, 255, 255, 200), anchor="lm")
 
             # Position: top-left at (32, 32)
+            # PHASE 2B: Animated watermark (fade-in, then stable)
             return (
                 ImageClip(np.array(img))
                 .with_duration(duration)
                 .with_position((32, 32))
-                .with_opacity(0.85)
+                .with_opacity(lambda t: min(0.85, t / 1.0) if t < 1.0 else 0.85)  # fade in over 1s, then hold
             )
         except Exception as e:
             logger.warning(f"Watermark failed: {e}")
@@ -1601,6 +1647,33 @@ class VideoAgent:
         except Exception as e:
             logger.warning(f"Background music mixing failed (skipping): {e}")
             return video
+
+    # ── PHASE 1C: Audio EQ + Compression ──────────────────────────────────────
+
+    def _apply_audio_processing(self, audio_path: str) -> str:
+        """FFmpeg: voice EQ (boost 2-4kHz presence, cut rumble below 100Hz) + compression.
+        Returns original path if FFmpeg fails — full fallback."""
+        try:
+            out = str(Path(audio_path).parent / "audio_eq.mp3")
+            cmd = [
+                "ffmpeg", "-y", "-i", audio_path,
+                "-af", (
+                    "equalizer=f=100:t=h:width=1:g=-4,"
+                    "equalizer=f=3000:t=p:width=100:g=3,"
+                    "acompressor=threshold=-20:ratio=4:attack=50:release=200:makeup=2"
+                ),
+                "-acodec", "mp3", "-b:a", "192k", out
+            ]
+            result = subprocess.run(cmd, capture_output=True, timeout=120)
+            if result.returncode == 0:
+                logger.info("[PHASE 1C] Audio EQ + compression applied successfully")
+                return out
+            else:
+                logger.warning(f"[PHASE 1C] Audio EQ failed: {result.stderr.decode()[:200]}")
+                return audio_path
+        except Exception as e:
+            logger.warning(f"[PHASE 1C] Audio processing skipped: {e}")
+            return audio_path
 
     # ── Font loading ──────────────────────────────────────────────────────────
 
