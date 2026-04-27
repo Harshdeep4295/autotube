@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import psutil
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
@@ -37,6 +38,17 @@ from agents.imagen_agent import ImagenImageGenerator
 from config import config
 
 logger = logging.getLogger(__name__)
+
+def _get_memory_status(label: str = ""):
+    """Log current memory usage (RSS, available, percent). Helper for OOM debugging."""
+    try:
+        process = psutil.Process()
+        rss_mb = process.memory_info().rss / (1024 * 1024)
+        available_mb = psutil.virtual_memory().available / (1024 * 1024)
+        percent = psutil.virtual_memory().percent
+        logger.info(f"[MEMORY{f' {label}' if label else ''}] Process RSS: {rss_mb:.1f} MB | System available: {available_mb:.1f} MB | Usage: {percent:.1f}%")
+    except Exception as e:
+        logger.warning(f"[MEMORY] Failed to collect stats: {e}")
 
 # Lazy import Veo if configured
 try:
@@ -129,6 +141,8 @@ class VideoAgent:
         from moviepy import AudioFileClip, CompositeVideoClip, ColorClip, ImageClip
 
         os.makedirs(Path(output_path).parent, exist_ok=True)
+        logger.info(f"[RENDER_START] ═══════════════════════════════════════")
+        _get_memory_status("RENDER_START")
 
         audio_path = self._apply_audio_processing(audio_path)
         audio = AudioFileClip(audio_path)
@@ -152,6 +166,9 @@ class VideoAgent:
         logger.info(f"Section durations: {[f'{d:.1f}s' for d in section_durations.values()]}")
 
         # 1. Fetch background media — dispatch based on config + background mode + animation mode
+        logger.info(f"[PHASE_1_FETCH] Fetching section videos...")
+        _get_memory_status("BEFORE_FETCH")
+
         if prefetched_images is not None:
             section_clip_paths = prefetched_images
             logger.info(f"[RENDER] Using prefetched images from queue")
@@ -165,6 +182,8 @@ class VideoAgent:
             logger.info(f"[RENDER] Fetching section videos (V2 mode with {config.VIDEO_ANIMATION_MODE} animation)")
             section_clip_paths = self._get_section_videos(sections, visual_queries, section_durations)
 
+        _get_memory_status("AFTER_FETCH")
+
         # 1b. Assign a random animation effect to each section (no repeats within video)
         pool = list(self.animation_effects) if self.animation_effects else list(ANIMATION_EFFECTS)
         random.shuffle(pool)
@@ -173,7 +192,10 @@ class VideoAgent:
             logger.info(f"Section {i+1} animation: {eff['name']}")
 
         # 2. Build background video (per-section footage stitched together)
+        logger.info(f"[PHASE_2_BUILD_BASE] Building base video with {len(sections)} sections...")
+        _get_memory_status("BEFORE_BUILD_BASE")
         base_video = self._build_base_video(sections, section_clip_paths, total_duration, section_effects, visual_queries)
+        _get_memory_status("AFTER_BUILD_BASE")
 
         # 3. Dark overlay for text contrast
         overlay = (
@@ -195,31 +217,58 @@ class VideoAgent:
         watermark = self._make_watermark(total_duration)
 
         # 8. Composite all layers (no burned-in captions, no progress bar — YouTube provides its own)
+        logger.info(f"[PHASE_3_COMPOSITE] Creating composite video with {len(section_title_clips)} title clips...")
+        _get_memory_status("BEFORE_COMPOSITE")
+
         all_clips = (
             [base_video, overlay]
             + ([hook_card] if hook_card else [])
             + section_title_clips
             + [watermark]
         )
+        logger.info(f"  Total clip layers: {len(all_clips)}")
+        _get_memory_status("BEFORE_COMPOSITEvideoclip")
+
         final = CompositeVideoClip(all_clips, size=(self.W, self.H))
+        logger.info(f"  ✓ CompositeVideoClip created")
+        _get_memory_status("AFTER_COMPOSITEvideoclip")
+
         final = final.with_audio(audio)
+        logger.info(f"  ✓ Audio attached")
+        _get_memory_status("AFTER_AUDIO_ATTACH")
+
         final = self._mix_background_music(final, total_duration)
+        logger.info(f"  ✓ Background music mixed")
+        _get_memory_status("AFTER_MIX_MUSIC")
 
         duration_min = total_duration / 60
-        logger.info(f"Writing video: {output_path} (~{duration_min:.1f} min of footage, est. 5-8 min render)")
-        final.write_videofile(
-            output_path,
-            fps=self.FPS,
-            codec="libx264",
-            audio_codec="aac",
-            preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
-            threads=2,            # match GitHub Actions vCPU count
-            bitrate="4000k",      # ensure 720p+ quality source for YouTube
-            temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
-            remove_temp=True,
-            logger="bar",         # show ffmpeg progress in logs
-        )
+        logger.info(f"[PHASE_4_ENCODE] Writing video: {output_path} (~{duration_min:.1f} min of footage, est. 5-8 min render)")
+        _get_memory_status("BEFORE_WRITE_VIDEOFILE")
+
+        try:
+            final.write_videofile(
+                output_path,
+                fps=self.FPS,
+                codec="libx264",
+                audio_codec="aac",
+                preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
+                threads=2,            # match GitHub Actions vCPU count
+                bitrate="4000k",      # ensure 720p+ quality source for YouTube
+                temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
+                remove_temp=True,
+                logger="bar",         # show ffmpeg progress in logs
+            )
+        except MemoryError as e:
+            logger.error(f"[OOM_DETECTED] MemoryError during write_videofile: {e}")
+            _get_memory_status("OOM_DETECTED")
+            raise
+        except Exception as e:
+            logger.error(f"[WRITE_VIDEOFILE_ERROR] {type(e).__name__}: {e}")
+            _get_memory_status("ERROR_DURING_WRITE")
+            raise
+
         logger.info(f"Video saved: {output_path}")
+        _get_memory_status("AFTER_WRITE_VIDEOFILE")
         self._save_used_clips()
         return output_path
 
@@ -954,6 +1003,7 @@ class VideoAgent:
             logger.info(f"  Duration: {section_dur:.1f}s | Words: {words} | Effect: {effect['name'] if effect else 'None'}")
             logger.info(f"  Clip path: {clip_path}")
             logger.info(f"  Visual query: '{visual_query}'")
+            _get_memory_status(f"SECTION_{i+1}_START")
 
             if clip_path and clip_path.endswith(".jpg"):
                 # V2: AI-generated image → animated effect clip via FFmpeg
@@ -1053,7 +1103,12 @@ class VideoAgent:
                     logger.info(f"  [FALLBACK] All regeneration attempts failed, will use gradient fallback")
                 else:
                     try:
+                        logger.info(f"  [CACHED_MP4] Loading cached MP4 video...")
+                        _get_memory_status(f"BEFORE_LOAD_CACHED_MP4_SECTION_{i+1}")
                         raw = VideoFileClip(clip_path)
+                        logger.info(f"  [CACHED_MP4] Video loaded, duration: {raw.duration:.1f}s")
+                        _get_memory_status(f"AFTER_LOAD_CACHED_MP4_SECTION_{i+1}")
+
                         clip = self._resize_and_crop(raw, self.W, self.H)
                         if clip.duration < section_dur:
                             loops = math.ceil(section_dur / clip.duration)
@@ -1062,16 +1117,22 @@ class VideoAgent:
                         clip = clip.subclipped(0, section_dur)
                         section_clips.append(clip)
                         t += section_dur
+                        _get_memory_status(f"AFTER_ADD_CACHED_MP4_SECTION_{i+1}")
+                        logger.info(f"  ✓ [CLIP ADDED] Cached MP4 loaded and added")
                         continue
                     except Exception as e:
                         logger.warning(f"Section {i} cached video loading failed ({e}) — using gradient")
+                        _get_memory_status(f"ERROR_LOAD_CACHED_MP4_SECTION_{i+1}")
 
             elif clip_path:
                 # V1: Pexels video clip
                 logger.info(f"  [PEXELS] Loading Pexels clip: {clip_path}")
                 try:
+                    _get_memory_status(f"BEFORE_LOAD_PEXELS_SECTION_{i+1}")
                     raw = VideoFileClip(clip_path)
                     logger.info(f"  [PEXELS] Video loaded, duration: {raw.duration:.1f}s, size: {raw.size}")
+                    _get_memory_status(f"AFTER_LOAD_PEXELS_SECTION_{i+1}")
+
                     # Resize to fill 1920×1080 (crop to fit aspect ratio)
                     clip = self._resize_and_crop(raw, self.W, self.H)
                     # Loop if section is longer than clip
@@ -1083,16 +1144,19 @@ class VideoAgent:
                     clip = clip.subclipped(0, section_dur)
                     section_clips.append(clip)
                     t += section_dur
+                    _get_memory_status(f"AFTER_ADD_PEXELS_SECTION_{i+1}")
                     logger.info(f"  ✓ [CLIP ADDED] Pexels clip loaded and added")
                     continue
                 except Exception as e:
                     logger.warning(f"  ✗ [PEXELS ERROR] Section {i} clip failed: {type(e).__name__}: {e}")
                     logger.info(f"  [FALLBACK] Using gradient fallback for this section")
+                    _get_memory_status(f"ERROR_LOAD_PEXELS_SECTION_{i+1}")
 
             # Gradient fallback for this section
             logger.warning(f"  [GRADIENT] Using solid gradient fallback for section {i}")
             section_clips.append(self._gradient_clip(section_dur))
             t += section_dur
+            _get_memory_status(f"SECTION_{i+1}_END_GRADIENT_FALLBACK")
 
         if not section_clips:
             logger.error(f"[BUILD_BASE_VIDEO] No section clips available, using gradient fallback for entire video")
@@ -1101,15 +1165,32 @@ class VideoAgent:
         logger.info(f"\n[BUILD_BASE_VIDEO] ═════════════════════════════════════════")
         logger.info(f"  Total sections: {len(section_clips)}")
         logger.info(f"  Target duration: {total_duration:.1f}s")
-        logger.info(f"  Concatenating clips...")
+        _get_memory_status("BEFORE_ADD_TRANSITIONS")
 
         # PHASE 2C: Add dip-to-black transitions between sections
+        logger.info(f"  Adding {len(section_clips) - 1} dip-to-black transitions...")
         clips_with_transitions = []
         for i, clip in enumerate(section_clips):
             clips_with_transitions.append(clip)
             if i < len(section_clips) - 1:
                 clips_with_transitions.append(self._make_dip_to_black_transition(0.3))
-        base = concatenate_videoclips(clips_with_transitions, method="chain")
+        logger.info(f"  Total clips with transitions: {len(clips_with_transitions)}")
+        _get_memory_status("BEFORE_CONCATENATE")
+
+        logger.info(f"  Concatenating clips...")
+        try:
+            base = concatenate_videoclips(clips_with_transitions, method="chain")
+            logger.info(f"  ✓ Concatenation successful")
+        except MemoryError as e:
+            logger.error(f"[OOM_IN_CONCATENATE] MemoryError during concatenate_videoclips: {e}")
+            _get_memory_status("OOM_IN_CONCATENATE")
+            raise
+        except Exception as e:
+            logger.error(f"[CONCATENATE_ERROR] {type(e).__name__}: {e}")
+            _get_memory_status("ERROR_IN_CONCATENATE")
+            raise
+
+        _get_memory_status("AFTER_CONCATENATE")
         logger.info(f"  Concatenated duration: {base.duration:.1f}s")
 
         # Trim or pad to exact duration
