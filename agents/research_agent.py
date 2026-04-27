@@ -162,21 +162,95 @@ class ResearchAgent:
     # ── Source 1: Google Trends ───────────────────────────────────────────────
 
     def _fetch_google_trends(self) -> List[Dict]:
-        from pytrends.request import TrendReq
-        pytrends = TrendReq(hl="en-US", tz=330, timeout=(10, 25))
-        trending = pytrends.trending_searches(pn=config.TRENDS_GEO.lower())
-        topics = []
-        for _, row in trending.iterrows():
-            term = str(row[0]).strip()
-            if len(term) > 5:
-                topics.append({
-                    "topic": term,
-                    "angle": f"Why {term} is trending right now",
-                    "source": "google_trends",
-                    "trend_score": 70,
-                    "reddit_mentions": 0,
-                })
-        return topics[:20]
+        """Fetch trending searches from Google Trends API endpoint."""
+        import json
+        import time
+        import random
+
+        # Headers mimicking real browser request
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://trends.google.com/",
+            "Origin": "https://trends.google.com",
+            "X-Requested-With": "XMLHttpRequest",
+        }
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Add random delay (3-8 seconds) to avoid rate limiting
+                if attempt > 0:
+                    delay = random.uniform(3, 8)
+                    logger.debug(f"Google Trends retry {attempt}/{max_retries-1}: waiting {delay:.1f}s...")
+                    time.sleep(delay)
+                else:
+                    time.sleep(random.uniform(1, 3))
+
+                # Query Google Trends API endpoint (used by their frontend)
+                url = "https://trends.google.com/api/explore"
+                params = {
+                    "hl": "en-US",
+                    "req": json.dumps({
+                        "comparisonItem": [{"keyword": ""}],
+                        "category": 0,
+                        "property": "",
+                    }),
+                }
+
+                # First request to establish session
+                logger.debug("Establishing session with Google Trends...")
+                requests.get("https://trends.google.com/", headers=headers, timeout=15)
+                time.sleep(random.uniform(1, 2))
+
+                # Fetch trending searches via their internal API
+                url_trending = "https://trends.google.com/trends/trendingsearches/daily/json"
+                logger.info("Fetching from Google Trends API endpoint...")
+
+                response = requests.get(
+                    url_trending,
+                    headers=headers,
+                    timeout=20,
+                    allow_redirects=True
+                )
+                response.raise_for_status()
+
+                # Parse JSON response
+                data = response.json()
+
+                topics = []
+                if "default" in data and "trendingSearchesDays" in data["default"]:
+                    # Get today's trends
+                    today_trends = data["default"]["trendingSearchesDays"][0]
+                    if "trendingSearches" in today_trends:
+                        for trend in today_trends["trendingSearches"][:20]:
+                            if "title" in trend:
+                                term = trend["title"]["query"].strip()
+                                if len(term) > 3:
+                                    topics.append({
+                                        "topic": term,
+                                        "angle": f"Why {term} is trending right now",
+                                        "source": "google_trends",
+                                        "trend_score": 80,
+                                        "reddit_mentions": 0,
+                                    })
+
+                if topics:
+                    logger.info(f"Google Trends: fetched {len(topics)} topics via API (attempt {attempt+1}/{max_retries})")
+                    return topics
+
+            except requests.exceptions.RequestException as e:
+                logger.debug(f"Google Trends API attempt {attempt+1} failed: {str(e)[:120]}...")
+                if attempt == max_retries - 1:
+                    logger.warning("Google Trends API failed after all retries")
+                    raise
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.debug(f"Google Trends JSON parse failed: {str(e)[:100]}...")
+                if attempt == max_retries - 1:
+                    raise
+
+        raise Exception("Could not fetch Google Trends")
 
     # ── Source 2: Reddit ──────────────────────────────────────────────────────
 

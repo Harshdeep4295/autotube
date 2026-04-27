@@ -1,0 +1,65 @@
+# Git
+.git
+.gitignore
+.github
+CLAUDE.md
+
+# Python
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.pytest_cache
+.coverage
+*.cover
+
+# Outputs (don't include in image)
+outputs/
+logs/
+*.log
+
+# Environment files (secrets, tokens)
+.env
+.env.local
+.env.*.local
+
+# Credentials (regenerated at runtime)
+client_secrets.json
+data/youtube_token.json
+data/topics_history.json
+data/posted_videos.json
+data/used_clips.json
+
+# IDE / tools
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+test_*.py
+*_test.py
+conftest.py
+
+# Documentation
+docs/
+*.md
+README.md
+ARCHITECTURE_AND_IMPLEMENTATION_REPORT.md
+IMPLEMENTATION_PLAN_AVATAR_CHANNELS.md
+KLING_FIX_COMPLETE.md
+GCP_MIGRATION_GUIDE.md
+
+# Code analysis
+.code-review-graph
+.claude
+
+# Artifacts
+artifact_download/
+*.tar.gz
+*.zip

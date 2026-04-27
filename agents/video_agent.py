@@ -14,6 +14,7 @@ bold typography, clean captions, small tasteful branding top-left.
 Fallback: if Pexels fails → animated gradient background + captions still work.
 """
 
+import base64
 import hashlib
 import json
 import logging
@@ -21,6 +22,8 @@ import math
 import os
 import random
 import subprocess
+import time
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -30,6 +33,7 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 
 from agents.kling_video_agent import KlingVideoGenerator
+from agents.imagen_agent import ImagenImageGenerator
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -682,18 +686,35 @@ class VideoAgent:
             logger.info(f"    [_fetch_ai_image] ✓ CACHE HIT: {cache_path.name} ({size_kb}KB)")
             return str(cache_path)
 
-        logger.info(f"    [_fetch_ai_image] Cache miss, fetching from Pollinations.ai...")
+        logger.info(f"    [_fetch_ai_image] Cache miss, trying image sources...")
         full_prompt = f"cinematic high quality {prompt}, 4K, professional photography, no text"
+
+        # Try 1: Vertex AI Imagen (GCP native, no rate limits)
+        logger.info(f"    [_fetch_ai_image] [1/2] Trying Vertex AI Imagen...")
+        try:
+            imagen = ImagenImageGenerator()
+            image_b64 = imagen.generate(full_prompt, 1920, 1080)
+            if image_b64:
+                image_data = base64.b64decode(image_b64)
+                with open(cache_path, "wb") as f:
+                    f.write(image_data)
+                size_kb = cache_path.stat().st_size // 1024
+                logger.info(f"    [_fetch_ai_image] ✓ Imagen: {cache_path.name} ({size_kb}KB)")
+                return str(cache_path)
+        except Exception as e:
+            logger.warning(f"    [_fetch_ai_image] Imagen failed: {e}")
+
+        # Try 2: Pollinations.ai (fallback)
+        logger.info(f"    [_fetch_ai_image] [2/2] Trying Pollinations.ai...")
         encoded = urllib.parse.quote(full_prompt)
         seed = random.randint(1, 99999)
         url = (
             f"https://image.pollinations.ai/prompt/{encoded}"
             f"?width=1920&height=1080&nologo=true&model=flux&seed={seed}"
         )
-        logger.info(f"    [_fetch_ai_image] URL: {url[:100]}...")
 
-        max_retries = 3
-        retry_delay = 2  # seconds, doubles on each retry
+        max_retries = 2
+        retry_delay = 2
 
         for attempt in range(max_retries):
             try:
@@ -703,7 +724,7 @@ class VideoAgent:
                 with open(cache_path, "wb") as f:
                     f.write(resp.content)
                 size_kb = cache_path.stat().st_size // 1024
-                logger.info(f"    [_fetch_ai_image] ✓ Downloaded: {cache_path.name} ({size_kb}KB)")
+                logger.info(f"    [_fetch_ai_image] ✓ Pollinations: {cache_path.name} ({size_kb}KB)")
                 return str(cache_path)
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429 and attempt < max_retries - 1:
