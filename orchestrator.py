@@ -325,8 +325,27 @@ class Orchestrator:
         try:
             # Step 2: Script
             self.logger.info("Step 2/6: Generating script…")
-            script = self.scripter.generate(topic)
+
+            # DRY RUN: Load most recent script instead of generating
+            if self.dry_run:
+                script_path = self._get_latest_script_path()
+                if script_path and script_path.exists():
+                    with open(script_path) as f:
+                        script = json.load(f)
+                    self.logger.info(f"  [DRY RUN] Loaded script from {script_path.name}")
+                else:
+                    script = self.scripter.generate(topic)
+                    self.logger.info(f"  [DRY RUN] No previous script found, generated new one")
+            else:
+                script = self.scripter.generate(topic)
+
             result["title"] = script.get("title", "")
+
+            # Save script for future dry-run testing
+            script_file = out_dir / "script.json"
+            with open(script_file, "w") as f:
+                json.dump(script, f, indent=2)
+            self.logger.info(f"  ✓ Script saved to {script_file.name}")
 
             # Step 3: Voiceover
             self.logger.info("Step 3/6: Synthesizing voiceover…")
@@ -828,6 +847,16 @@ class Orchestrator:
         except Exception as e:
             self.logger.warning(f"Failed to check Kling tasks: {e}")
             return {}
+
+    def _get_latest_script_path(self) -> Optional[Path]:
+        """Find the most recent script.json in outputs/ for dry-run testing."""
+        outputs_dir = Path(config.OUTPUT_DIR)
+        if not outputs_dir.exists():
+            return None
+        scripts = list(outputs_dir.glob("*/script.json"))
+        if not scripts:
+            return None
+        return max(scripts, key=lambda p: p.parent.stat().st_mtime)
 
     def _write_output_to_cloud(self, local_path: str, cloud_relative_path: str) -> Optional[str]:
         """Upload a local file (video, audio, thumbnail) to Cloud Storage."""

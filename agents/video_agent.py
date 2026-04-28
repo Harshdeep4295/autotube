@@ -1466,7 +1466,7 @@ class VideoAgent:
                         .with_duration(min(CARD_DURATION, section_dur * 0.4))
                         .with_start(t)
                         .with_position(("center", 140))  # upper area, below watermark zone
-                        .with_opacity(0.95)
+                        .with_opacity(0.95)  # PHASE 2A: Static opacity (lambda not supported in MoviePy 2.x)
                     )
                     clips.append(clip)
                 except Exception as e:
@@ -1695,7 +1695,7 @@ class VideoAgent:
                 ImageClip(np.array(img))
                 .with_duration(duration)
                 .with_position((32, 32))
-                .with_opacity(lambda t: min(0.85, t / 1.0) if t < 1.0 else 0.85)  # fade in over 1s, then hold
+                .with_opacity(0.85)  # Static opacity (lambda not supported in MoviePy 2.x)
             )
         except Exception as e:
             logger.warning(f"Watermark failed: {e}")
@@ -1722,7 +1722,14 @@ class VideoAgent:
             if music.duration < duration:
                 loops = math.ceil(duration / music.duration)
                 music = concatenate_audioclips([music] * loops)
-            music = music.subclipped(0, duration).with_effects([MultiplyVolume(0.06)])
+            music = music.subclipped(0, duration)
+
+            # PHASE 3C: Audio ducking — voice triggers music reduction
+            if video.audio:
+                music = self._apply_audio_ducking(music, video.audio, duration)
+            else:
+                music = music.with_effects([MultiplyVolume(0.06)])
+
             combined = CompositeAudioClip([video.audio, music]) if video.audio else music
             return video.with_audio(combined)
         except Exception as e:
@@ -1755,6 +1762,50 @@ class VideoAgent:
         except Exception as e:
             logger.warning(f"[PHASE 1C] Audio processing skipped: {e}")
             return audio_path
+
+    def _apply_audio_ducking(self, music_clip, voice_clip, duration: float):
+        """PHASE 3C: Use FFmpeg sidechaincompress to duck music under voice.
+        Voice triggers reduction of music from ~15% to ~4% volume.
+        Full fallback to flat MultiplyVolume(0.06) if FFmpeg fails."""
+        try:
+            from moviepy.audio.fx import MultiplyVolume
+            temp_dir = Path(config.VIDEO_CACHE_DIR) / "temp_ducking"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+
+            # Export both tracks to temp WAV files
+            voice_path = str(temp_dir / "voice.wav")
+            music_path = str(temp_dir / "music.wav")
+            ducked_path = str(temp_dir / "music_ducked.wav")
+
+            logger.info(f"  [PHASE 3C] Exporting voice and music for ducking...")
+            voice_clip.write_audiofile(voice_path, verbose=False)
+            music_clip.write_audiofile(music_path, verbose=False)
+
+            # FFmpeg sidechaincompress: voice sidechain triggers music reduction
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", music_path,
+                "-i", voice_path,
+                "-filter_complex", (
+                    "[0][1]sidechaincompress=threshold=0.1:ratio=10:attack=50:release=200[out]"
+                    "[out]volume=0.15"  # base level to 15% (will be ducked further)
+                ),
+                "-map", "[out]", "-acodec", "libmp3lame", "-q:a", "5", ducked_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, timeout=180)
+            if result.returncode == 0 and Path(ducked_path).exists():
+                logger.info(f"  [PHASE 3C] Audio ducking applied successfully")
+                from moviepy import AudioFileClip
+                return AudioFileClip(ducked_path)
+            else:
+                logger.warning(f"  [PHASE 3C] Audio ducking failed, using flat volume")
+                return music_clip.with_effects([MultiplyVolume(0.06)])
+
+        except Exception as e:
+            logger.warning(f"  [PHASE 3C] Audio ducking exception: {e}, using flat volume")
+            from moviepy.audio.fx import MultiplyVolume
+            return music_clip.with_effects([MultiplyVolume(0.06)])
 
     # ── Font loading ──────────────────────────────────────────────────────────
 
