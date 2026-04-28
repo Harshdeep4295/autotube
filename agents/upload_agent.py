@@ -190,21 +190,27 @@ class UploadAgent:
         token_path = config.YOUTUBE_TOKEN_FILE
         token_data = None
 
-        # Try to load as file path first
-        if Path(token_path).exists():
-            with open(token_path) as f:
-                token_data = json.load(f)
-        # Try to parse token_path as JSON content directly (e.g., from .env)
-        elif token_path.startswith("{"):
+        # Check if it's JSON content first (starts with "{")
+        if token_path.startswith("{"):
             try:
                 token_data = json.loads(token_path)
-            except json.JSONDecodeError:
-                pass
+                logger.info("✓ Loaded YouTube token from JSON content (env var)")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse YouTube token JSON: {e}")
+        # Otherwise try to load as file path
+        else:
+            try:
+                if Path(token_path).exists():
+                    with open(token_path) as f:
+                        token_data = json.load(f)
+                    logger.info(f"✓ Loaded YouTube token from file: {token_path}")
+            except (FileNotFoundError, OSError, json.JSONDecodeError) as e:
+                logger.debug(f"File load failed: {e}")
 
         if token_data is None:
             raise FileNotFoundError(
-                f"YouTube token not found at '{token_path}'. "
-                f"Set YOUTUBE_TOKEN_JSON in .env as a file path or JSON content, "
+                f"YouTube token not found. "
+                f"Set YOUTUBE_TOKEN_JSON in .env as JSON content or file path, "
                 f"or run: python setup.py --auth"
             )
 
