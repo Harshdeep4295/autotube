@@ -59,8 +59,12 @@ class Config:
     GROQ_API_KEY: str = field(
         default_factory=lambda: os.getenv("GROQ_API_KEY", "")
     )
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-    GROQ_MODEL_FALLBACK: str = "llama-3.1-8b-instant"  # Fast fallback if primary quota hit
+    GROQ_MODEL: str = field(
+        default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    )
+    GROQ_MODEL_FALLBACK: str = field(
+        default_factory=lambda: os.getenv("GROQ_MODEL_FALLBACK", "llama-3.1-8b-instant")
+    )
 
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
