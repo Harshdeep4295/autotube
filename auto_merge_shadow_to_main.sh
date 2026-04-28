@@ -1,14 +1,14 @@
 #!/bin/bash
 # Auto-merge shadow branch to main with conflict notification
-# Run this via cron: 0 * * * * /root/autotube/auto_merge_shadow_to_main.sh
+# Run this via cron: 0 * * * * /home/harshdeepsingh/autotube/auto_merge_shadow_to_main.sh
 
 set -e
 
-cd /root/autotube
+cd /home/harshdeepsingh/autotube
 
 # Log file
-LOG_FILE="/tmp/autotube_merge.log"
-EMAIL="downloadsforall0@gmail.com"
+LOG_FILE="/tmp/autotube_merge_$(date '+%Y%m%d_%H%M%S').log"
+EMAIL="downloadsforall9@gmail.com"
 HOSTNAME=$(hostname)
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -55,7 +55,7 @@ if git merge shadow --no-edit >> "$LOG_FILE" 2>&1; then
     else
         log_message "ERROR: Failed to push main to origin"
         send_email "AutoTube: Push failed (shadow → main)" \
-            "Merge succeeded but push failed.\n\nHost: $HOSTNAME\nTime: $TIMESTAMP\n\nPlease check manually:\nssh $HOSTNAME\ncd /root/autotube\ngit log --oneline -5\ngit push origin main"
+            "Merge succeeded but push failed.\n\nHost: $HOSTNAME\nTime: $TIMESTAMP\n\nPlease check manually:\nssh $HOSTNAME\ncd /home/harshdeepsingh/autotube\ngit log --oneline -5\ngit push origin main"
     fi
 else
     log_message "ERROR: Merge conflict detected!"
@@ -91,7 +91,7 @@ $SHADOW_LOG
 
 ACTION REQUIRED:
 1. SSH into VM: ssh $HOSTNAME
-2. Go to repo: cd /root/autotube
+2. Go to repo: cd /home/harshdeepsingh/autotube
 3. Check status: git status
 4. Resolve conflicts manually: vim <conflicted-file>
 5. After resolving: git add . && git commit -m 'Merge shadow into main (manual)'
