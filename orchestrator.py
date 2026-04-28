@@ -39,6 +39,7 @@ from agents.voice_agent import VoiceAgent
 from agents.video_agent import VideoAgent
 from agents.thumbnail_agent import ThumbnailAgent
 from agents.upload_agent import UploadAgent
+from agents.gcp_cost_tracker import GCPCostTracker
 
 
 def setup_logging(run_id: str) -> logging.Logger:
@@ -276,7 +277,15 @@ class Orchestrator:
     def run(self, count: int = 1, topic_override: Optional[str] = None) -> List[Dict]:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
 
-        # Step 1: Research topics
+        # Step 0: Check for unpublished scripts in queue first (no API calls needed)
+        if not topic_override:
+            self.logger.info("Step 1/6: Checking for pending videos in queue…")
+            pending_scripts = self._fetch_pending_scripts_for_render(count)
+            if pending_scripts:
+                self.logger.info(f"Found {len(pending_scripts)} pending script(s) in queue — skipping API research")
+                return self._process_pending_scripts(pending_scripts)
+
+        # Step 1: Research topics (only if queue is empty or topic_override is set)
         if topic_override:
             topics = [{
                 "topic": topic_override,
@@ -636,6 +645,107 @@ class Orchestrator:
             self.logger.error(f"Failed to count pending videos from Supabase: {e}")
             return 0
 
+    def _fetch_pending_scripts_for_render(self, count: int = 1) -> List[Dict]:
+        """Fetch up to `count` pending scripts from Supabase queue for rendering."""
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            return []
+        try:
+            from supabase import create_client
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            res = (
+                client.table("pending_videos")
+                .select("*")
+                .eq("status", "pending")
+                .eq("approved", True)
+                .order("created_at")
+                .limit(count)
+                .execute()
+            )
+            return res.data if res.data else []
+        except Exception as e:
+            self.logger.error(f"Failed to fetch pending scripts: {e}")
+            return []
+
+    def _process_pending_scripts(self, scripts: List[Dict]) -> List[Dict]:
+        """Process pending scripts from database without research or generation."""
+        results = []
+        for i, row in enumerate(scripts):
+            try:
+                script = row.get("script_json", {})
+                topic = row.get("topic", "Unknown")
+                row_id = row.get("id")
+
+                self.logger.info(f"\n{'─'*60}")
+                self.logger.info(f"Video {i+1}/{len(scripts)}: {topic[:60]} (from queue)")
+
+                result = {
+                    "job_id": f"{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}",
+                    "topic": topic,
+                    "success": False,
+                    "started": datetime.now().isoformat(),
+                    "title": script.get("title", topic),
+                    "row_id": row_id,
+                }
+
+                out_dir = Path(config.OUTPUT_DIR) / result["job_id"]
+                out_dir.mkdir(parents=True, exist_ok=True)
+
+                # Skip research & generation — use script directly from queue
+                self.logger.info("(Using queued script — skipping research & generation)")
+
+                # Step 3: Voiceover
+                self.logger.info("Step 3/6: Synthesizing voiceover…")
+                audio_path = str(out_dir / "audio.mp3")
+                self.voice.synthesize(script, audio_path)
+                result["audio_path"] = audio_path
+
+                # Step 4: Video
+                self.logger.info("Step 4/6: Rendering video…")
+                video_path = str(out_dir / "video.mp4")
+                self.video.render(script, audio_path, video_path)
+                result["video_path"] = video_path
+
+                # Step 5: Thumbnail
+                self.logger.info("Step 5/6: Creating thumbnail…")
+                thumb_path = str(out_dir / "thumbnail.jpg")
+                self.thumbnail.create(script, thumb_path)
+                result["thumbnail_path"] = thumb_path
+
+                # Step 6: Upload
+                self.logger.info("Step 6/6: Uploading to YouTube…")
+                uploader = self._get_uploader()
+                if uploader:
+                    upload_result = uploader.publish(video_path, thumb_path, script, i)
+                    result.update(upload_result)
+
+                result["success"] = True
+                result["completed"] = datetime.now().isoformat()
+
+                # Mark as published in database
+                if row_id:
+                    self._update_pending_status(row_id, "published")
+
+                # Log to Firestore
+                self._log_to_firestore(result)
+
+                results.append(result)
+                if result.get("success"):
+                    self.logger.info(f"  ✓ Done: {result.get('url', result.get('video_path', ''))}")
+                else:
+                    self.logger.error(f"  ✗ Failed: {result.get('error', 'unknown')[:80]}")
+
+            except Exception as e:
+                self.logger.error(f"Failed to process pending script '{row.get('topic')}': {e}")
+                results.append({
+                    "topic": row.get("topic", "Unknown"),
+                    "success": False,
+                    "error": str(e),
+                })
+
+        self._print_summary(results)
+        self._save_report(results)
+        return results
+
     def _harvest_completed_kling_tasks(self) -> None:
         """Pre-flight: Check if any pending videos have completed Kling tasks, download and cache them."""
         if not (config.SUPABASE_URL and config.SUPABASE_KEY):
@@ -944,6 +1054,10 @@ def main() -> None:
                         help="prefetch=research+script+images only; render=pull queue+produce video; auto=full pipeline (default)")
     args = parser.parse_args()
 
+    # Show cost summary at start
+    cost_tracker = GCPCostTracker(initial_credits=300.0)
+    cost_tracker.print_summary()
+
     # Secrets are loaded in Orchestrator.__init__() via load_secrets_from_gcp()
     # This happens before agents are created, so APIs are available in Cloud Run
     orchestrator = Orchestrator(dry_run=args.dry_run)
@@ -955,6 +1069,9 @@ def main() -> None:
         results = orchestrator.run_render(count=args.count)
     else:  # auto
         results = orchestrator.run(count=args.count, topic_override=args.topic)
+
+    # Show final cost summary
+    cost_tracker.print_summary()
 
     # Exit with error code if nothing succeeded
     if results and not any(r.get("success") for r in results):
