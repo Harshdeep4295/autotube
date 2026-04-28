@@ -26,11 +26,14 @@ def _ist_to_utc(ist_time: str) -> str:
 class Config:
 
     # ── Model switch ─────────────────────────────────────────────────────────
-    # Set SCRIPT_MODEL_PROVIDER=gemini in env/GitHub Variables to switch.
-    # Changing this variable requires no code change — just update the GitHub
-    # Actions Variable (Settings → Variables → SCRIPT_MODEL_PROVIDER).
+    # SCRIPT_MODEL_PROVIDER controls script generation:
+    #   "auto"    — Hybrid (try Claude → fallback Gemini if quota exhausted) [DEFAULT]
+    #   "hybrid"  — Same as "auto" (explicit hybrid mode)
+    #   "claude"  — Claude only
+    #   "gemini"  — Gemini only
+    # Change via env var or GitHub Actions Variable (no code change needed).
     SCRIPT_MODEL_PROVIDER: str = field(
-        default_factory=lambda: os.getenv("SCRIPT_MODEL_PROVIDER", "claude")
+        default_factory=lambda: os.getenv("SCRIPT_MODEL_PROVIDER", "auto")
     )
 
     # ── Claude settings ───────────────────────────────────────────────────────
@@ -42,7 +45,9 @@ class Config:
     CLAUDE_RETRIES: int = 3
     CLAUDE_BACKOFF: float = 2.0  # seconds; doubles each retry
 
-    # ── Gemini settings (optional — for future switch) ────────────────────────
+    # ── Gemini settings (required for hybrid/auto mode fallback) ──────────────
+    # Set GEMINI_API_KEY in .env or GitHub Secrets for hybrid fallback.
+    # Get free API key from https://ai.google.dev/ (free tier available).
     GEMINI_API_KEY: str = field(
         default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
     )
@@ -134,7 +139,9 @@ class Config:
 
     # ── YouTube API ───────────────────────────────────────────────────────────
     YOUTUBE_CLIENT_SECRETS: str = "client_secrets.json"
-    YOUTUBE_TOKEN_FILE: str = "data/youtube_token.json"
+    YOUTUBE_TOKEN_FILE: str = field(
+        default_factory=lambda: os.getenv("YOUTUBE_TOKEN_JSON", "data/youtube_token.json")
+    )
     VIDEO_CATEGORY_ID: str = "28"   # 28 = Science & Technology
     VIDEO_PRIVACY: str = "public"
     VIDEO_MADE_FOR_KIDS: bool = False

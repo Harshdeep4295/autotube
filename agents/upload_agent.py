@@ -188,14 +188,25 @@ class UploadAgent:
         from googleapiclient.discovery import build
 
         token_path = config.YOUTUBE_TOKEN_FILE
-        if not Path(token_path).exists():
+        token_data = None
+
+        # Try to load as file path first
+        if Path(token_path).exists():
+            with open(token_path) as f:
+                token_data = json.load(f)
+        # Try to parse token_path as JSON content directly (e.g., from .env)
+        elif token_path.startswith("{"):
+            try:
+                token_data = json.loads(token_path)
+            except json.JSONDecodeError:
+                pass
+
+        if token_data is None:
             raise FileNotFoundError(
                 f"YouTube token not found at '{token_path}'. "
-                f"Run: python setup.py --auth"
+                f"Set YOUTUBE_TOKEN_JSON in .env as a file path or JSON content, "
+                f"or run: python setup.py --auth"
             )
-
-        with open(token_path) as f:
-            token_data = json.load(f)
 
         creds = Credentials(
             token=token_data.get("token"),
@@ -212,15 +223,19 @@ class UploadAgent:
         # Auto-refresh if expired
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            # Save refreshed token back to disk
-            updated = json.loads(creds.to_json())
-            updated.update({
-                "token": creds.token,
-                "refresh_token": creds.refresh_token,
-            })
-            with open(token_path, "w") as f:
-                json.dump(updated, f, indent=2)
-            logger.info("OAuth token refreshed and saved")
+            # Save refreshed token back to disk (only if it's a file path)
+            if not token_path.startswith("{"):
+                updated = json.loads(creds.to_json())
+                updated.update({
+                    "token": creds.token,
+                    "refresh_token": creds.refresh_token,
+                })
+                Path(token_path).parent.mkdir(parents=True, exist_ok=True)
+                with open(token_path, "w") as f:
+                    json.dump(updated, f, indent=2)
+                logger.info("OAuth token refreshed and saved")
+            else:
+                logger.info("OAuth token refreshed (env var — not saving to disk)")
 
         return build("youtube", "v3", credentials=creds)
 
