@@ -33,7 +33,6 @@ import psutil
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
-from agents.kling_video_agent import KlingVideoGenerator
 from agents.imagen_agent import ImagenImageGenerator
 from config import config
 
@@ -131,7 +130,6 @@ class VideoAgent:
         self._used_hashes: set = self._load_used_clips()
         self._new_hashes: set = set()   # hashes used in this run, saved after render
         self.animation_effects: List[Dict] = self._load_animation_effects()
-        self.kling_generator = None
         self.veo_generator = None
         self.color_grade = NICHE_COLOR_GRADES.get(config.CHANNEL_NICHE, NICHE_COLOR_GRADES["default"])
 
@@ -316,8 +314,6 @@ class VideoAgent:
         if primary_mode == "veo":
             # Veo primary, fall back to Ken Burns (free, reliable)
             modes = ["veo", "ken_burns"]
-        elif primary_mode == "kling":
-            modes = ["kling", "ken_burns", "pexels"]
         elif primary_mode == "seedance":
             modes = ["seedance", "ken_burns", "pexels"]
         elif primary_mode == "ken_burns":
@@ -326,33 +322,12 @@ class VideoAgent:
             modes = ["pika", "ken_burns", "pexels"]
         else:
             # Default fallback chain (seedance disabled — requires Replicate API key)
-            modes = ["veo", "kling", "ken_burns", "pexels"]
+            modes = ["veo", "ken_burns", "pexels"]
 
         for mode in modes:
             try:
                 if mode == "pika":
                     path = self._fetch_pika_video(query, section_idx)
-                elif mode == "kling":
-                    # Initialize generator if needed
-                    if not self.kling_generator:
-                        self.kling_generator = KlingVideoGenerator()
-
-                    # Use asyncio to run async function (handle event loop properly)
-                    import asyncio
-                    try:
-                        loop = asyncio.get_event_loop()
-                        if loop.is_closed():
-                            loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(loop)
-                        path = loop.run_until_complete(
-                            self.kling_generator.generate(query, section_idx)
-                        )
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        path = loop.run_until_complete(
-                            self.kling_generator.generate(query, section_idx)
-                        )
                 elif mode == "ken_burns":
                     img = self._fetch_ai_image(query, section_idx)
                     if img:
@@ -1022,58 +997,6 @@ class VideoAgent:
                 logger.info(f"  [MP4] Checking if prefetch video exists...")
                 if not Path(clip_path).exists():
                     logger.warning(f"  ✗ [PREFETCH MISS] Prefetch video not found: {clip_path}")
-                    logger.info(f"  [FALLBACK] Attempting runtime video generation...")
-
-                    # Try to regenerate Kling video at runtime if in kling mode
-                    if config.VIDEO_ANIMATION_MODE == "kling":
-                        logger.info(f"  [KLING] Mode is kling, attempting runtime generation with query: '{visual_query}'")
-                        if visual_query:
-                            try:
-                                if not self.kling_generator:
-                                    logger.info(f"  [KLING] Initializing KlingVideoGenerator...")
-                                    self.kling_generator = KlingVideoGenerator()
-
-                                logger.info(f"  [KLING] Starting async generation for: '{visual_query}'")
-                                import asyncio
-                                try:
-                                    loop = asyncio.get_event_loop()
-                                    if loop.is_closed():
-                                        loop = asyncio.new_event_loop()
-                                        asyncio.set_event_loop(loop)
-                                    kling_path = loop.run_until_complete(
-                                        self.kling_generator.generate(visual_query, i)
-                                    )
-                                except RuntimeError:
-                                    loop = asyncio.new_event_loop()
-                                    asyncio.set_event_loop(loop)
-                                    kling_path = loop.run_until_complete(
-                                        self.kling_generator.generate(visual_query, i)
-                                    )
-
-                                if kling_path and Path(kling_path).exists():
-                                    logger.info(f"  ✓ [KLING SUCCESS] Video regenerated at runtime: {kling_path}")
-                                    raw = VideoFileClip(kling_path)
-                                    clip = self._resize_and_crop(raw, self.W, self.H)
-                                    if clip.duration < section_dur:
-                                        loops = math.ceil(section_dur / clip.duration)
-                                        from moviepy import concatenate_videoclips as cv
-                                        clip = cv([clip] * loops, method="chain")
-                                    clip = clip.subclipped(0, section_dur)
-                                    section_clips.append(clip)
-                                    t += section_dur
-                                    logger.info(f"  ✓ [CLIP ADDED] Kling video loaded and added to timeline")
-                                    continue
-                                else:
-                                    logger.warning(f"  ✗ [KLING FAILED] Generated path does not exist: {kling_path}")
-                            except Exception as e3:
-                                logger.warning(f"  ✗ [KLING ERROR] Runtime Kling generation failed: {type(e3).__name__}: {e3}")
-                                logger.info(f"  [FALLBACK] Falling back to Ken Burns...")
-                        else:
-                            logger.warning(f"  ✗ [KLING] No visual_query available, cannot attempt Kling generation")
-                    else:
-                        logger.info(f"  [FALLBACK] Not in kling mode (mode={config.VIDEO_ANIMATION_MODE}), skipping Kling generation")
-
-                    # Fall back to Ken Burns if Kling not available or failed
                     logger.info(f"  [KEN BURNS] Attempting Ken Burns fallback...")
                     try:
                         # Concrete, visualizable fallbacks for Ken Burns AI image generation

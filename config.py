@@ -53,6 +53,15 @@ class Config:
     )
     GEMINI_MODEL: str = "gemini-2.0-flash"
 
+    # ── Groq settings (tertiary fallback — Claude → Gemini → Groq) ────────────
+    # Set GROQ_API_KEY in .env or GitHub Secrets for 3-way fallback resilience.
+    # Get free API key from https://console.groq.com/ (free tier available).
+    GROQ_API_KEY: str = field(
+        default_factory=lambda: os.getenv("GROQ_API_KEY", "")
+    )
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL_FALLBACK: str = "llama-3.1-8b-instant"  # Fast fallback if primary quota hit
+
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
     # Options: AI & Tech | Finance | Business | Health | History | English Learning

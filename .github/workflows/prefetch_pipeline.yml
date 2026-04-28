@@ -58,10 +58,7 @@ jobs:
           SUPABASE_ANON_KEY:     ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER: ${{ secrets.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE: ${{ secrets.VIDEO_BACKGROUND_MODE || 'ai_images' }}
-          VIDEO_ANIMATION_MODE:  ${{ secrets.VIDEO_ANIMATION_MODE || 'seedance' }}
-          REPLICATE_API_KEY:     ${{ secrets.REPLICATE_API_KEY }}
-          KLING_ACCESS_KEY:      ${{ secrets.KLING_ACCESS_KEY }}
-          KLING_SECRET_KEY:      ${{ secrets.KLING_SECRET_KEY }}
+          VIDEO_ANIMATION_MODE:  ${{ secrets.VIDEO_ANIMATION_MODE || 'ken_burns' }}
         run: |
           python orchestrator.py --mode prefetch --count ${{ github.event.inputs.count || 2 }}
 

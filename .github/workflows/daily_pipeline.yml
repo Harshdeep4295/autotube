@@ -1,12 +1,7 @@
 name: AutoTube Daily Pipeline
 
 on:
-  schedule:
-    - cron: '00 23  * * *'   # 23:00 UTC = 05:00 IST
-    - cron: '30 5  * * *'   # 05:30 UTC = 11:00 IST
-    - cron: '00 11  * * *'   # 13:00 UTC = 17:00 IST
-    - cron: '30 17 * * *'   # 17:30 UTC = 23:00 IST
-  workflow_dispatch:          # manual trigger from GitHub Actions tab
+  workflow_dispatch:          # manual trigger from GitHub Actions tab only (scheduled runs disabled)
     inputs:
       count:
         description: 'Number of videos to produce (default: 1)'
@@ -90,11 +85,7 @@ jobs:
           SUPABASE_ANON_KEY:              ${{ secrets.SUPABASE_ANON_KEY }}
           SCRIPT_MODEL_PROVIDER:          ${{ github.event.inputs.model_provider || secrets.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE:         ${{ secrets.VIDEO_BACKGROUND_MODE || 'ai_images' }}
-          VIDEO_ANIMATION_MODE:          ${{ secrets.VIDEO_ANIMATION_MODE || 'seedance' }}
-          REPLICATE_API_KEY:              ${{ secrets.REPLICATE_API_KEY }}
-          KLING_ACCESS_KEY:               ${{ secrets.KLING_ACCESS_KEY }}
-          KLING_SECRET_KEY:               ${{ secrets.KLING_SECRET_KEY }}
-          KLING_WEBHOOK_SECRET:           ${{ secrets.KLING_WEBHOOK_SECRET }}
+          VIDEO_ANIMATION_MODE:          ${{ secrets.VIDEO_ANIMATION_MODE || 'ken_burns' }}
           GCP_PROJECT_ID:                 ${{ secrets.GCP_PROJECT_ID }}
           GCP_GCS_BUCKET:                 ${{ secrets.GCP_GCS_BUCKET }}
           AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON }}

@@ -1,8 +1,8 @@
 """
 Script Agent
-Generates structured video scripts via Claude or Gemini based on config.
-Provider is selected by SCRIPT_MODEL_PROVIDER env var (default: "claude").
-Switching providers requires no code change — only an env var update.
+Generates structured video scripts with 3-way fallback: Claude → Gemini → Groq
+Hybrid mode: tries Claude first, auto-falls back to Gemini on quota exhaustion, then Groq.
+All three API keys recommended for resilience. Can be overridden via SCRIPT_MODEL_PROVIDER env var.
 """
 
 import json
@@ -27,28 +27,98 @@ class ScriptAgent:
 
     def generate(self, topic: Dict) -> Dict:
         """
+        3-way fallback script generation: Claude → Gemini → Groq.
+
+        Default behavior (auto mode): Try Claude → if quota hit, try Gemini → if quota hit, try Groq
+        Force single provider: Set SCRIPT_MODEL_PROVIDER=claude|gemini|groq to use only that provider
+
         Args:
             topic: dict with keys: topic (str), angle (str), source (str)
         Returns:
-            Parsed script dict with keys: title, description, tags, sections,
-            thumbnail_text, thumbnail_subtext, pexels_search_query, total_word_count
+            Parsed script dict with keys: title, description, tags, sections, etc.
         Raises:
-            RuntimeError: after all retries are exhausted
-            ValueError: if SCRIPT_MODEL_PROVIDER is not recognized
+            RuntimeError: after all retries exhausted on all three providers
         """
         provider = config.SCRIPT_MODEL_PROVIDER.lower()
-        logger.info(f"Generating script via provider='{provider}' for topic: {topic.get('topic', '')[:60]}")
+        topic_name = topic.get("topic", "")[:60]
 
+        # If user forces a specific provider, use only that
         if provider == "claude":
+            logger.info(f"Generating script via Claude (forced) for topic: {topic_name}")
             return self._call_with_retry(self._call_claude, topic)
         elif provider == "gemini":
+            logger.info(f"Generating script via Gemini (forced) for topic: {topic_name}")
             return self._call_with_retry(self._call_gemini, topic)
+        elif provider == "groq":
+            logger.info(f"Generating script via Groq (forced) for topic: {topic_name}")
+            return self._call_with_retry(self._call_groq, topic)
+        elif provider == "hybrid":
+            # Hybrid mode: Claude primary, Gemini fallback, Groq ultimate fallback
+            logger.info(f"Generating script via HYBRID (Claude→Gemini→Groq) for topic: {topic_name}")
+            return self._hybrid_generate(topic)
+        elif provider == "auto":
+            # Auto mode: 3-way fallback (Claude → Gemini → Groq)
+            logger.info(f"Generating script via AUTO mode (Claude→Gemini→Groq) for topic: {topic_name}")
+            return self._hybrid_generate(topic)
         else:
             raise ValueError(
                 f"Unknown SCRIPT_MODEL_PROVIDER='{provider}'. "
-                f"Valid values: 'claude', 'gemini'. "
+                f"Valid values: 'auto' (default 3-way fallback), 'hybrid', 'claude', 'gemini', 'groq'. "
                 f"Set the SCRIPT_MODEL_PROVIDER environment variable."
             )
+
+    def _hybrid_generate(self, topic: Dict) -> Dict:
+        """3-way fallback: Claude → Gemini → Groq on quota exhaustion."""
+        errors = {}
+
+        # Try Claude first
+        try:
+            return self._call_with_retry(self._call_claude, topic)
+        except Exception as exc:
+            errors['claude'] = exc
+            if not self._is_quota_error(exc):
+                # Non-quota error (e.g., JSON parse), re-raise immediately
+                raise
+            logger.warning(f"Claude quota exhausted: {exc}. Falling back to Gemini…")
+
+        # Try Gemini second
+        try:
+            return self._call_with_retry(self._call_gemini, topic)
+        except Exception as exc:
+            errors['gemini'] = exc
+            if not self._is_quota_error(exc):
+                # Non-quota error, re-raise immediately
+                raise
+            logger.warning(f"Gemini quota exhausted: {exc}. Falling back to Groq…")
+
+        # Try Groq third (ultimate fallback)
+        try:
+            return self._call_with_retry(self._call_groq, topic)
+        except Exception as exc:
+            errors['groq'] = exc
+            logger.error(f"All providers exhausted. Groq error: {exc}")
+            raise RuntimeError(
+                f"Script generation failed: all 3 providers exhausted. "
+                f"Claude: {errors['claude']}. "
+                f"Gemini: {errors['gemini']}. "
+                f"Groq: {exc}"
+            )
+
+    def _is_quota_error(self, exc: Exception) -> bool:
+        """Detect if error is due to quota exhaustion or auth failure."""
+        error_str = str(exc).lower()
+        # Quota/auth indicators
+        quota_keywords = [
+            "429",  # Rate limit (429 Too Many Requests)
+            "quota",  # Quota exceeded
+            "rate limit",  # Rate limited
+            "overloaded",  # Server overloaded
+            "401",  # Unauthorized
+            "403",  # Forbidden
+            "authentication",  # Auth error
+            "invalid api key",  # Bad API key
+        ]
+        return any(keyword in error_str for keyword in quota_keywords)
 
     # ── Retry wrapper ─────────────────────────────────────────────────────────
 
@@ -85,13 +155,20 @@ class ScriptAgent:
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
-        message = client.messages.create(
-            model=config.CLAUDE_MODEL,
-            max_tokens=config.CLAUDE_MAX_TOKENS,
-            system=SCRIPT_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
-        return message.content[0].text
+        try:
+            message = client.messages.create(
+                model=config.CLAUDE_MODEL,
+                max_tokens=config.CLAUDE_MAX_TOKENS,
+                system=SCRIPT_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            logger.info(f"[Claude] API request successful ({config.CLAUDE_MODEL})")
+            return message.content[0].text
+        except Exception as e:
+            # Enhance error message with status code if available
+            if hasattr(e, 'status_code'):
+                logger.error(f"[Claude] API error {e.status_code}: {e}")
+            raise
 
     # ── Provider: Gemini ──────────────────────────────────────────────────────
 
@@ -101,23 +178,61 @@ class ScriptAgent:
         if not config.GEMINI_API_KEY:
             raise ValueError(
                 "GEMINI_API_KEY is not set. "
-                "Add it to your .env file or set SCRIPT_MODEL_PROVIDER=claude to use Claude instead."
+                "Add it to your .env file or GitHub Secrets for hybrid fallback."
             )
         client = genai.Client(api_key=config.GEMINI_API_KEY)
         user_prompt = SCRIPT_USER_PROMPT.format(
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
-        response = client.models.generate_content(
-            model=config.GEMINI_MODEL,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SCRIPT_SYSTEM_PROMPT,
-                max_output_tokens=4096,
-                temperature=0.7,
-            ),
+        try:
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SCRIPT_SYSTEM_PROMPT,
+                    max_output_tokens=4096,
+                    temperature=0.7,
+                ),
+            )
+            logger.info(f"[Gemini] API request successful ({config.GEMINI_MODEL})")
+            return response.text
+        except Exception as e:
+            logger.error(f"[Gemini] API error: {e}")
+            raise
+
+    # ── Provider: Groq ────────────────────────────────────────────────────────
+
+    def _call_groq(self, topic: Dict) -> str:
+        from openai import OpenAI  # lazy import — groq uses openai SDK
+        if not config.GROQ_API_KEY:
+            raise ValueError(
+                "GROQ_API_KEY is not set. "
+                "Add it to your .env file or GitHub Secrets for 3-way fallback."
+            )
+        client = OpenAI(
+            api_key=config.GROQ_API_KEY,
+            base_url="https://api.groq.com/openai/v1"
         )
-        return response.text
+        user_prompt = SCRIPT_USER_PROMPT.format(
+            topic=topic.get("topic", ""),
+            summary=topic.get("angle", ""),
+        )
+        try:
+            response = client.chat.completions.create(
+                model=config.GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": SCRIPT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=4096,
+                temperature=0.7,
+            )
+            logger.info(f"[Groq] API request successful ({config.GROQ_MODEL})")
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"[Groq] API error: {e}")
+            raise
 
     # ── Response parser ───────────────────────────────────────────────────────
 
@@ -164,7 +279,7 @@ class ScriptAgent:
             )
 
         logger.info(
-            f"Script generated: '{data['title'][:60]}' "
+            f"✅ Script generated: '{data['title'][:60]}' "
             f"({data.get('total_word_count', '?')} words, "
             f"{len(data['sections'])} sections)"
         )

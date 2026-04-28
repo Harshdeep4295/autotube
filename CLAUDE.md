@@ -1,6 +1,6 @@
 # AutoTube — Claude Code Instructions
 
-Autonomous faceless YouTube channel pipeline. Runs 4×/day on GitHub Actions, producing 1 video per run. No server required — GitHub IS the infrastructure.
+Autonomous faceless YouTube channel pipeline. Local GCP/Veo implementation. GitHub Actions pipeline currently disabled (2026-04-28) — using local execution instead.
 
 ---
 
@@ -97,7 +97,7 @@ CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
 SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
 SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
 VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
-VIDEO_ANIMATION_MODE             # "ken_burns" (default), "veo" (Phase 2), "pika", "leiapix" — switch via env var
+VIDEO_ANIMATION_MODE             # "ken_burns" (default), "veo" — switch via env var
 MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: only use CC0 music, YouTube deducts 55% for licensed music
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
 PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 based on script complexity)
@@ -105,9 +105,7 @@ PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 ba
 
 **VIDEO_ANIMATION_MODE options:**
 - `ken_burns` — Free, FFmpeg zoom/pan (default, no API setup)
-- `veo` — GCP Vertex AI Veo 3.1 native video (Phase 2, requires GCP setup + $300 credits)
-- `pika` — fal.ai Pika (paid, ~$0.20/video)
-- `leiapix` — 3D depth animation (free API)
+- `veo` — GCP Vertex AI Veo 3.1 native video (requires GCP setup + $300 credits)
 
 ---
 
@@ -118,36 +116,31 @@ PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 ba
 | Mode | Approach | Cost | Speed | Quality | Fallback |
 |---|---|---|---|---|---|
 | **ken_burns** (default ✓) | Pollinations AI images + FFmpeg zoom/pan | FREE | 1-2 min | Good | Always available |
-| **pika** (optional) | Native video from text (via fal.ai) | PAID | 5-10 min | Excellent | Falls back to Ken Burns |
+| **veo** (production) | GCP Vertex AI native video | $0.80/video | 2-4 min | Excellent | Falls back to Ken Burns |
 
 **Fallback Chain (always free):**
 `Ken Burns → Pexels clips → Gradient background`
 
-**To use Pika (optional, requires payment):**
+**To use Veo (requires GCP setup):**
 ```bash
 # Set in .env or GitHub Variable
-VIDEO_ANIMATION_MODE=pika
-FAL_API_KEY=your_paid_fal_key
+VIDEO_ANIMATION_MODE=veo
+GCP_PROJECT_ID=your-project-id
+GCP_GCS_BUCKET=autotube-veo-output
+AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON={...service account JSON...}
 ```
 
-**Note:** LeiaPix removed (requires OAuth2 client credentials). Ken Burns is the reliable default.
-
-**How to switch:**
+**How to switch modes (local testing):**
 ```bash
-# Local testing
-VIDEO_ANIMATION_MODE=leiapix python orchestrator.py --dry-run --topic "Test"
-VIDEO_ANIMATION_MODE=pika python orchestrator.py --dry-run --topic "Test"
-
-# GitHub Actions: set Variable VIDEO_ANIMATION_MODE to "leiapix" or "pika" (Settings → Variables)
+VIDEO_ANIMATION_MODE=ken_burns python orchestrator.py --dry-run --topic "Test"
+VIDEO_ANIMATION_MODE=veo python orchestrator.py --dry-run --topic "Test"
 ```
 
-**Ken Burns** (current): Uses FFmpeg zoompan with 17 animation presets (zoom, pan, drift effects). Fastest, completely free.
+**Ken Burns** (current default): Uses FFmpeg zoompan with 17 animation presets (zoom, pan, drift effects). Completely free, no API setup needed, fastest option.
 
-**LeiaPix**: Converts static images to 3D-depth animated videos. Adds parallax depth illusion. Free API, no key needed. More cinematic than Ken Burns.
+**Veo**: Generates native 1080p videos directly from visual_queries using GCP Vertex AI. Highest quality, but requires GCP credits (~$0.80 per video).
 
-**Pika**: Generates videos directly from visual_queries prompts. Best quality but limited free tier (~25 videos/month). Requires `PIKA_API_KEY` secret in GitHub.
-
-**Caching**: All modes cache videos by hash in `outputs/video_cache/` (prefixed `pika_*`, `leiapix_*`, `fx_*`). Prefetch job builds cache over time; render job reuses.
+**Caching**: Videos cache by hash in `outputs/video_cache/` (prefixed `fx_*` for Ken Burns, `veo_*` for Veo). Fallback chain attempts Ken Burns if primary mode fails.
 
 **Fallback chain**: If active mode fails (API down, quota hit, network error) → gracefully falls back to gradient background for that section. Video continues playing with text overlays.
 
@@ -416,27 +409,42 @@ If you see ANY API error in logs before committing, **trace back to the endpoint
 
 ## GitHub Actions
 
-- **4 cron triggers**: 03:30, 06:30, 09:30, 12:30 UTC (= 09/12/15/18 IST)
-- Each run: 1 video, ~20 min, then commits history files back to repo
+**⚠️ STATUS (2026-04-28):** Scheduled pipeline disabled. Using local GCP implementation instead.
+
+**daily_pipeline.yml:**
+- Scheduled runs **DISABLED** (as of 2026-04-28)
 - Manual trigger available via Actions tab with `count`, `dry_run`, `force_topic`, `model_provider` inputs
-- `SCRIPT_MODEL_PROVIDER` is a GitHub **Variable** (not Secret) — changeable via UI without code push
-- `VIDEO_BACKGROUND_MODE` is a GitHub **Variable** — `ai_images` (V2, default) or `pexels` (V1 fallback)
-- Logs uploaded as artifact for 14 days even on failure
+- Each run: 1 video, ~20 min, then commits history files back to repo
+
+**prefetch_pipeline.yml:**
+- Runs every 6 hours (if re-enabled)
+- Currently optional — not required for daily operations
+
+**Why disabled?** GCP/Veo implementation is working reliably locally. GitHub Actions adds unnecessary CI overhead when local execution is fine.
+
+**To re-enable scheduled runs:**
+Uncomment cron triggers in `.github/workflows/daily_pipeline.yml` (lines 4-8):
+```yaml
+on:
+  schedule:
+    - cron: '00 23 * * *'   # 23:00 UTC = 05:00 IST
+    - cron: '30 5 * * *'    # 05:30 UTC = 11:00 IST
+    - cron: '00 11 * * *'   # 13:00 UTC = 17:00 IST
+    - cron: '30 17 * * *'   # 17:30 UTC = 23:00 IST
+```
+
+**GitHub Variables:**
+- `SCRIPT_MODEL_PROVIDER` — `claude` or `gemini` (changeable via UI)
+- `VIDEO_BACKGROUND_MODE` — `ai_images` (default) or `pexels`
+- `VIDEO_ANIMATION_MODE` — `ken_burns` (default) or `veo`
 
 ## Secrets required in GitHub
 `ANTHROPIC_API_KEY`, `YOUTUBE_TOKEN_JSON`, `YOUTUBE_CLIENT_SECRETS`, `PEXELS_API_KEY`
 
-**Optional (for Pika video generation mode):**
-`FAL_API_KEY` — Only needed if `VIDEO_ANIMATION_MODE=pika` is set.
-
-**To set up Pika mode:**
-1. Go to https://fal.ai (free tier available)
-2. Create account and sign in
-3. Copy API key from dashboard
-4. Add to GitHub Secrets as `FAL_API_KEY`
-5. Set GitHub Variable `VIDEO_ANIMATION_MODE=pika`
-
-**Why fal.ai?** Pika Labs officially moved to fal.ai infrastructure in 2025. This provides better reliability, official support, and proper billing.
+**Optional (for Veo video generation):**
+- `GCP_PROJECT_ID`
+- `GCP_GCS_BUCKET`
+- `AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON`
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
@@ -476,3 +484,48 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+---
+
+## Archived / Removed Features (2026-04-28)
+
+### Kling AI Video Generation — REMOVED
+
+**Status:** Removed from active pipeline (2026-04-28)  
+**Reason:** Cost concerns ($0.05-0.10 per video) + reliability issues
+
+**Archive documentation:** See `KLING_ARCHIVE.md` for full integration details if you want to re-enable Kling in the future.
+
+**What was removed:**
+- `agents/kling_video_agent.py` — Kling API client
+- `agents/kling_quota_manager.py` — Daily quota tracking
+- All Kling imports from `video_agent.py`
+- Kling fallback modes
+- Kling secrets from GitHub workflows
+
+**Why?** Switched to free/cheaper alternatives:
+- **Ken Burns** (free, always available)
+- **GCP Veo** (higher quality, $0.80/video with $300 free trial)
+
+To re-enable Kling, follow instructions in `KLING_ARCHIVE.md`.
+
+### Seedance (ByteDance) — DEPRECATED
+
+**Status:** Code still present but not recommended  
+**Reason:** Requires Replicate API key, less reliable than Veo
+
+If you were using `VIDEO_ANIMATION_MODE=seedance`, switch to:
+- `ken_burns` (free default)
+- `veo` (better quality, GCP)
+
+### LeiaPix & Pika — REMOVED
+
+**Status:** Removed from active recommendations (2026-04-28)
+
+**Why?**
+- LeiaPix: Required OAuth2 client credentials (complex setup)
+- Pika: Limited free tier (~25/month), paid option ($0.20/video)
+
+Better alternatives:
+- `ken_burns` (free)
+- `veo` (high quality, $300 free GCP credits)
