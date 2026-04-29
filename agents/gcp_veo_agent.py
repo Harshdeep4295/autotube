@@ -104,9 +104,10 @@ class VeoAPIClient:
                 ),
                 config=types.GenerateVideosConfig(
                     output_gcs_uri=gcs_output_uri,
-                    duration_seconds=min(duration_seconds, 8),
+                    duration_seconds=duration_seconds,
                     aspect_ratio=VEO_ASPECT_RATIO,
                     resolution=VEO_RESOLUTION,
+                    quality_tier="FAST",
                     person_generation="dont_allow",
                 ),
             )
