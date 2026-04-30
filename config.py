@@ -51,7 +51,7 @@ class Config:
     GEMINI_API_KEY: str = field(
         default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
     )
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash-lite"
 
     # ── Groq settings (tertiary fallback — Claude → Gemini → Groq) ────────────
     # Set GROQ_API_KEY in .env or GitHub Secrets for 3-way fallback resilience.

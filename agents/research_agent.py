@@ -35,6 +35,15 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
+# Enhanced angle generation: extract numbers and context for richer summaries
+_DATA_EXTRACTION_KEYWORDS = {
+    "growth": [r"(\d+)%\s+(?:growth|increase|rise|jump)", r"grew?\s+(\d+)x"],
+    "revenue": [r"\$(\d+[KMB]?)\s+(?:revenue|sales|earnings)", r"(\d+)\s+billion"],
+    "release": [r"released?|launched?|announced?\s+.*?(?:today|yesterday|now)", r"new\s+(?:version|release|feature)"],
+    "competition": [r"vs\.?\s+\w+|competing?|rivalry|battle", r"threat|compete|challenger"],
+    "speed": [r"(\d+)%?\s+(?:faster|speedier|quicker)", r"performance\s+(\d+)x"],
+}
+
 RSS_FEEDS_BY_NICHE = {
     "AI & Tech": [
         "https://feeds.feedburner.com/TechCrunch",
@@ -90,10 +99,138 @@ DEVTO_URL = "https://dev.to/api/articles"
 class ResearchAgent:
     """Discovers trending topics from 6 free sources with composite scoring."""
 
+    def _extract_key_data(self, text: str) -> Optional[str]:
+        """Extract numbers, stats, or key phrases from text for angle enrichment."""
+        if not text:
+            return None
+
+        # Look for percentages
+        pct_match = re.search(r'(\d+(?:\.\d+)?)\s*%', text)
+        if pct_match:
+            return f"{pct_match.group(1)}% increase"
+
+        # Look for money amounts
+        money_match = re.search(r'\$(\d+[KMB]?)', text)
+        if money_match:
+            return f"${money_match.group(1)}"
+
+        # Look for X times multiplier
+        mult_match = re.search(r'(\d+(?:\.\d+)?)\s*x\s+(?:faster|growth|bigger)', text)
+        if mult_match:
+            return f"{mult_match.group(1)}x improvement"
+
+        return None
+
+    def _enrich_angle(self, topic: str, summary: str, source: str) -> str:
+        """
+        Generate a richer angle with specific context instead of generic templates.
+
+        Examples:
+        - Before: "Why X is trending"
+        - After: "Python 3.13 released with 5% performance boost — biggest update in 3 years"
+        """
+        if not summary or len(summary) < 20:
+            return f"New development in {topic}"
+
+        summary = summary[:300]  # Use first 300 chars only
+
+        # Extract key data point
+        key_data = self._extract_key_data(summary)
+
+        # Build enriched angle based on source and content
+        if source == "rss":
+            # For RSS: use summary + extracted data
+            if key_data and len(summary) > 50:
+                return f"{summary[:100].rstrip('.')}. Key: {key_data}"
+            return summary[:150]
+
+        elif source == "reddit":
+            # For Reddit: emphasize community discussion
+            engagement = ""
+            if "discusses" in summary.lower() or "debate" in summary.lower():
+                engagement = " Intense debate in community."
+            return f"{topic} — community talking about this. {engagement}".strip()
+
+        elif source == "hackernews":
+            # For HN: emphasize technical significance
+            if any(word in summary.lower() for word in ["performance", "optimization", "benchmark"]):
+                return f"{topic} — significant performance implications for developers"
+            elif any(word in summary.lower() for word in ["security", "vulnerability", "exploit"]):
+                return f"{topic} — security concern gaining attention"
+            return f"{topic} — technical community interested"
+
+        elif source == "devto":
+            # For Dev.to: emphasize developer-relevant angle
+            if key_data:
+                return f"{topic} — {key_data}. Developer tools impact"
+            return f"{topic} — actively discussed by developers"
+
+        else:
+            # Default
+            if key_data:
+                return f"{topic} — {key_data}"
+            return f"{topic} — trending topic with engagement"
+
+    def _score_topic_quality(self, topic: Dict) -> float:
+        """
+        Score topic quality for high-RPM potential.
+        Returns 0-1 float indicating likelihood of being good YouTube content.
+
+        Factors:
+        - Has specific numbers/data (0.3 points)
+        - Has actionable angle (0.25 points)
+        - Has controversy/debate (0.2 points)
+        - Source credibility (0.15 points)
+        - Trending strength (0.1 points)
+        """
+        score = 0.0
+        angle = topic.get("angle", "").lower()
+        summary = topic.get("summary", "").lower()
+        combined = f"{angle} {summary}"
+
+        # Factor 1: Numbers/specificity (30%)
+        if re.search(r'\d+%|\$\d+|(\d+\.?\d*)\s*x', combined):
+            score += 0.3
+        elif re.search(r'\d+', combined):
+            score += 0.15
+
+        # Factor 2: Actionable insight (25%)
+        action_words = ["how to", "why", "should", "avoid", "best", "tips", "guide", "new", "released", "launched"]
+        if any(word in angle for word in action_words):
+            score += 0.25
+
+        # Factor 3: Controversy/debate (20%)
+        debate_words = ["vs", "battle", "controversy", "debate", "conflict", "threat", "competing"]
+        if any(word in combined for word in debate_words):
+            score += 0.2
+
+        # Factor 4: Source credibility (15%)
+        source = topic.get("source", "")
+        source_weight = {
+            "rss": 0.15,           # Official news
+            "devto": 0.12,         # Developer community
+            "hackernews": 0.15,    # Tech enthusiasts
+            "lobsters": 0.1,       # Niche tech
+            "reddit": 0.08,        # General discussion
+            "google_trends": 0.05, # Just trending
+        }
+        score += source_weight.get(source, 0.05)
+
+        # Factor 5: Trending strength (10%)
+        trend = topic.get("trend_score", 0) / 100
+        score += min(trend, 0.1)
+
+        return min(score, 1.0)
+
     def get_topics(self, count: int = config.TOPICS_PER_RUN) -> List[Dict]:
         """
         Returns up to `count` scored, deduplicated topic dicts.
-        Each dict: {topic, angle, source, composite_score, reddit_mentions}
+        Each dict: {topic, angle, source, composite_score, quality_score, reddit_mentions}
+
+        ENHANCEMENTS (2026-04-30):
+        - Angle enrichment: generic angles replaced with context-rich summaries
+        - Quality scoring: topics filtered by high-RPM potential
+        - Data extraction: numbers and specific context pulled from summaries
         Falls back gracefully if individual sources fail.
         """
         history = self._load_history()
@@ -151,106 +288,96 @@ class ResearchAgent:
             logger.error("All research sources failed — no topics found")
             return []
 
+        # ENHANCEMENT: Enrich angles with context and data
+        for topic in raw_topics:
+            summary = topic.get("summary", topic.get("angle", ""))
+            source = topic.get("source", "rss")
+            topic["angle"] = self._enrich_angle(topic["topic"], summary, source)
+            topic["quality_score"] = self._score_topic_quality(topic)
+
         scored = self._score_topics(raw_topics)
         filtered = self._deduplicate(scored, history)
+
+        # ENHANCEMENT: Filter by quality score (keep only >0.35 quality for high-RPM content)
+        quality_filtered = [t for t in filtered if t.get("quality_score", 0) >= 0.35]
+        if quality_filtered:
+            logger.info(f"Quality filter: {len(filtered)} → {len(quality_filtered)} topics (threshold: 0.35)")
+            filtered = quality_filtered
+        else:
+            logger.warning(f"Quality filter removed all topics — using top {min(count, len(filtered))} anyway")
+
         selected = filtered[:count]
 
         self._save_to_history(selected, history)
         logger.info(f"Selected {len(selected)} topics after scoring and deduplication")
+        for s in selected:
+            logger.info(f"  ✓ {s['topic'][:50]:<50} (quality: {s.get('quality_score', 0):.2f}, composite: {s['composite_score']:.2f})")
+
         return selected
 
     # ── Source 1: Google Trends ───────────────────────────────────────────────
 
     def _fetch_google_trends(self) -> List[Dict]:
-        """Fetch trending searches from Google Trends API endpoint."""
-        import json
-        import time
-        import random
+        """Fetch trending searches from Google Trends (graceful fallback if unavailable)."""
+        try:
+            import json
+            import time
+            import random
 
-        # Headers mimicking real browser request
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://trends.google.com/",
-            "Origin": "https://trends.google.com",
-            "X-Requested-With": "XMLHttpRequest",
-        }
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
 
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                # Add random delay (3-8 seconds) to avoid rate limiting
-                if attempt > 0:
-                    delay = random.uniform(3, 8)
-                    logger.debug(f"Google Trends retry {attempt}/{max_retries-1}: waiting {delay:.1f}s...")
-                    time.sleep(delay)
-                else:
-                    time.sleep(random.uniform(1, 3))
+            # Try to fetch from Google Trends endpoint (may not work due to rate limits)
+            max_retries = 1
+            for attempt in range(max_retries):
+                try:
+                    time.sleep(random.uniform(0.5, 1.0))
+                    url_trending = "https://trends.google.com/trends/trendingsearches/daily/json"
 
-                # Query Google Trends API endpoint (used by their frontend)
-                url = "https://trends.google.com/api/explore"
-                params = {
-                    "hl": "en-US",
-                    "req": json.dumps({
-                        "comparisonItem": [{"keyword": ""}],
-                        "category": 0,
-                        "property": "",
-                    }),
-                }
+                    response = requests.get(
+                        url_trending,
+                        headers=headers,
+                        timeout=10,
+                        allow_redirects=True
+                    )
 
-                # First request to establish session
-                logger.debug("Establishing session with Google Trends...")
-                requests.get("https://trends.google.com/", headers=headers, timeout=15)
-                time.sleep(random.uniform(1, 2))
+                    if response.status_code == 200:
+                        data = response.json()
+                        topics = []
+                        if "default" in data and "trendingSearchesDays" in data["default"]:
+                            today_trends = data["default"]["trendingSearchesDays"][0]
+                            if "trendingSearches" in today_trends:
+                                for trend in today_trends["trendingSearches"][:15]:
+                                    if "title" in trend:
+                                        term = trend["title"]["query"].strip()
+                                        if len(term) > 3:
+                                            topics.append({
+                                                "topic": term,
+                                                "angle": f"Currently trending: {term}",
+                                                "source": "google_trends",
+                                                "trend_score": 75,
+                                                "reddit_mentions": 0,
+                                            })
 
-                # Fetch trending searches via their internal API
-                url_trending = "https://trends.google.com/trends/trendingsearches/daily/json"
-                logger.info("Fetching from Google Trends API endpoint...")
+                        if topics:
+                            logger.info(f"Google Trends: fetched {len(topics)} topics")
+                            return topics
+                    else:
+                        logger.debug(f"Google Trends returned {response.status_code} — other sources will compensate")
+                        return []
 
-                response = requests.get(
-                    url_trending,
-                    headers=headers,
-                    timeout=20,
-                    allow_redirects=True
-                )
-                response.raise_for_status()
+                except (requests.exceptions.Timeout, json.JSONDecodeError, KeyError, requests.exceptions.RequestException) as e:
+                    logger.debug(f"Google Trends skipped: {str(e)[:80]}... (other sources available)")
+                    return []
 
-                # Parse JSON response
-                data = response.json()
+            return []
 
-                topics = []
-                if "default" in data and "trendingSearchesDays" in data["default"]:
-                    # Get today's trends
-                    today_trends = data["default"]["trendingSearchesDays"][0]
-                    if "trendingSearches" in today_trends:
-                        for trend in today_trends["trendingSearches"][:20]:
-                            if "title" in trend:
-                                term = trend["title"]["query"].strip()
-                                if len(term) > 3:
-                                    topics.append({
-                                        "topic": term,
-                                        "angle": f"Why {term} is trending right now",
-                                        "source": "google_trends",
-                                        "trend_score": 80,
-                                        "reddit_mentions": 0,
-                                    })
-
-                if topics:
-                    logger.info(f"Google Trends: fetched {len(topics)} topics via API (attempt {attempt+1}/{max_retries})")
-                    return topics
-
-            except requests.exceptions.RequestException as e:
-                logger.debug(f"Google Trends API attempt {attempt+1} failed: {str(e)[:120]}...")
-                if attempt == max_retries - 1:
-                    logger.warning("Google Trends API failed after all retries")
-                    raise
-            except (json.JSONDecodeError, KeyError) as e:
-                logger.debug(f"Google Trends JSON parse failed: {str(e)[:100]}...")
-                if attempt == max_retries - 1:
-                    raise
-
-        raise Exception("Could not fetch Google Trends")
+        except Exception as e:
+            logger.warning(f"Google Trends disabled: {str(e)[:100]} (OK — 5 other sources active)")
+            return []
 
     # ── Source 2: Reddit ──────────────────────────────────────────────────────
 
@@ -289,11 +416,12 @@ class ResearchAgent:
                 feed = feedparser.parse(feed_url)
                 for entry in feed.entries[:5]:
                     title = entry.get("title", "").strip()
-                    summary = entry.get("summary", "")[:200]
+                    summary = entry.get("summary", "")[:300]
                     if len(title) > 10:
                         topics.append({
                             "topic": title,
                             "angle": summary or f"Breaking: {title}",
+                            "summary": summary,  # Preserve for enrichment
                             "source": "rss",
                             "trend_score": 30,
                             "reddit_mentions": 0,
@@ -345,10 +473,12 @@ class ResearchAgent:
             title = art.get("title", "").strip()
             tags = art.get("tag_list", [])
             reactions = art.get("public_reactions_count", 0)
+            description = art.get("description", "")[:200]
             if len(title) > 10:
                 topics.append({
                     "topic": title[:100],
                     "angle": f"Developer perspective on: {title[:60]}",
+                    "summary": description or f"Trending: {title[:80]}",  # For enrichment
                     "source": "devto",
                     "trend_score": min(reactions / 5, 40),
                     "reddit_mentions": 0,
@@ -365,11 +495,12 @@ class ResearchAgent:
                 feed = feedparser.parse(feed_url)
                 for entry in feed.entries[:8]:
                     title = entry.get("title", "").strip()
-                    summary = entry.get("summary", "")[:200]
+                    summary = entry.get("summary", "")[:300]
                     if len(title) > 10:
                         topics.append({
                             "topic": title,
                             "angle": summary or f"Community discussion: {title[:60]}",
+                            "summary": summary,  # Preserve for enrichment
                             "source": "lobsters",
                             "trend_score": 35,
                             "reddit_mentions": 0,
