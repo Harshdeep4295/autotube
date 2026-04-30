@@ -165,6 +165,30 @@ CRITICAL for visual_queries — RULES FOR EACH QUERY (Veo/Pexels-optimized):
      ❌ Pure abstractions: "data", "AI", "blockchain", "information" WITHOUT physical form
      ❌ Incomplete concepts: "tech", "business", "future", "innovation" without context
      ❌ Overly vague: "stuff", "things", "content", "media" without specifics
+  8. VEO SAFETY FILTER AVOIDANCE (critical — empty results cost generation time):
+     Veo runs with person_generation=dont_allow. ANY prompt that could imply a human
+     figure, face, hand, or human-controlled action will return empty results.
+     ❌ REJECTED by Veo: "hands typing", "businessman pointing", "hands counting cash",
+        "android head", "robot face", "worker at desk", "scientist", "presenter"
+     ✅ SAFE for Veo: "circuit board macro", "server rack with LED cooling lights",
+        "fiber optic cable close-up", "mountain landscape timelapse",
+        "stock market ticker board scrolling", "drone shot over city skyline",
+        "ocean wave crashing on rocky shore", "data center corridor with blue lights",
+        "satellite dish array pointing at night sky", "solar panel field at sunrise"
+     RULE: If your query includes ANY body part (hand, face, eye, finger) or any
+     subject that requires a human actor, replace it with a machine, landscape,
+     or abstract physical object performing the same conceptual role.
+     TRANSFORMATION EXAMPLES:
+       "hands typing on keyboard" → "mechanical keyboard with RGB backlight close-up"
+       "businessman at whiteboard" → "whiteboard covered in equations time-lapse"
+       "scientist examining data" → "holographic data display floating in dark lab"
+       "robot arm with glowing eyes" → "industrial robot arm welding metal sparks"
+     SUBJECT CATEGORIES RANKED BY VEO SAFETY (use higher-ranked first):
+       TIER 1 (always safe): landscapes, seascapes, architecture, weather, space, macro nature
+       TIER 2 (safe): machines, industrial equipment, vehicles without drivers, server rooms, labs
+       TIER 3 (mostly safe): robot arms, mechanical components, circuit boards, holographic displays
+       TIER 4 (risky—avoid): anything with "hand", "face", "eye", "finger" in query
+       TIER 5 (always blocked): human figures, portraits, crowd scenes, animated characters
 
   EXAMPLES THAT WORK WELL WITH VEO/PEXELS:
   Tech/Dev: "programmer typing green code on dark keyboard backlit", "circuit board macro photography with solder joints glowing orange", "fiber optic cables with blue light flowing through dark space", "laptop screen showing code with warm desk lamp reflection", "server rack with blue cooling lights in dark server room", "3D holographic circuit schematic displayed in dark blue environment"

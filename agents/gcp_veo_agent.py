@@ -34,6 +34,13 @@ VEO_ASPECT_RATIO = "16:9"
 POLL_INTERVAL_SECONDS = 20
 MAX_POLLING_SECONDS = 600  # 10 minutes (Veo takes 2-4 min)
 
+# Safety-filter-resistant prompt suffixes — each progressively avoids human/organic subjects
+_VEO_SAFETY_REPHRASE_SUFFIXES = [
+    "",
+    ", abstract technology visualization, geometric forms, no people",
+    ", macro photography industrial equipment, data streams, no humans",
+]
+
 
 class VeoAuthenticator:
     """GCP service account authentication"""
@@ -204,6 +211,15 @@ class VeoVideoGenerator:
                 "AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON, GCP_PROJECT_ID, GCP_GCS_BUCKET required"
             )
 
+        # Warn if project ID looks like an AI Studio project (billing disabled for Veo)
+        if project_id and project_id.startswith("gen-lang-client-"):
+            logger.warning(
+                f"⚠️  GCP_PROJECT_ID='{project_id}' looks like an AI Studio project "
+                "(usually has Vertex AI billing disabled). "
+                "If Veo calls are failing with 403, set GCP_PROJECT_ID to your billing-enabled project. "
+                "Attempting Veo anyway..."
+            )
+
         self.client = VeoAPIClient(
             service_account_json=service_account_json,
             project_id=project_id,
@@ -222,7 +238,7 @@ class VeoVideoGenerator:
         retry_count: int = 0
     ) -> Optional[str]:
         """Generate video from prompt. Returns path to cached video file, or None if failed.
-        No retries — single attempt only. Reduces costs to $0.80 per section max.
+        Retries up to 3 times with rephrased prompts on empty response (safety filter).
         """
         cache_key = hashlib.md5(
             f"veo_{prompt}_{section_idx}_{duration}".encode()
@@ -235,20 +251,42 @@ class VeoVideoGenerator:
 
         try:
             start_time = time.time()
+            last_result = None
 
-            operation = await self.client.submit_text_to_video(
-                prompt=prompt,
-                duration_seconds=duration
-            )
+            # Retry loop: up to 3 attempts with prompt rephrasing
+            for attempt, suffix in enumerate(_VEO_SAFETY_REPHRASE_SUFFIXES):
+                rephrase_prompt = (prompt + suffix).strip()
+                self.logger.info(
+                    f"Veo attempt {attempt + 1}/{len(_VEO_SAFETY_REPHRASE_SUFFIXES)}: "
+                    f"'{rephrase_prompt[:80]}...'"
+                )
 
-            result = await self.client.poll_operation(operation)
+                operation = await self.client.submit_text_to_video(
+                    prompt=rephrase_prompt,
+                    duration_seconds=duration
+                )
 
-            generated_videos = result["result"].generated_videos
-            if not generated_videos:
-                self.logger.error(f"No videos in response — falling back to gradient")
+                result = await self.client.poll_operation(operation)
+                last_result = result
+
+                generated_videos = result["result"].generated_videos
+                if generated_videos:
+                    self.logger.info(f"✅ Veo succeeded on attempt {attempt + 1}")
+                    break
+                else:
+                    self.logger.warning(
+                        f"Veo attempt {attempt + 1}: empty generated_videos (safety filter) — "
+                        f"{'retrying with rephrased prompt' if attempt < len(_VEO_SAFETY_REPHRASE_SUFFIXES) - 1 else 'all attempts exhausted'}"
+                    )
+
+            if not last_result or not last_result["result"].generated_videos:
+                self.logger.error(
+                    f"Veo: all {len(_VEO_SAFETY_REPHRASE_SUFFIXES)} attempts returned empty "
+                    f"generated_videos (safety filter). Falling back."
+                )
                 return None
 
-            gcs_uri = generated_videos[0].video.uri
+            gcs_uri = last_result["result"].generated_videos[0].video.uri
 
             await self.client.download_from_gcs(gcs_uri, cache_path)
 

@@ -136,6 +136,12 @@ class Config:
     PEXELS_API_KEY: str = field(
         default_factory=lambda: os.getenv("PEXELS_API_KEY", "")
     )
+    PIXABAY_API_KEY: str = field(
+        default_factory=lambda: os.getenv("PIXABAY_API_KEY", "")
+    )
+    VIDEO_PIPELINE_VERSION: str = field(
+        default_factory=lambda: os.getenv("VIDEO_PIPELINE_VERSION", "v1")
+    )
 
     # ── Upload schedule (IST) ─────────────────────────────────────────────────
     # Edit these IST times; UTC conversion is automatic.

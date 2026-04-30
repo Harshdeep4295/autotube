@@ -126,6 +126,7 @@ class VideoAgent:
         self.FPS = config.VIDEO_FPS
         self.colors = NICHE_COLORS.get(config.CHANNEL_NICHE, NICHE_COLORS["default"])
         self.fonts = self._load_fonts()
+        self.cache_dir = None  # Set during render() for per-video caching
         os.makedirs(config.VIDEO_CACHE_DIR, exist_ok=True)
         self._used_hashes: set = self._load_used_clips()
         self._new_hashes: set = set()   # hashes used in this run, saved after render
@@ -133,12 +134,41 @@ class VideoAgent:
         self.veo_generator = None
         self.color_grade = NICHE_COLOR_GRADES.get(config.CHANNEL_NICHE, NICHE_COLOR_GRADES["default"])
 
+    def _get_cache_dir(self) -> Path:
+        """Return per-video cache dir if rendering, otherwise global cache dir."""
+        if self.cache_dir and self.cache_dir.exists():
+            return self.cache_dir
+        return Path(config.VIDEO_CACHE_DIR)
+
+    def _write_videofile_v2(self, final, output_path):
+        """V2 encode settings: stable quality and reasonable speed."""
+        final.write_videofile(
+            output_path,
+            fps=self.FPS,
+            codec="libx264",
+            audio_codec="aac",
+            preset="veryfast",  # proven stable, good speed/quality tradeoff
+            threads=0,          # 0 = FFmpeg auto-selects optimal thread count
+            bitrate="4000k",    # YouTube-compatible bitrate
+            temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
+            remove_temp=True,
+            logger="bar",
+        )
+
     # ── Public entry point ────────────────────────────────────────────────────
 
     def render(self, script: Dict, audio_path: str, output_path: str, prefetched_images: Optional[Dict] = None) -> str:
         from moviepy import AudioFileClip, CompositeVideoClip, ColorClip, ImageClip
 
         os.makedirs(Path(output_path).parent, exist_ok=True)
+
+        # Per-video caching: extract video_id from output_path and create cache folder
+        video_dir = Path(output_path).parent
+        video_id = video_dir.name
+        self.cache_dir = video_dir / "cache"
+        os.makedirs(self.cache_dir, exist_ok=True)
+        logger.info(f"[VIDEO_CACHE] Using per-video cache: {self.cache_dir}")
+
         logger.info(f"[RENDER_START] ═══════════════════════════════════════")
         _get_memory_status("RENDER_START")
 
@@ -244,18 +274,23 @@ class VideoAgent:
         _get_memory_status("BEFORE_WRITE_VIDEOFILE")
 
         try:
-            final.write_videofile(
-                output_path,
-                fps=self.FPS,
-                codec="libx264",
-                audio_codec="aac",
-                preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
-                threads=2,            # match GitHub Actions vCPU count
-                bitrate="4000k",      # ensure 720p+ quality source for YouTube
-                temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
-                remove_temp=True,
-                logger="bar",         # show ffmpeg progress in logs
-            )
+            # V1/V2 encoding dispatch
+            pipeline_version = os.getenv("VIDEO_PIPELINE_VERSION", "v1").lower()
+            if pipeline_version == "v2":
+                self._write_videofile_v2(final, output_path)
+            else:
+                final.write_videofile(
+                    output_path,
+                    fps=self.FPS,
+                    codec="libx264",
+                    audio_codec="aac",
+                    preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
+                    threads=2,            # match GitHub Actions vCPU count
+                    bitrate="4000k",      # ensure 720p+ quality source for YouTube
+                    temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
+                    remove_temp=True,
+                    logger="bar",         # show ffmpeg progress in logs
+                )
         except MemoryError as e:
             logger.error(f"[OOM_DETECTED] MemoryError during write_videofile: {e}")
             _get_memory_status("OOM_DETECTED")
@@ -277,6 +312,11 @@ class VideoAgent:
         Primary mode (from config) → LeiaPix → Ken Burns → Pexels → Gradient.
         On 429 rate limit, immediately switch to next mode for that scene.
         section_durations: dict mapping section index to required duration in seconds."""
+        # V1/V2 pipeline dispatch
+        pipeline_version = os.getenv("VIDEO_PIPELINE_VERSION", "v1").lower()
+        if pipeline_version == "v2":
+            return self._get_section_videos_v2(sections, visual_queries, section_durations)
+
         primary_mode = config.VIDEO_ANIMATION_MODE.lower()
         # Concrete, visualizable fallbacks for Veo (avoid abstractions)
         cinematic_fallbacks = [
@@ -712,6 +752,107 @@ class VideoAgent:
                     results[idx] = None
         return results
 
+    def _get_section_videos_v2(self, sections: List[Dict], visual_queries: List[str], section_durations: Dict[int, float] = None):
+        """V2 pipeline: parallel fetch, Pixabay B-roll, improved Ken Burns."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        primary_mode = getattr(config, 'VIDEO_ANIMATION_MODE', 'ken_burns').lower()
+
+        cinematic_fallbacks = [
+            "server room corridor blue LED lighting",
+            "aerial drone shot over modern city skyline",
+            "ocean waves crashing on rocky coastline",
+            "mountain landscape with clouds at sunrise",
+            "solar panel field aerial view",
+            "data center equipment close-up with lights",
+        ]
+
+        results: Dict[int, Optional[str]] = {}
+
+        def _fetch_one(i):
+            query = (
+                visual_queries[i].strip()
+                if i < len(visual_queries) and visual_queries[i].strip()
+                else cinematic_fallbacks[i % len(cinematic_fallbacks)]
+            )
+            dur = section_durations.get(i, 8.0) if section_durations else 8.0
+            try:
+                path = self._try_section_video_chain_v2(i, query, primary_mode, dur)
+            except Exception as e:
+                logger.warning(f"[V2] Section {i+1} fetch failed: {e}")
+                path = None
+            logger.info(f"[V2] Section {i+1}/{len(sections)}: {path or 'gradient fallback'}")
+            return i, path
+
+        with ThreadPoolExecutor(max_workers=min(len(sections), 6)) as ex:
+            futures = {ex.submit(_fetch_one, i): i for i in range(len(sections))}
+            for future in as_completed(futures):
+                try:
+                    idx, path = future.result()
+                    results[idx] = path
+                except Exception as e:
+                    idx = futures[future]
+                    logger.warning(f"[V2] Section {idx+1} future failed: {e}")
+                    results[idx] = None
+
+        return results
+
+    def _try_section_video_chain_v2(self, section_idx, query, primary_mode, section_duration=8.0):
+        """V2 fallback chain: Pixabay → Ken Burns (with correct duration)."""
+        if primary_mode == "veo":
+            modes = ["veo", "pixabay", "ken_burns"]
+        elif primary_mode == "ken_burns":
+            modes = ["ken_burns", "pixabay"]
+        else:
+            modes = ["pixabay", "ken_burns"]
+
+        for mode in modes:
+            try:
+                path = None
+                if mode == "pixabay":
+                    paths = self._fetch_pixabay_clips(query, n=3)
+                    if paths:
+                        path = self._concatenate_clips(paths, section_duration)
+                    else:
+                        path = None
+                elif mode == "ken_burns":
+                    img = self._fetch_ai_image(query, section_idx)
+                    if img:
+                        effect = self.animation_effects[0] if self.animation_effects else ANIMATION_EFFECTS[0]
+                        # V2 fix: use actual section_duration (not hardcoded 5.0)
+                        cache_key = hashlib.md5(
+                            f"{img}|{effect['name']}|{section_duration:.2f}".encode()
+                        ).hexdigest()[:12]
+                        path = str(self._get_cache_dir() / f"fx_{cache_key}.mp4")
+                        try:
+                            self._image_to_ken_burns_clip(img, section_duration, effect=effect)
+                        except Exception:
+                            path = None
+                elif mode == "veo":
+                    if not self.veo_generator:
+                        try:
+                            from agents.gcp_veo_agent import VeoVideoGenerator
+                            self.veo_generator = VeoVideoGenerator()
+                        except Exception as e:
+                            logger.warning(f"[V2] Veo init failed: {e} — skipping Veo")
+                            continue
+                    duration_int = min(int(round(section_duration)), 8)
+                    loop = asyncio.new_event_loop()
+                    try:
+                        path = loop.run_until_complete(
+                            self.veo_generator.generate(query, section_idx, duration=duration_int)
+                        )
+                    finally:
+                        loop.close()
+
+                if path and Path(path).exists() and Path(path).stat().st_size > 10_000:
+                    return path
+            except Exception as e:
+                logger.warning(f"[V2] mode={mode} section={section_idx} failed: {e}")
+                continue
+
+        return None
+
     def _fetch_ai_image(self, prompt: str, section_idx: int) -> Optional[str]:
         """
         Download a Pollinations.ai (Flux) image. Cached by prompt hash. No API key needed.
@@ -909,7 +1050,7 @@ class VideoAgent:
                 "-loop", "1", "-i", img_path,
                 "-vf", vf,
                 "-t", f"{duration:.3f}",
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "19",
                 "-pix_fmt", "yuv420p",
                 str(cache_path),
             ]
@@ -930,7 +1071,8 @@ class VideoAgent:
         logger.info(f"    [ken_burns] Loading video clip from cache...")
         from moviepy import VideoFileClip
         clip = VideoFileClip(str(cache_path))
-        logger.info(f"    [ken_burns] ✓ Clip loaded, duration: {clip.duration:.1f}s")
+        clip = clip.with_fps(self.FPS)
+        logger.info(f"    [ken_burns] ✓ Clip loaded, duration: {clip.duration:.1f}s, fps: {clip.fps:.0f}")
         return clip
 
     def _image_to_ken_burns_pil(self, img_path: str, duration: float):
@@ -1029,7 +1171,8 @@ class VideoAgent:
                         logger.info(f"  [CACHED_MP4] Loading cached MP4 video...")
                         _get_memory_status(f"BEFORE_LOAD_CACHED_MP4_SECTION_{i+1}")
                         raw = VideoFileClip(clip_path)
-                        logger.info(f"  [CACHED_MP4] Video loaded, duration: {raw.duration:.1f}s")
+                        raw = raw.with_fps(self.FPS)
+                        logger.info(f"  [CACHED_MP4] Video loaded, duration: {raw.duration:.1f}s, fps: {raw.fps:.0f}")
                         _get_memory_status(f"AFTER_LOAD_CACHED_MP4_SECTION_{i+1}")
 
                         clip = self._resize_and_crop(raw, self.W, self.H)
@@ -1099,6 +1242,12 @@ class VideoAgent:
                 clips_with_transitions.append(self._make_dip_to_black_transition(0.3))
         logger.info(f"  Total clips with transitions: {len(clips_with_transitions)}")
         _get_memory_status("BEFORE_CONCATENATE")
+
+        # CRITICAL: Normalize fps across all clips BEFORE concatenation to prevent stuttering
+        logger.info(f"  Normalizing fps across all clips to {self.FPS}...")
+        clips_with_transitions = [clip.with_fps(self.FPS) if hasattr(clip, 'with_fps') else clip
+                                  for clip in clips_with_transitions]
+        logger.info(f"  ✓ FPS normalization complete")
 
         logger.info(f"  Concatenating clips...")
         try:
@@ -1252,6 +1401,148 @@ class VideoAgent:
             return str(cache_path)
         except Exception as e:
             logger.warning(f"Clip download failed: {e}")
+            if cache_path.exists():
+                cache_path.unlink()
+            return None
+
+    def _fetch_pixabay_clips(self, query: str, n: int = 1) -> List[str]:
+        """Fetch HD clips from Pixabay (CC0, free). Falls back silently if key missing."""
+        if not config.PIXABAY_API_KEY:
+            logger.warning("PIXABAY_API_KEY not set — skipping Pixabay. Add to .env to enable.")
+            return []
+        params = {
+            "key": config.PIXABAY_API_KEY, "q": query,
+            "video_type": "all", "per_page": 20,
+            "safesearch": "true", "order": "popular",
+        }
+        try:
+            r = requests.get("https://pixabay.com/api/videos/", params=params, timeout=15)
+            r.raise_for_status()
+            hits = r.json().get("hits", [])
+        except Exception as e:
+            logger.warning(f"Pixabay API failed for '{query}': {e}")
+            return []
+        downloaded = []
+        random.shuffle(hits)
+        for hit in hits:
+            if len(downloaded) >= n:
+                break
+            path = self._download_pixabay_clip(hit)
+            if path:
+                downloaded.append(path)
+        return downloaded
+
+    def _download_pixabay_clip(self, hit: Dict) -> Optional[str]:
+        """Download best available file from a Pixabay hit. Uses same dedup as Pexels."""
+        videos = hit.get("videos", {})
+        url = (
+            videos.get("large", {}).get("url")
+            or videos.get("medium", {}).get("url")
+            or videos.get("small", {}).get("url") or ""
+        )
+        if not url:
+            return None
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:12]
+        if url_hash in self._used_hashes:
+            return None
+        cache_path = self._get_cache_dir() / f"pixabay_{url_hash}.mp4"
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            self._new_hashes.add(url_hash)
+            return str(cache_path)
+        try:
+            with requests.get(url, stream=True, timeout=60) as resp:
+                resp.raise_for_status()
+                with open(cache_path, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=1024 * 512):
+                        f.write(chunk)
+            self._new_hashes.add(url_hash)
+            logger.info(f"Pixabay: {cache_path.name} ({cache_path.stat().st_size // 1024}KB)")
+            return str(cache_path)
+        except Exception as e:
+            logger.warning(f"Pixabay download failed: {e}")
+            if cache_path.exists():
+                cache_path.unlink()
+            return None
+
+    def _concatenate_clips(self, clip_paths: List[str], target_duration: float) -> Optional[str]:
+        """Concatenate multiple video clips (no looping).
+        Returns path to concatenated MP4, or None if failed.
+        Cache key based on clip paths + target duration.
+        """
+        from moviepy import VideoFileClip, concatenate_videoclips
+
+        if not clip_paths:
+            return None
+
+        # Create cache key from clip paths + duration
+        clip_str = "|".join(sorted(clip_paths))
+        cache_key = hashlib.md5(
+            f"{clip_str}|{target_duration:.2f}".encode()
+        ).hexdigest()[:12]
+        cache_path = self._get_cache_dir() / f"concat_{cache_key}.mp4"
+
+        # Return cached if exists
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            logger.info(f"[CONCAT] Cache hit: {cache_path.name}")
+            return str(cache_path)
+
+        try:
+            clips = []
+            total_duration = 0.0
+
+            # Load clips and accumulate duration
+            for clip_path in clip_paths:
+                if not Path(clip_path).exists():
+                    logger.warning(f"[CONCAT] Clip missing: {clip_path}")
+                    continue
+                clip = VideoFileClip(clip_path)
+                clip = clip.with_fps(24)
+                clips.append(clip)
+                total_duration += clip.duration
+
+                # Stop if we have enough duration
+                if total_duration >= target_duration:
+                    break
+
+            if not clips:
+                logger.warning(f"[CONCAT] No clips available for concatenation")
+                return None
+
+            # Concatenate
+            if len(clips) == 1:
+                concat = clips[0]
+            else:
+                concat = concatenate_videoclips(clips)
+
+            # Trim or pad to exact duration
+            if concat.duration > target_duration:
+                concat = concat.subclipped(0, target_duration)
+            elif concat.duration < target_duration:
+                # Pad with last frame instead of looping
+                from moviepy import ColorClip
+                padding_duration = target_duration - concat.duration
+                padding = ColorClip(size=(concat.w, concat.h), color=(0, 0, 0))
+                padding = padding.with_duration(padding_duration)
+                concat = concatenate_videoclips([concat, padding])
+
+            # Write to cache
+            concat.write_videofile(
+                str(cache_path),
+                fps=24,
+                codec="libx264",
+                preset="veryfast",
+                bitrate="4000k",
+                threads=0,
+            )
+
+            logger.info(
+                f"[CONCAT] Concatenated {len(clips)} clips: {cache_path.name} "
+                f"({concat.duration:.1f}s to match {target_duration:.1f}s)"
+            )
+            return str(cache_path)
+
+        except Exception as e:
+            logger.warning(f"[CONCAT] Clip concatenation failed: {e}")
             if cache_path.exists():
                 cache_path.unlink()
             return None

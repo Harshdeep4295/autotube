@@ -225,8 +225,8 @@ class ScriptAgent:
                     {"role": "system", "content": SCRIPT_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=4096,
-                temperature=0.7,
+                max_tokens=8192,
+                temperature=0.5,
             )
             logger.info(f"[Groq] API request successful ({config.GROQ_MODEL})")
             return response.choices[0].message.content
@@ -278,9 +278,24 @@ class ScriptAgent:
                 f"Expected at least 3."
             )
 
+        # Validate word count — accept what model produces (Groq limitations)
+        actual_words = sum(len(s.get("text", "").split()) for s in data.get("sections", []))
+        claimed_words = data.get('total_word_count', actual_words)
+
+        # Update claimed word count to match actual (fix inflated/inaccurate claims)
+        data['total_word_count'] = actual_words
+
+        if actual_words < 80:
+            logger.warning(f"⚠️  Script critically short ({actual_words} words). Rejecting...")
+            raise ValueError(f"Script too short ({actual_words} words, minimum 80 required).")
+        else:
+            logger.info(
+                f"✓ Script accepted: {actual_words} words (Groq limitation — videos will be ~{int(actual_words/150 * 5)} min)"
+            )
+
         logger.info(
             f"✅ Script generated: '{data['title'][:60]}' "
-            f"({data.get('total_word_count', '?')} words, "
+            f"({actual_words} actual words, "
             f"{len(data['sections'])} sections)"
         )
         return data
