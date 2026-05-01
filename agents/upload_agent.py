@@ -60,6 +60,12 @@ class UploadAgent:
 
             self._save_to_log(script, video_id, publish_at)
 
+            # Feature 1 hook: Format-specific tweaks (Shorts tagging, etc.)
+            self._format_title_description(script, video_id)
+
+            # Feature 3 hook: Post-upload operations (playlist insertion, etc.)
+            self._post_upload(video_id, script)
+
             result = {
                 "video_id": video_id,
                 "url": f"https://youtube.com/watch?v={video_id}",
@@ -293,3 +299,19 @@ class UploadAgent:
 
         with open(config.POSTED_FILE, "w") as f:
             json.dump(log, f, indent=2)
+
+    # ── Feature hooks (overridable by feature branches) ──────────────────────────
+
+    def _format_title_description(self, script: Dict, video_id: str) -> None:
+        """
+        Feature 1 hook: Called after upload to apply format-specific tweaks.
+        Default: no-op. Feature 1 (Shorts) overrides this.
+        """
+        pass
+
+    def _post_upload(self, video_id: str, script: Dict) -> None:
+        """
+        Feature 3 hook: Called after upload for post-processing (playlist insertion).
+        Default: no-op. Feature 3 (Auto-Playlist) overrides this.
+        """
+        pass

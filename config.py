@@ -6,6 +6,7 @@ Model provider is controlled by the SCRIPT_MODEL_PROVIDER env var (default: "cla
 Upload times are set in IST and auto-converted to UTC internally.
 """
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import List
@@ -164,6 +165,44 @@ class Config:
     VIDEO_CATEGORY_ID: str = "28"   # 28 = Science & Technology
     VIDEO_PRIVACY: str = "public"
     VIDEO_MADE_FOR_KIDS: bool = False
+
+    # ── Feature 3: Auto-Playlist (Series detection) ─────────────────────────────
+    PLAYLIST_ENABLED: bool = field(
+        default_factory=lambda: os.getenv("PLAYLIST_ENABLED", "false").lower() == "true"
+    )
+    PLAYLIST_MAP: dict = field(default_factory=lambda: (
+        json.loads(os.getenv("PLAYLIST_MAP_JSON", "{}"))
+        if os.getenv("PLAYLIST_MAP_JSON") else {}
+    ))
+    PLAYLIST_AUTO_CREATE: bool = field(
+        default_factory=lambda: os.getenv("PLAYLIST_AUTO_CREATE", "true").lower() == "true"
+    )
+
+    # ── Feature 2: Audience-Driven Topics (YouTube Comments) ────────────────────
+    COMMENTS_ENABLED: bool = field(
+        default_factory=lambda: os.getenv("COMMENTS_ENABLED", "false").lower() == "true"
+    )
+    COMMENTS_OWN_VIDEOS: int = field(
+        default_factory=lambda: int(os.getenv("COMMENTS_OWN_VIDEOS", "10"))
+    )
+    COMMENTS_COMPETITOR_VIDEOS: int = field(
+        default_factory=lambda: int(os.getenv("COMMENTS_COMPETITOR_VIDEOS", "5"))
+    )
+    COMMENTS_MAX_PER_VIDEO: int = field(
+        default_factory=lambda: int(os.getenv("COMMENTS_MAX_PER_VIDEO", "100"))
+    )
+
+    # ── Feature 1: Multi-Format Shorts (9:16) ──────────────────────────────────
+    VIDEO_FORMAT: str = field(
+        default_factory=lambda: os.getenv("VIDEO_FORMAT", "landscape")
+    )
+    SHORTS_WORD_COUNT: int = field(
+        default_factory=lambda: int(os.getenv("SHORTS_WORD_COUNT", "150"))
+    )
+
+    @property
+    def IS_SHORTS(self) -> bool:
+        return self.VIDEO_FORMAT.lower() == "shorts"
 
     # ── Video background mode ─────────────────────────────────────────────────
     # "ai_images" → Pollinations.ai AI-generated images + Ken Burns effect (V2, default)

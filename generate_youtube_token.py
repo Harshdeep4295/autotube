@@ -22,7 +22,11 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
+]
 
 def main():
     print("🎬 YouTube Token Generator")

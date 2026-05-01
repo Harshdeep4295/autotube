@@ -878,7 +878,7 @@ class VideoAgent:
         logger.info(f"    [_fetch_ai_image] [1/2] Trying Vertex AI Imagen...")
         try:
             imagen = ImagenImageGenerator()
-            image_b64 = imagen.generate(full_prompt, 1920, 1080)
+            image_b64 = imagen.generate(full_prompt, self.W, self.H)
             if image_b64:
                 image_data = base64.b64decode(image_b64)
                 with open(cache_path, "wb") as f:
@@ -895,7 +895,7 @@ class VideoAgent:
         seed = random.randint(1, 99999)
         url = (
             f"https://image.pollinations.ai/prompt/{encoded}"
-            f"?width=1920&height=1080&nologo=true&model=flux&seed={seed}"
+            f"?width={self.W}&height={self.H}&nologo=true&model=flux&seed={seed}"
         )
 
         max_retries = 2

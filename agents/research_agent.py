@@ -284,6 +284,11 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"Lobste.rs failed (skipping): {e}")
 
+        # Feature 2 hook: YouTube Comments (audience-driven topics)
+        extra = self._extra_sources()
+        if extra:
+            raw_topics.extend(extra)
+
         if not raw_topics:
             logger.error("All research sources failed — no topics found")
             return []
@@ -662,6 +667,15 @@ class ResearchAgent:
         ]
         with open(config.HISTORY_FILE, "w") as f:
             json.dump(kept + new_entries, f, indent=2)
+
+    # ── Feature hooks (overridable by feature branches) ──────────────────────────
+
+    def _extra_sources(self) -> List[Dict]:
+        """
+        Feature 2 hook: Return additional topics from extra sources.
+        Default: empty list. Feature 2 (YouTube Comments) overrides this.
+        """
+        return []
 
     # ── Utilities ─────────────────────────────────────────────────────────────
 
