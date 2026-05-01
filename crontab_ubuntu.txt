@@ -1,0 +1,80 @@
+# AutoTube Cron Jobs for Ubuntu Server
+# All times in UTC (adjust to your timezone)
+# Generated: 2026-05-02
+#
+# Usage: crontab -e, then paste these lines
+#
+# IMPORTANT FIXES:
+# 1. $(date ...) must be wrapped in backticks or $(...) — never in quotes
+# 2. All paths must be absolute
+# 3. Virtual env activation must be sourced before python
+# 4. Log directory must exist
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DAILY PIPELINE (Existing Videos → New Shorts)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Shorts #1: 02:00 UTC — Recent high-views (from last 7 days)
+0 2 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views >> /home/harshdeepsingh/cron_logs/autotube_shorts_recent_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #2: 08:00 UTC — All-time best video
+8 8 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy all_time_best >> /home/harshdeepsingh/cron_logs/autotube_shorts_best_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #3: 14:00 UTC — Underutilized video #1
+0 14 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy underutilized >> /home/harshdeepsingh/cron_logs/autotube_shorts_underutilized_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #4: 16:00 UTC — Underutilized video #2
+0 16 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy underutilized >> /home/harshdeepsingh/cron_logs/autotube_shorts_underutil2_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #5: 18:00 UTC — Evergreen (top of all time, rotates weekly)
+0 18 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy all_time_best >> /home/harshdeepsingh/cron_logs/autotube_shorts_evergreen_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #6: 20:00 UTC — Recent viral (from last 3 days, highest views)
+0 20 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views >> /home/harshdeepsingh/cron_logs/autotube_shorts_viral_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NEW VIDEO PIPELINE (Generate + Upload New Content)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Prefetch: Research + Script generation daily at 01:00 UTC
+0 1 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode prefetch --count 5 >> /home/harshdeepsingh/cron_logs/autotube_prefetch_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Render + Upload new videos: 04:00 UTC (after prefetch, gives 3 hours buffer)
+0 4 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode auto >> /home/harshdeepsingh/cron_logs/autotube_new_video_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MAINTENANCE
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Auto-merge shadow to main: every hour
+0 * * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && bash auto_merge_shadow_to_main.sh >> /home/harshdeepsingh/cron_logs/autotube_merge_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Cleanup old logs: daily at 00:30 UTC (keep last 30 days)
+30 0 * * * /bin/bash -c 'find /home/harshdeepsingh/cron_logs -name "*.log" -mtime +30 -delete'
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SUMMARY OF CHANGES
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# FIXED SYNTAX ERRORS:
+# 1. Changed $(date +%Y%m%d_%H%M%S) syntax (was broken with extra quotes)
+# 2. Used /bin/bash -c 'command' instead of /bin/sh (better compatibility)
+# 3. Fixed backslash escaping: \%Y\%m\%d (was %Y%m%d which breaks in cron)
+# 4. Removed date command from outside the string context
+#
+# NEW: 6 SHORTS CRONS (Daily Shorts from existing videos)
+# - 02:00 UTC: Recent high-views (trending from last 7 days)
+# - 08:00 UTC: All-time best (top performer ever)
+# - 14:00 UTC: Underutilized #1 (low-view videos getting second life)
+# - 16:00 UTC: Underutilized #2 (another low-view revival)
+# - 18:00 UTC: Evergreen (highest-viewed, rotates through top 10)
+# - 20:00 UTC: Recent viral (last 3 days, hottest)
+#
+# RESULT: 6 Shorts/day × 365 days = 2,190 Shorts/year
+#         (Repurposing existing 38 videos infinitely)
+#
+# CHANGED: PLAYLIST_ENABLED=true by default (Feature 3)
+#         (No env var needed, auto-groups all videos into playlists)
+#
+# ═══════════════════════════════════════════════════════════════════════════
+

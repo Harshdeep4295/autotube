@@ -673,9 +673,33 @@ class ResearchAgent:
     def _extra_sources(self) -> List[Dict]:
         """
         Feature 2 hook: Return additional topics from extra sources.
-        Default: empty list. Feature 2 (YouTube Comments) overrides this.
+        Implements YouTube Comments research if COMMENTS_ENABLED.
         """
-        return []
+        if not config.COMMENTS_ENABLED:
+            return []
+
+        try:
+            from agents.comment_research_agent import CommentResearchAgent
+            from agents.upload_agent import UploadAgent
+
+            uploader = UploadAgent()
+            comment_agent = CommentResearchAgent(uploader.youtube)
+            topics = comment_agent.get_comment_topics(
+                own_videos=config.COMMENTS_OWN_VIDEOS,
+                competitor_videos=config.COMMENTS_COMPETITOR_VIDEOS,
+                max_per_video=config.COMMENTS_MAX_PER_VIDEO,
+            )
+
+            if topics:
+                logger.info(f"YouTube Comments: {len(topics)} audience questions extracted")
+            else:
+                logger.info("YouTube Comments: No audience questions found")
+
+            return topics
+
+        except Exception as e:
+            logger.warning(f"YouTube Comments failed (skipping): {e}")
+            return []
 
     # ── Utilities ─────────────────────────────────────────────────────────────
 

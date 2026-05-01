@@ -98,10 +98,20 @@ class UploadAgent:
     def _upload_video(self, video_path: str, script: Dict, publish_at: str) -> str:
         from googleapiclient.http import MediaFileUpload
 
+        title = script.get("title", "AutoTube Video")
+        description = script.get("description", "")
+
+        # Add #Shorts tag for Shorts format
+        if config.IS_SHORTS:
+            if "#Shorts" not in title:
+                title = f"{title} #Shorts"
+            if "#Shorts" not in description:
+                description = f"{description}\n\n#Shorts"
+
         body = {
             "snippet": {
-                "title": script.get("title", "AutoTube Video"),
-                "description": script.get("description", ""),
+                "title": title,
+                "description": description,
                 "tags": script.get("tags", []),
                 "categoryId": config.VIDEO_CATEGORY_ID,
             },
@@ -305,13 +315,169 @@ class UploadAgent:
     def _format_title_description(self, script: Dict, video_id: str) -> None:
         """
         Feature 1 hook: Called after upload to apply format-specific tweaks.
-        Default: no-op. Feature 1 (Shorts) overrides this.
+        For Shorts, #Shorts tagging is handled in _upload_video() before upload.
+        This hook is a no-op since metadata is already set during upload.
         """
         pass
 
     def _post_upload(self, video_id: str, script: Dict) -> None:
         """
-        Feature 3 hook: Called after upload for post-processing (playlist insertion).
-        Default: no-op. Feature 3 (Auto-Playlist) overrides this.
+        Feature 3: Auto-playlist grouping.
+        Matches video title/tags against config.PLAYLIST_MAP and adds to playlist.
+        Auto-creates new playlists if enabled.
         """
-        pass
+        if not config.PLAYLIST_ENABLED:
+            return
+
+        try:
+            playlist_id = self._resolve_playlist_id(script)
+            if playlist_id:
+                self._add_to_playlist(video_id, playlist_id)
+        except Exception as e:
+            logger.warning(f"Playlist insertion failed (video still uploaded): {e}")
+
+    # ── Feature 3: Playlist management ────────────────────────────────────────
+
+    def _resolve_playlist_id(self, script: Dict) -> Optional[str]:
+        """
+        1. Check PLAYLIST_MAP for keyword match (env var overrides)
+        2. Check data/playlists.json for previously auto-created playlist
+        3. Query YouTube channel playlists
+        4. If no match and PLAYLIST_AUTO_CREATE: create new playlist
+        5. Return playlist ID or None
+        """
+        title = script.get("title", "").lower()
+        tags = [t.lower() for t in script.get("tags", [])]
+        combined = f"{title} {' '.join(tags)}"
+
+        # Step 1: Check static PLAYLIST_MAP
+        for keyword, playlist_id in config.PLAYLIST_MAP.items():
+            if keyword.lower() in combined:
+                logger.info(f"Playlist match from map: {keyword} → {playlist_id}")
+                return playlist_id
+
+        # Step 2: Check data/playlists.json (previously auto-created)
+        persisted = self._load_persisted_playlists()
+        for keyword, playlist_id in persisted.items():
+            if keyword.lower() in combined:
+                logger.info(f"Playlist match from history: {keyword} → {playlist_id}")
+                return playlist_id
+
+        # Step 3 & 4: Query YouTube + auto-create if enabled
+        if not config.PLAYLIST_AUTO_CREATE:
+            return None
+
+        # Derive keyword from first tag or niche
+        keyword = None
+        for tag in tags:
+            if tag.strip():
+                keyword = tag.strip()
+                break
+        if not keyword:
+            keyword = config.CHANNEL_NICHE
+
+        # Check if any existing YouTube playlist has this keyword
+        playlist_id = self._find_playlist_by_keyword(keyword)
+        if playlist_id:
+            logger.info(f"Found existing YouTube playlist for '{keyword}': {playlist_id}")
+            self._save_persisted_playlist(keyword, playlist_id)
+            return playlist_id
+
+        # Create new playlist
+        try:
+            new_id = self._create_playlist(keyword)
+            if new_id:
+                self._save_persisted_playlist(keyword, new_id)
+                logger.info(f"Created new playlist for '{keyword}': {new_id}")
+                return new_id
+        except Exception as e:
+            logger.warning(f"Could not create playlist: {e}")
+
+        return None
+
+    def _find_playlist_by_keyword(self, keyword: str) -> Optional[str]:
+        """
+        Query channel's playlists to find one matching the keyword.
+        """
+        try:
+            res = self.youtube.playlists().list(
+                part='snippet',
+                mine=True,
+                maxResults=50
+            ).execute()
+
+            keyword_lower = keyword.lower()
+            for item in res.get('items', []):
+                title = item['snippet']['title'].lower()
+                if keyword_lower in title or title.startswith(keyword_lower):
+                    return item['id']
+        except Exception as e:
+            logger.debug(f"Could not list playlists: {e}")
+
+        return None
+
+    def _create_playlist(self, keyword: str) -> Optional[str]:
+        """
+        Create a new YouTube playlist with the given keyword as title.
+        """
+        try:
+            body = {
+                "snippet": {
+                    "title": keyword,
+                    "description": f"Auto-generated playlist for {config.CHANNEL_NAME} videos about {keyword}",
+                },
+                "status": {
+                    "privacyStatus": "public",
+                },
+            }
+
+            res = self.youtube.playlists().insert(
+                part='snippet,status',
+                body=body
+            ).execute()
+
+            return res.get('id')
+        except Exception as e:
+            logger.warning(f"Playlist creation failed: {e}")
+            return None
+
+    def _add_to_playlist(self, video_id: str, playlist_id: str) -> None:
+        """
+        Insert video into the given playlist.
+        """
+        try:
+            self.youtube.playlistItems().insert(
+                part='snippet',
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": video_id,
+                        },
+                    }
+                },
+            ).execute()
+            logger.info(f"Video {video_id} added to playlist {playlist_id}")
+        except Exception as e:
+            logger.warning(f"Could not add video to playlist: {e}")
+
+    def _load_persisted_playlists(self) -> dict:
+        """Load auto-created playlist IDs from data/playlists.json"""
+        playlist_file = Path("data/playlists.json")
+        if not playlist_file.exists():
+            return {}
+        try:
+            with open(playlist_file) as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_persisted_playlist(self, keyword: str, playlist_id: str) -> None:
+        """Save auto-created playlist ID to data/playlists.json"""
+        playlists = self._load_persisted_playlists()
+        playlists[keyword] = playlist_id
+
+        Path("data").mkdir(exist_ok=True)
+        with open("data/playlists.json", "w") as f:
+            json.dump(playlists, f, indent=2)

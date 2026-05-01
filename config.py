@@ -127,13 +127,21 @@ class Config:
     TTS_PITCH: str = "+0Hz"
 
     # ── Video rendering ───────────────────────────────────────────────────────
-    VIDEO_WIDTH: int = 1920
-    VIDEO_HEIGHT: int = 1080
+    VIDEO_WIDTH: int = field(default_factory=lambda: (
+        1080 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1920
+    ))
+    VIDEO_HEIGHT: int = field(default_factory=lambda: (
+        1920 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1080
+    ))
     VIDEO_FPS: int = 24
 
     # ── Thumbnail ─────────────────────────────────────────────────────────────
-    THUMB_WIDTH: int = 1280
-    THUMB_HEIGHT: int = 720
+    THUMB_WIDTH: int = field(default_factory=lambda: (
+        1080 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1280
+    ))
+    THUMB_HEIGHT: int = field(default_factory=lambda: (
+        1920 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 720
+    ))
     PEXELS_API_KEY: str = field(
         default_factory=lambda: os.getenv("PEXELS_API_KEY", "")
     )
@@ -168,7 +176,7 @@ class Config:
 
     # ── Feature 3: Auto-Playlist (Series detection) ─────────────────────────────
     PLAYLIST_ENABLED: bool = field(
-        default_factory=lambda: os.getenv("PLAYLIST_ENABLED", "false").lower() == "true"
+        default_factory=lambda: os.getenv("PLAYLIST_ENABLED", "true").lower() != "false"
     )
     PLAYLIST_MAP: dict = field(default_factory=lambda: (
         json.loads(os.getenv("PLAYLIST_MAP_JSON", "{}"))

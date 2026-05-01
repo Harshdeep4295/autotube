@@ -506,7 +506,7 @@ class VideoAgent:
                 json={
                     "prompt": full_prompt,
                     "duration": 5,
-                    "aspect_ratio": "16:9",
+                    "aspect_ratio": "9:16" if config.IS_SHORTS else "16:9",
                 },
                 timeout=60,
             )
@@ -1329,7 +1329,7 @@ class VideoAgent:
         headers = {"Authorization": config.PEXELS_API_KEY}
         params = {
             "query": query,
-            "orientation": "landscape",
+            "orientation": "portrait" if config.IS_SHORTS else "landscape",
             "size": "large",
             "per_page": 15,
             "page": random.randint(1, 8),   # random page → different pool each run
@@ -1749,11 +1749,12 @@ class VideoAgent:
 
             for chunk in chunks:
                 img = self._render_caption_image(chunk)
+                caption_y = self.H - 300 if config.IS_SHORTS else self.H - 180
                 clip = (
                     ImageClip(np.array(img))
                     .with_duration(chunk_dur)
                     .with_start(t)
-                    .with_position(("center", self.H - 180))
+                    .with_position(("center", caption_y))
                 )
                 clips.append(clip)
                 t += chunk_dur

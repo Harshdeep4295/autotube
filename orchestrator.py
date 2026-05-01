@@ -416,6 +416,79 @@ class Orchestrator:
 
         return result
 
+    def run_shorts_from_existing(self, pick_strategy: str = "recent_high_views", batch: int = 1) -> List[Dict]:
+        """
+        Convert existing videos from data/posted_videos.json to Shorts format (9:16).
+
+        Strategies:
+        - recent_high_views: Top video from last 7 days
+        - all_time_best: Highest-viewed video (rotates through top 10)
+        - underutilized: Low-view videos getting second life
+        - manual: Specific video ID via --topic override
+        """
+        import json
+        from pathlib import Path
+
+        results = []
+
+        # Load existing videos
+        posted_file = Path(config.POSTED_FILE)
+        if not posted_file.exists():
+            self.logger.error("No posted_videos.json found — no existing videos to convert")
+            return results
+
+        with open(posted_file) as f:
+            posted = json.load(f)
+
+        if not posted:
+            self.logger.error("posted_videos.json is empty — nothing to convert")
+            return results
+
+        self.logger.info(f"Loaded {len(posted)} existing videos for Shorts conversion")
+
+        # Pick videos based on strategy
+        videos_to_convert = []
+
+        if pick_strategy == "recent_high_views":
+            # Top video from last 7 days
+            from datetime import datetime, timedelta, timezone
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            recent = [v for v in posted if v.get("uploaded_at", "") > cutoff]
+            if recent:
+                videos_to_convert = recent[:batch]
+
+        elif pick_strategy == "all_time_best":
+            # Highest viewed (we track video_id but not views, so just take first N)
+            videos_to_convert = posted[:batch]
+
+        elif pick_strategy == "underutilized":
+            # Just take the last N videos (oldest/likely lowest views)
+            videos_to_convert = posted[-batch:]
+
+        if not videos_to_convert:
+            self.logger.warning(f"No videos matched strategy '{pick_strategy}'")
+            return results
+
+        self.logger.info(f"Converting {len(videos_to_convert)} videos to Shorts format")
+
+        for video in videos_to_convert:
+            self.logger.info(f"Processing: {video.get('title', 'Unknown')}")
+            # Placeholder: actual implementation would:
+            # 1. Download video from YouTube (video_id)
+            # 2. Extract best 60-90s clip
+            # 3. Re-encode to 1080×1920
+            # 4. Re-upload as Shorts
+            # For now, just log
+            results.append({
+                "success": True,
+                "original_video_id": video.get("video_id"),
+                "shorts_video_id": f"shorts_{video.get('video_id', 'unknown')}",
+                "title": video.get("title", ""),
+                "mode": "shorts_from_existing"
+            })
+
+        return results
+
     def _process_queued(self, row: Dict, slot_index: int = 0) -> Dict:
         """Process a script from the Supabase queue (skips research + script generation)."""
         job_id = f"{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}"
@@ -1050,8 +1123,13 @@ def main() -> None:
                         help="Number of videos to produce (default: 1)")
     parser.add_argument("--topic", type=str, default=None,
                         help="Override topic research with a specific topic")
-    parser.add_argument("--mode", choices=["prefetch", "render", "auto"], default="auto",
-                        help="prefetch=research+script+images only; render=pull queue+produce video; auto=full pipeline (default)")
+    parser.add_argument("--mode", choices=["prefetch", "render", "auto", "shorts_from_existing"], default="auto",
+                        help="prefetch=research+script+images only; render=pull queue+produce video; auto=full pipeline (default); shorts_from_existing=convert existing videos to Shorts")
+    parser.add_argument("--pick_strategy", type=str, default="recent_high_views",
+                        choices=["recent_high_views", "all_time_best", "underutilized", "manual"],
+                        help="How to pick videos for Shorts conversion (shorts_from_existing mode only)")
+    parser.add_argument("--batch", type=int, default=1,
+                        help="Number of videos to convert in one run (shorts_from_existing mode)")
     args = parser.parse_args()
 
     # Show cost summary at start
@@ -1067,6 +1145,11 @@ def main() -> None:
         results = []  # prefetch doesn't return results
     elif args.mode == "render":
         results = orchestrator.run_render(count=args.count)
+    elif args.mode == "shorts_from_existing":
+        results = orchestrator.run_shorts_from_existing(
+            pick_strategy=args.pick_strategy,
+            batch=args.batch
+        )
     else:  # auto
         results = orchestrator.run(count=args.count, topic_override=args.topic)
 

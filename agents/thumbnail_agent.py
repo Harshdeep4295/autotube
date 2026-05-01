@@ -113,7 +113,7 @@ class ThumbnailAgent:
         seed = random.randint(1, 99999)
         url = (
             f"https://image.pollinations.ai/prompt/{encoded}"
-            f"?width=1280&height=720&nologo=true&model=flux&seed={seed}"
+            f"?width={self.W}&height={self.H}&nologo=true&model=flux&seed={seed}"
         )
         resp = requests.get(url, timeout=90)
         resp.raise_for_status()
@@ -147,12 +147,22 @@ class ThumbnailAgent:
     def _add_vignette(self, img: Image.Image) -> Image.Image:
         overlay = Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-        for x in range(self.W * 3 // 4):
-            alpha = int(170 * (1 - x / (self.W * 0.75)))
-            draw.line([(x, 0), (x, self.H)], fill=(0, 0, 0, alpha))
+        if config.IS_SHORTS:
+            # For Shorts: bottom gradient for text contrast
+            for y in range(self.H // 2, self.H):
+                alpha = int(170 * (1 - (self.H - y) / (self.H * 0.5)))
+                draw.line([(0, y), (self.W, y)], fill=(0, 0, 0, alpha))
+        else:
+            # For landscape: left gradient
+            for x in range(self.W * 3 // 4):
+                alpha = int(170 * (1 - x / (self.W * 0.75)))
+                draw.line([(x, 0), (x, self.H)], fill=(0, 0, 0, alpha))
         return Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
 
     def _add_accent_bar(self, img: Image.Image) -> Image.Image:
+        # Skip accent bar for Shorts (already has bottom vignette for text)
+        if config.IS_SHORTS:
+            return img
         _, _, accent = self.colors
         draw = ImageDraw.Draw(img)
         draw.rectangle([0, 0, 12, self.H], fill=accent)
@@ -161,13 +171,34 @@ class ThumbnailAgent:
     def _add_headline(self, img: Image.Image, text: str) -> Image.Image:
         _, _, accent = self.colors
         draw = ImageDraw.Draw(img)
-        lines = self._wrap_text(text, self.fonts["headline"], 720)
-        y = 120
-        for line in lines[:3]:
-            # Drop shadow
-            draw.text((43, y + 3), line, font=self.fonts["headline"], fill=(0, 0, 0, 180))
-            draw.text((40, y), line, font=self.fonts["headline"], fill=(255, 255, 255))
-            y += 110
+
+        if config.IS_SHORTS:
+            # For Shorts: position at bottom center
+            lines = self._wrap_text(text, self.fonts["headline"], self.W - 40)
+            # Calculate total height needed
+            line_height = 110
+            total_height = len(lines[:3]) * line_height
+            # Start near bottom with some padding
+            y = self.H - 500
+
+            for line in lines[:3]:
+                # Center horizontally
+                bbox = draw.textbbox((0, 0), line, font=self.fonts["headline"])
+                line_width = bbox[2] - bbox[0]
+                x = (self.W - line_width) // 2
+                # Drop shadow
+                draw.text((x + 3, y + 3), line, font=self.fonts["headline"], fill=(0, 0, 0, 180))
+                draw.text((x, y), line, font=self.fonts["headline"], fill=(255, 255, 255))
+                y += line_height
+        else:
+            # For landscape: position at top-left
+            lines = self._wrap_text(text, self.fonts["headline"], 720)
+            y = 120
+            for line in lines[:3]:
+                # Drop shadow
+                draw.text((43, y + 3), line, font=self.fonts["headline"], fill=(0, 0, 0, 180))
+                draw.text((40, y), line, font=self.fonts["headline"], fill=(255, 255, 255))
+                y += 110
         return img
 
     def _add_subtext(self, img: Image.Image, text: str) -> Image.Image:

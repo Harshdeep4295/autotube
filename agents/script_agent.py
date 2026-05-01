@@ -11,7 +11,7 @@ import time
 from typing import Dict
 
 from config import config
-from templates.prompts import SCRIPT_SYSTEM_PROMPT, SCRIPT_USER_PROMPT
+from templates.prompts import SCRIPT_SYSTEM_PROMPT, SCRIPT_USER_PROMPT, SHORTS_USER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,8 @@ class ScriptAgent:
                 "Add it to your .env file or GitHub Secrets."
             )
         client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-        user_prompt = SCRIPT_USER_PROMPT.format(
+        prompt_template = SHORTS_USER_PROMPT if config.IS_SHORTS else SCRIPT_USER_PROMPT
+        user_prompt = prompt_template.format(
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
@@ -181,7 +182,8 @@ class ScriptAgent:
                 "Add it to your .env file or GitHub Secrets for hybrid fallback."
             )
         client = genai.Client(api_key=config.GEMINI_API_KEY)
-        user_prompt = SCRIPT_USER_PROMPT.format(
+        prompt_template = SHORTS_USER_PROMPT if config.IS_SHORTS else SCRIPT_USER_PROMPT
+        user_prompt = prompt_template.format(
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
@@ -214,7 +216,8 @@ class ScriptAgent:
             api_key=config.GROQ_API_KEY,
             base_url="https://api.groq.com/openai/v1"
         )
-        user_prompt = SCRIPT_USER_PROMPT.format(
+        prompt_template = SHORTS_USER_PROMPT if config.IS_SHORTS else SCRIPT_USER_PROMPT
+        user_prompt = prompt_template.format(
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )

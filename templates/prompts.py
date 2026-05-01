@@ -196,3 +196,58 @@ CRITICAL for visual_queries — RULES FOR EACH QUERY (Veo/Pexels-optimized):
   Business/Finance: "stock market ticker board showing green data streams bright light", "financial charts holographic display blue glow dark office", "hands counting cash with warm desk lamp reflection", "cryptocurrency coins stacked bright spotlight reflection", "office desk scattered financial documents warm sunlight", "businessman pointing at growth chart golden hour window light"
   General: "sunrise over mountain landscape with warm golden light", "ocean waves crashing on beach with white foam spray", "forest path with filtered green sunlight", "city lights at night with reflections on wet street", "drone flying over desert canyon at golden hour", "waterfall with mist and rainbow light"
 """
+
+SHORTS_USER_PROMPT = """Generate a complete YouTube Shorts script for this topic:
+
+Topic: {topic}
+Context: {summary}
+
+Return this exact JSON structure (no extra text outside the JSON):
+{{
+  "title": "YouTube Shorts title (max 60 chars) that MUST END WITH #Shorts. Use proven formats: '[Stat] #Shorts' / 'I [Action] #Shorts' / '[Question]? #Shorts' — include a number or specific stat when possible.",
+  "description": "Shorts description 75-100 words with natural keywords and 1-2 calls to action. Keep it punchy and action-oriented.",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"],
+  "hook_title_text": "2-3 WORDS MAX (ALL CAPS, punchy opener — shown as opening text overlay)",
+  "sections": [
+    {{
+      "section_name": "hook",
+      "section_display_title": "",
+      "text": "Hook using one of the 4 proven formulas. Under 40 words. Grab attention in the first 3 seconds.",
+      "word_count": 40
+    }},
+    {{
+      "section_name": "main",
+      "section_display_title": "2-3 WORDS, ALL CAPS (e.g. 'THE KEY', 'WHAT CHANGED', 'THE TRICK')",
+      "text": "Main insight with specific numbers or recent data. Every sentence under 15 words. Keep it snappy and visual.",
+      "word_count": 75
+    }},
+    {{
+      "section_name": "cta",
+      "section_display_title": "",
+      "text": "Quick CTA: like + subscribe + comment with a specific question. Under 35 words.",
+      "word_count": 35
+    }}
+  ],
+  "visual_queries": [
+    "TOPIC-RELEVANT cinematic query for hook (portrait orientation)",
+    "TOPIC-RELEVANT cinematic query for main section (portrait orientation)",
+    "TOPIC-RELEVANT cinematic query for CTA (portrait orientation)"
+  ],
+  "thumbnail_text": "2-3 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47', '$50K', '10X')",
+  "thumbnail_subtext": "1-2 word VALUE PROPOSITION — short and punchy (e.g. 'FREE TOOL', 'IN 10 SECS')",
+  "thumbnail_stat": "A bold number or stat to use as a badge (e.g. '47', '$50K', '10X', '2 MINS') — leave empty string if none",
+  "pexels_search_query": "2-3 word search term for portrait footage (used in fallback)",
+  "total_word_count": 150
+}}
+
+CRITICAL FOR SHORTS:
+  1. TOTAL WORD COUNT: Exactly 150 words (40 hook + 75 main + 35 cta)
+  2. TITLE RULE: MUST end with #Shorts — this is non-negotiable
+  3. ONLY 3 SECTIONS: hook, main, cta (no context, no main_1/main_2, etc.)
+  4. VISUAL QUERIES: Use portrait-oriented descriptions; Shorts are vertical (9:16)
+     ✅ GOOD for Shorts: "ocean waves portrait view close-up", "forest trees vertical perspective"
+     ❌ BAD for Shorts: "wide landscape aerial shot", "panoramic scene"
+  5. SENTENCES: Max 15 words per sentence; punchy and fast-paced
+  6. HOOK (40 words): Grab attention in first 3 seconds with a bold claim, stat, or question
+  7. VEO SAFETY (if using Veo text-to-video): AVOID hands, faces, people — use landscapes, machines, objects
+"""
