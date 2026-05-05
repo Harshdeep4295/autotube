@@ -14,7 +14,9 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import sys
+import time
 import traceback
 import uuid
 from datetime import datetime, timezone
@@ -253,6 +255,9 @@ class Orchestrator:
         """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
         results = []
 
+        # Pre-flight: Cleanup old outputs to ensure disk space
+        self._cleanup_old_outputs(max_age_days=1)
+
         # Pre-flight: Retry failed uploads from GCS before generating new videos
         self.logger.info("Pre-flight: Checking for pending uploads from GCS…")
         gcs_results = self._retry_pending_uploads()
@@ -272,10 +277,18 @@ class Orchestrator:
 
         self._print_summary(results)
         self._save_report(results)
+
+        # Final cleanup after all uploads complete
+        if any(r.get("success") for r in results):
+            self._cleanup_old_outputs(max_age_days=1)
+
         return results
 
     def run(self, count: int = 1, topic_override: Optional[str] = None) -> List[Dict]:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
+
+        # Pre-flight: Cleanup old outputs to ensure disk space
+        self._cleanup_old_outputs(max_age_days=1)
 
         # Step 0: Check for unpublished scripts in queue first (no API calls needed)
         if not topic_override:
@@ -317,6 +330,11 @@ class Orchestrator:
 
         self._print_summary(results)
         self._save_report(results)
+
+        # Final cleanup after all uploads complete
+        if any(r.get("success") for r in results):
+            self._cleanup_old_outputs(max_age_days=1)
+
         return results
 
     def _process_one(self, topic: Dict, slot_index: int = 0) -> Dict:
@@ -404,6 +422,10 @@ class Orchestrator:
             # Log to Firestore for monitoring/audit trail
             self._log_to_firestore(result)
 
+            # Auto-cleanup old outputs and cache after successful upload
+            if result.get("success") and not self.dry_run:
+                self._cleanup_old_outputs(max_age_days=1)
+
         except Exception as e:
             result["error"]     = str(e)
             result["traceback"] = traceback.format_exc()
@@ -426,6 +448,9 @@ class Orchestrator:
         - underutilized: Low-view videos getting second life
         - manual: Specific video ID via --topic override
         """
+        # Pre-flight: Cleanup old outputs to ensure disk space
+        self._cleanup_old_outputs(max_age_days=1)
+
         import json
         from pathlib import Path
 
@@ -600,6 +625,10 @@ class Orchestrator:
 
             # Log to Firestore for monitoring/audit trail
             self._log_to_firestore(result)
+
+            # Auto-cleanup old outputs and cache after successful upload
+            if result.get("success") and not self.dry_run:
+                self._cleanup_old_outputs(max_age_days=1)
 
             # Update Supabase with success
             self._update_pending_status(
@@ -1080,6 +1109,58 @@ class Orchestrator:
             self.logger.info(f"Logged to Firestore: {self.run_id}")
         except Exception as e:
             self.logger.warning(f"Failed to log to Firestore: {e}")
+
+    def _cleanup_old_outputs(self, max_age_days: int = 1, clear_cache_percent: float = 0.2) -> None:
+        """Auto-cleanup old outputs and video cache after successful upload.
+
+        Clears:
+        - Output directories older than max_age_days
+        - Video cache if it exceeds clear_cache_percent of disk usage
+        """
+        try:
+            outputs_dir = Path("outputs")
+            if not outputs_dir.exists():
+                return
+
+            now = time.time()
+            deleted_size = 0
+            deleted_dirs = []
+
+            for item in outputs_dir.iterdir():
+                if not item.is_dir() or item.name == "video_cache":
+                    continue
+
+                # Skip if directory is too new
+                age_days = (now - item.stat().st_mtime) / 86400
+                if age_days < max_age_days:
+                    continue
+
+                try:
+                    size = sum(f.stat().st_size for f in item.rglob("*") if f.is_file())
+                    shutil.rmtree(item)
+                    deleted_size += size
+                    deleted_dirs.append(f"{item.name} ({size/1024/1024:.1f}MB)")
+                except Exception as e:
+                    self.logger.warning(f"Failed to delete {item.name}: {e}")
+
+            if deleted_dirs:
+                self.logger.info(f"[CLEANUP] Deleted {len(deleted_dirs)} old output dirs: {', '.join(deleted_dirs)}")
+                self.logger.info(f"[CLEANUP] Freed {deleted_size/1024/1024:.1f}MB")
+
+            # Periodically clear video cache if disk usage is high
+            cache_dir = outputs_dir / "video_cache"
+            if cache_dir.exists():
+                cache_size = sum(f.stat().st_size for f in cache_dir.rglob("*") if f.is_file())
+                if cache_size > 2.5 * 1024 * 1024 * 1024:  # > 2.5GB
+                    try:
+                        shutil.rmtree(cache_dir)
+                        cache_dir.mkdir(exist_ok=True)
+                        self.logger.info(f"[CLEANUP] Cleared video cache ({cache_size/1024/1024/1024:.1f}GB)")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to clear video cache: {e}")
+
+        except Exception as e:
+            self.logger.warning(f"Auto-cleanup failed: {e}")
 
     def _get_uploader(self) -> Optional[UploadAgent]:
         """Lazy-load UploadAgent only when needed (not in dry-run or prefetch modes)."""
