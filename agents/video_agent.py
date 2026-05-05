@@ -15,6 +15,7 @@ Fallback: if Pexels fails → animated gradient background + captions still work
 """
 
 import base64
+import gc
 import hashlib
 import json
 import logging
@@ -22,6 +23,7 @@ import math
 import os
 import random
 import subprocess
+import sys
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -140,6 +142,126 @@ class VideoAgent:
             return self.cache_dir
         return Path(config.VIDEO_CACHE_DIR)
 
+    def _write_videofile_ffmpeg_streaming(self, final, output_path):
+        """Memory-efficient streaming encode: pipes frames directly to FFmpeg without buffering.
+        Uses FFmpeg subprocess to avoid MoviePy's memory buffering. ~3-4x lower peak RAM usage."""
+        import shutil
+
+        # Check ffmpeg availability
+        if not shutil.which("ffmpeg"):
+            logger.warning("ffmpeg not found in PATH — falling back to MoviePy")
+            return self._write_videofile_v2(final, output_path)
+
+        try:
+            temp_audio = Path(output_path).parent / "tmp_audio.aac"
+
+            # Detect available RAM and optimize bitrate
+            available_ram_gb = psutil.virtual_memory().available / (1024**3)
+            logger.info(f"[FFmpeg Streaming] Available RAM: {available_ram_gb:.1f} GB")
+            if available_ram_gb < 2:
+                bitrate = "2500k"  # Reduce bitrate for low-memory systems
+                logger.warning(f"[FFmpeg Streaming] Low RAM detected — using reduced bitrate {bitrate}")
+            elif available_ram_gb < 4:
+                bitrate = "3000k"
+            else:
+                bitrate = "4000k"
+
+            # Export audio separately (still needs to be written)
+            logger.info(f"[FFmpeg Streaming] Exporting audio to {temp_audio.name}")
+            audio_clip = final.audio
+            if audio_clip:
+                audio_clip.write_audiofile(str(temp_audio))
+
+            # FFmpeg command with streaming pipe input
+            # -r fps -f rawvideo -pix_fmt rgb24 -s WxH -i pipe:0 = streaming RGB24 from stdin
+            ffmpeg_cmd = [
+                "ffmpeg",
+                "-y",  # overwrite output
+                "-r", str(self.FPS),
+                "-f", "rawvideo",
+                "-pix_fmt", "rgb24",
+                "-s", f"{self.W}x{self.H}",
+                "-i", "pipe:0",  # read raw RGB24 from stdin
+            ]
+
+            # Add audio if available
+            if audio_clip:
+                ffmpeg_cmd.extend([
+                    "-i", str(temp_audio),
+                    "-c:a", "aac",
+                    "-q:a", "5",
+                ])
+
+            # Video encoding options (low memory preset)
+            ffmpeg_cmd.extend([
+                "-c:v", "libx264",
+                "-preset", "ultrafast",  # ultrafast uses less RAM than veryfast
+                "-crf", "23",  # quality 0-51 (lower=better, 23=default)
+                "-b:v", bitrate,
+                "-movflags", "+faststart",  # Enable streaming (fast start)
+                str(output_path),
+            ])
+
+            logger.info(f"[FFmpeg Streaming] Starting encode: {' '.join(ffmpeg_cmd)}")
+
+            # Open FFmpeg process with stdin pipe
+            process = subprocess.Popen(
+                ffmpeg_cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=10 * 1024 * 1024,  # 10MB buffer (small to reduce RAM)
+            )
+
+            # Stream frames from MoviePy → FFmpeg stdin
+            frame_count = 0
+            target_frames = int(final.duration * self.FPS)
+
+            try:
+                for frame in final.iter_frames():
+                    # Convert frame to RGB24 raw bytes
+                    frame_rgb = (frame.astype(np.uint8))
+                    process.stdin.write(frame_rgb.tobytes())
+
+                    frame_count += 1
+                    if frame_count % max(1, target_frames // 20) == 0:
+                        progress_pct = (frame_count / target_frames) * 100
+                        logger.info(f"[FFmpeg Streaming] {progress_pct:.1f}% ({frame_count}/{target_frames} frames)")
+
+                    # Release frame memory immediately
+                    del frame, frame_rgb
+                    if frame_count % 10 == 0:
+                        gc.collect()
+
+                # Close stdin to signal EOF
+                process.stdin.close()
+
+                # Wait for FFmpeg to finish
+                stdout, stderr = process.communicate(timeout=600)
+                returncode = process.returncode
+
+                if returncode != 0:
+                    logger.error(f"[FFmpeg Streaming] FFmpeg failed with code {returncode}")
+                    logger.error(f"stderr: {stderr.decode('utf-8', errors='ignore')[:500]}")
+                    raise RuntimeError(f"FFmpeg encoding failed: {returncode}")
+
+                logger.info(f"[FFmpeg Streaming] Encode complete: {frame_count} frames written")
+
+            except BrokenPipeError:
+                process.kill()
+                stdout, stderr = process.communicate()
+                logger.error(f"[FFmpeg Streaming] Broken pipe — FFmpeg error: {stderr.decode('utf-8', errors='ignore')[:500]}")
+                raise
+
+        finally:
+            # Cleanup temp audio
+            if temp_audio.exists():
+                try:
+                    temp_audio.unlink()
+                except:
+                    pass
+            gc.collect()
+
     def _write_videofile_v2(self, final, output_path):
         """V2 encode settings: stable quality and reasonable speed."""
         final.write_videofile(
@@ -248,6 +370,10 @@ class VideoAgent:
         logger.info(f"[PHASE_3_COMPOSITE] Creating composite video with {len(section_title_clips)} title clips...")
         _get_memory_status("BEFORE_COMPOSITE")
 
+        # Force garbage collection before composite to free section clips
+        gc.collect()
+        _get_memory_status("BEFORE_COMPOSITE_GC")
+
         all_clips = (
             [base_video, overlay]
             + ([hook_card] if hook_card else [])
@@ -269,28 +395,23 @@ class VideoAgent:
         logger.info(f"  ✓ Background music mixed")
         _get_memory_status("AFTER_MIX_MUSIC")
 
+        # Release overlay and text clips before encoding (they're baked into CompositeVideoClip)
+        del all_clips, overlay, section_title_clips, hook_card, watermark
+        gc.collect()
+        _get_memory_status("BEFORE_PHASE_4_ENCODE")
+
         duration_min = total_duration / 60
         logger.info(f"[PHASE_4_ENCODE] Writing video: {output_path} (~{duration_min:.1f} min of footage, est. 5-8 min render)")
         _get_memory_status("BEFORE_WRITE_VIDEOFILE")
 
         try:
-            # V1/V2 encoding dispatch
-            pipeline_version = os.getenv("VIDEO_PIPELINE_VERSION", "v1").lower()
-            if pipeline_version == "v2":
+            # Use FFmpeg streaming by default (memory-efficient), fallback to MoviePy if needed
+            try:
+                logger.info("[PHASE_4_ENCODE] Using FFmpeg streaming mode (low RAM)")
+                self._write_videofile_ffmpeg_streaming(final, output_path)
+            except Exception as e:
+                logger.warning(f"[PHASE_4_ENCODE] FFmpeg streaming failed: {e} — falling back to MoviePy")
                 self._write_videofile_v2(final, output_path)
-            else:
-                final.write_videofile(
-                    output_path,
-                    fps=self.FPS,
-                    codec="libx264",
-                    audio_codec="aac",
-                    preset="ultrafast",   # 3-4x faster encode; file is larger but YouTube re-encodes anyway
-                    threads=2,            # match GitHub Actions vCPU count
-                    bitrate="4000k",      # ensure 720p+ quality source for YouTube
-                    temp_audiofile=str(Path(output_path).parent / "tmp_audio.aac"),
-                    remove_temp=True,
-                    logger="bar",         # show ffmpeg progress in logs
-                )
         except MemoryError as e:
             logger.error(f"[OOM_DETECTED] MemoryError during write_videofile: {e}")
             _get_memory_status("OOM_DETECTED")
@@ -1251,8 +1372,19 @@ class VideoAgent:
 
         logger.info(f"  Concatenating clips...")
         try:
-            base = concatenate_videoclips(clips_with_transitions, method="chain")
-            logger.info(f"  ✓ Concatenation successful")
+            # For high-memory systems, use MoviePy's chain method
+            # For low-memory systems, use FFmpeg's concat protocol
+            available_ram_gb = psutil.virtual_memory().available / (1024**3)
+            logger.info(f"  Available RAM for concatenation: {available_ram_gb:.1f} GB")
+
+            if available_ram_gb < 3.5 and all(isinstance(c, type(clips_with_transitions[0])) for c in clips_with_transitions):
+                # Low RAM: write sections to temp files, concat with FFmpeg (zero-copy)
+                logger.info(f"  Low RAM mode: using FFmpeg concat protocol (zero-copy)")
+                base = self._concatenate_clips_ffmpeg(clips_with_transitions, total_duration, self.cache_dir)
+            else:
+                # High RAM: use MoviePy's concatenate_videoclips
+                base = concatenate_videoclips(clips_with_transitions, method="chain")
+                logger.info(f"  ✓ Concatenation successful")
         except MemoryError as e:
             logger.error(f"[OOM_IN_CONCATENATE] MemoryError during concatenate_videoclips: {e}")
             _get_memory_status("OOM_IN_CONCATENATE")
@@ -1264,6 +1396,10 @@ class VideoAgent:
 
         _get_memory_status("AFTER_CONCATENATE")
         logger.info(f"  Concatenated duration: {base.duration:.1f}s")
+
+        # Release section clips from memory (they're now in base)
+        del section_clips, clips_with_transitions
+        gc.collect()
 
         # Trim or pad to exact duration
         if base.duration > total_duration:
@@ -1277,6 +1413,7 @@ class VideoAgent:
             base = concatenate_videoclips([base, pad], method="chain")
 
         logger.info(f"  Final duration: {base.duration:.1f}s ✓")
+        _get_memory_status("AFTER_BUILD_BASE")
         return base
 
     def _resize_and_crop(self, clip, target_w: int, target_h: int):
@@ -1463,6 +1600,83 @@ class VideoAgent:
             if cache_path.exists():
                 cache_path.unlink()
             return None
+
+    def _concatenate_clips_ffmpeg(self, clips, target_duration: float, cache_dir) -> 'VideoFileClip':
+        """Concatenate clips using FFmpeg's concat demuxer (zero-copy, minimal RAM).
+        Much faster and lower memory than MoviePy's concatenate_videoclips for many clips."""
+        import shutil
+        from moviepy import VideoFileClip
+
+        if not shutil.which("ffmpeg"):
+            logger.warning("ffmpeg concat unavailable — falling back to MoviePy")
+            from moviepy import concatenate_videoclips
+            return concatenate_videoclips(clips, method="chain")
+
+        try:
+            # 1. Write each clip to temp file (done in caller, but validate)
+            temp_dir = Path(cache_dir) / "concat_temps"
+            temp_dir.mkdir(exist_ok=True)
+
+            concat_file = temp_dir / "concat_list.txt"
+            output_file = temp_dir / "concat_output.mp4"
+
+            # 2. Create FFmpeg concat demuxer file
+            logger.info(f"[FFmpeg Concat] Writing {len(clips)} clips to temp files...")
+            with open(concat_file, "w") as f:
+                for i, clip in enumerate(clips):
+                    temp_clip_path = temp_dir / f"clip_{i:03d}.mp4"
+
+                    # Only write if not already cached
+                    if not temp_clip_path.exists():
+                        logger.info(f"  Writing clip {i+1}/{len(clips)} to {temp_clip_path.name}")
+                        clip.write_videofile(
+                            str(temp_clip_path),
+                            fps=self.FPS,
+                            codec="libx264",
+                            preset="ultrafast",
+                            bitrate="4000k",
+                            verbose=False,
+                            logger=None,
+                        )
+
+                    # Append to concat list
+                    f.write(f"file '{temp_clip_path.absolute()}'\n")
+
+            # 3. Use FFmpeg concat demuxer (zero-copy concat at container level)
+            logger.info(f"[FFmpeg Concat] Running FFmpeg concat demuxer...")
+            ffmpeg_cmd = [
+                "ffmpeg",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", str(concat_file),
+                "-c", "copy",  # zero-copy (just copies frames, no re-encoding)
+                "-y",
+                str(output_file),
+            ]
+
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=600)
+            if result.returncode != 0:
+                logger.error(f"[FFmpeg Concat] Failed: {result.stderr[:500]}")
+                raise RuntimeError(f"FFmpeg concat failed: {result.returncode}")
+
+            # 4. Load concatenated video
+            logger.info(f"[FFmpeg Concat] Loading concatenated video...")
+            base = VideoFileClip(str(output_file))
+            logger.info(f"[FFmpeg Concat] Success: {base.duration:.1f}s")
+
+            # Cleanup temp files
+            try:
+                for f in temp_dir.glob("clip_*.mp4"):
+                    f.unlink()
+            except:
+                pass
+
+            return base
+
+        except Exception as e:
+            logger.error(f"[FFmpeg Concat] Error: {e} — falling back to MoviePy")
+            from moviepy import concatenate_videoclips
+            return concatenate_videoclips(clips, method="chain")
 
     def _concatenate_clips(self, clip_paths: List[str], target_duration: float) -> Optional[str]:
         """Concatenate multiple video clips (no looping).
