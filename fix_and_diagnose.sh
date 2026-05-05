@@ -6,8 +6,19 @@ echo "║ AutoTube Fix & Diagnostic Script                               ║"
 echo "║ Run this on the remote machine to fix issues                   ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 
-cd /home/harshdeepsingh/autotube
-. .venv/bin/activate
+# Works on both local and remote paths
+if [ -d "/home/harshdeepsingh/autotube" ]; then
+    cd /home/harshdeepsingh/autotube
+elif [ -f "orchestrator.py" ]; then
+    cd "$(dirname "$0")"
+else
+    echo "Error: Cannot find autotube directory"
+    exit 1
+fi
+
+if [ -d ".venv" ]; then
+    . .venv/bin/activate
+fi
 
 echo ""
 echo "Step 1: Health Check"
@@ -106,7 +117,7 @@ try:
     print("✓ Imports successful")
 
     print("\n>>> Creating Orchestrator instance (dry-run)...")
-    orch = Orchestrator(dry_run=True, skip_on_fail=True)
+    orch = Orchestrator(dry_run=True)
     print("✓ Orchestrator created")
 
     print("\n>>> Testing --mode shorts_from_existing...")

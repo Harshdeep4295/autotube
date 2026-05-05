@@ -4,6 +4,7 @@
 # AI providers
 anthropic>=0.34.0
 google-genai>=1.0.0
+openai>=1.0.0  # For Groq API (uses OpenAI SDK)
 
 # Research
 pytrends>=4.9.2
@@ -15,10 +16,13 @@ edge-tts>=6.1.9
 pyttsx3>=2.90
 
 # Video rendering
-moviepy>=1.0.3
+moviepy>=2.2.1
 Pillow>=10.0.0
 numpy>=1.24.0
 replicate>=0.20.0
+
+# YouTube download (for Shorts from existing videos)
+yt-dlp>=2024.0.0
 
 # YouTube upload
 google-api-python-client>=2.100.0
