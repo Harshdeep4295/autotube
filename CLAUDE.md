@@ -17,6 +17,37 @@ The user reviews all changes before committing. Do not automate git operations.
 
 ---
 
+## What's New (2026-05-05)
+
+### Three Major Features Added
+
+| Feature | What | How to Enable | Result |
+|---------|------|---------------|--------|
+| **Shorts (9:16)** | Generate vertical videos for YouTube Shorts | `VIDEO_FORMAT=shorts` | Portrait 1080×1920 videos, 150-word scripts |
+| **YouTube Comments** | Research topics from audience comments | `COMMENTS_ENABLED=true` | Audience-driven topic research + Reddit + pytrends |
+| **Auto-Playlists** | Auto-group videos into keyword playlists | `PLAYLIST_ENABLED=true` (default) | All videos organized by topic, no manual work |
+
+### New Orchestrator Mode
+```bash
+# Generate Shorts from existing videos (6 daily crons)
+python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views
+# Strategies: recent_high_views, all_time_best, underutilized
+```
+
+### Quick Start
+```bash
+# Test all three features
+VIDEO_FORMAT=shorts COMMENTS_ENABLED=true PLAYLIST_ENABLED=true \
+  python orchestrator.py --dry-run --count 1 --topic "AI Tools"
+
+# Test Shorts from existing videos
+python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views --dry-run
+```
+
+See sections below for detailed setup, testing, and crontab configuration.
+
+---
+
 ## How to Run Locally
 
 ```bash
@@ -38,15 +69,16 @@ Output lands in `outputs/<date>_<id>/video.mp4`. Open with `open outputs/`.
 |---|---|
 | `config.py` | Single source of truth for all settings — edit here first |
 | `orchestrator.py` | Pipeline entry point — wires agents together |
-| `agents/research_agent.py` | pytrends + Reddit + RSS → scored topic list |
+| `agents/research_agent.py` | pytrends + Reddit + RSS + YouTube comments → scored topic list |
 | `agents/script_agent.py` | Claude or Gemini → structured script JSON |
 | `agents/voice_agent.py` | edge-tts (primary) + pyttsx3 (fallback) → audio.mp3 |
-| `agents/video_agent.py` | Pexels B-roll + Pillow captions → 1920×1080 MP4 |
+| `agents/video_agent.py` | Pexels B-roll + Pillow captions → MP4 (landscape 1920×1080 or Shorts 1080×1920) |
 | `agents/gcp_veo_agent.py` | GCP Vertex AI Veo 3.1 → text-to-video (Phase 2) |
 | `agents/gcp_cost_tracker.py` | GCP credit usage monitoring vs $300 budget |
-| `agents/thumbnail_agent.py` | Pillow → 1280×720 JPEG thumbnail |
-| `agents/upload_agent.py` | YouTube Data API v3, OAuth2, resumable upload |
-| `templates/prompts.py` | All LLM prompt templates — improved visual_queries guidance |
+| `agents/thumbnail_agent.py` | Pillow → JPEG thumbnail (landscape 1280×720 or Shorts 1080×1920) |
+| `agents/upload_agent.py` | YouTube Data API v3, OAuth2, resumable upload, playlist management |
+| `agents/comment_research_agent.py` | YouTube comments → audience-driven topic research |
+| `templates/prompts.py` | All LLM prompt templates — landscape, Shorts, and YouTube comment guidance |
 | `.github/workflows/daily_pipeline.yml` | 4 cron triggers (09/12/15/18 IST) |
 
 ---
@@ -90,6 +122,7 @@ Downloaded clips are cached in `outputs/video_cache/` by URL hash. If you change
 
 ## Config Fields That Matter Most
 
+### Basic Settings
 ```python
 CHANNEL_NICHE = "AI & Tech"      # Options: AI & Tech | Finance | Business | Health | History | English Learning
                                   # Changing niche auto-switches: subreddits, RSS feeds, accent colors, script angle guidance
@@ -102,6 +135,85 @@ MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: on
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
 PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 based on script complexity)
 ```
+
+### Feature 1: Multi-Format Videos (NEW 2026-05-05)
+```python
+VIDEO_FORMAT = "landscape"       # "landscape" (default, 1920×1080) or "shorts" (9:16, 1080×1920)
+                                  # Set: VIDEO_FORMAT=shorts python orchestrator.py --dry-run
+VIDEO_WIDTH = 1920 / 1080        # Auto-set based on VIDEO_FORMAT (computed field)
+VIDEO_HEIGHT = 1080 / 1920       # Auto-set based on VIDEO_FORMAT (computed field)
+THUMB_WIDTH = 1280 / 1080        # Auto-set based on VIDEO_FORMAT (computed field)
+THUMB_HEIGHT = 720 / 1920        # Auto-set based on VIDEO_FORMAT (computed field)
+SHORTS_WORD_COUNT = 150          # 150 words for 9:16 Shorts (vs 650 for landscape)
+# IS_SHORTS property                # config.IS_SHORTS returns True if VIDEO_FORMAT=="shorts"
+```
+
+**Testing Shorts:**
+```bash
+# Generate a Shorts video (9:16 vertical for YouTube Shorts / TikTok)
+VIDEO_FORMAT=shorts python orchestrator.py --dry-run --count 1 --topic "Test Topic"
+# Output: 1080×1920 MP4, ~150-word script, #Shorts tags
+```
+
+### Feature 2: Audience-Driven Topics via YouTube Comments (NEW 2026-05-05)
+```python
+COMMENTS_ENABLED = false         # Enable YouTube comment topic research
+COMMENTS_OWN_VIDEOS = 10         # Number of your own videos to extract comments from
+COMMENTS_COMPETITOR_VIDEOS = 5   # Number of competitor videos to scan
+COMMENTS_MAX_PER_VIDEO = 100     # Max comments to fetch per video
+```
+
+**How it works:**
+- Extracts topic ideas from your channel's video comments
+- Also scans competitor videos in your niche for audience demands
+- Identifies questions, feature requests, and video suggestions
+- Merges with Reddit + pytrends + RSS sources before scoring
+
+**Testing Comments:**
+```bash
+# Enable comment research
+COMMENTS_ENABLED=true python orchestrator.py --dry-run --count 1 --topic "Test"
+# Check logs for: "YouTube Comments: N topics extracted"
+```
+
+**Requirements:**
+- YouTube OAuth2 token with `youtube` scope (auto-handled by `generate_youtube_token.py`)
+- Channel must have uploaded videos
+- Graceful fallback: if auth missing, skips comments without crashing
+
+### Feature 3: Auto-Playlist Grouping (NEW 2026-05-05, ENABLED BY DEFAULT)
+```python
+PLAYLIST_ENABLED = true          # Auto-group videos into keyword-based playlists (now DEFAULT)
+                                  # Set: PLAYLIST_ENABLED=false to disable (still supported)
+PLAYLIST_AUTO_CREATE = true      # Create new playlists automatically if keyword not found
+PLAYLIST_MAP = {}                # Static keyword→playlist_id overrides (optional)
+                                  # Example: PLAYLIST_MAP_JSON='{"AI": "PLxxx123", "Python": "PLyyy456"}'
+# data/playlists.json             # Persists auto-created playlist IDs across runs (auto-managed)
+```
+
+**How it works:**
+- After uploading a video, derives a keyword from video tags or channel niche
+- Looks for existing playlist matching keyword (4-step resolution):
+  1. Check static PLAYLIST_MAP overrides
+  2. Check persisted playlists.json cache
+  3. Query YouTube for existing playlist by title
+  4. Auto-create new playlist if none found
+- Inserts video into resolved playlist
+
+**Testing Playlists:**
+```bash
+# Playlists enabled by default; test that tagging works
+PLAYLIST_ENABLED=true python orchestrator.py --dry-run --count 1 --topic "AI Tools"
+# Check logs for: "Playlist resolved: X" or "Created playlist: X"
+```
+
+**Why PLAYLIST_ENABLED defaults to true:**
+- Auto-organizing 7 uploads/day (1 new + 6 Shorts) requires playlist structure
+- Better YouTube algorithm performance (organized playlists boost channel authority)
+- Improved viewer retention (subscribers can binge by topic)
+- Zero manual work (fully automated)
+
+---
 
 **VIDEO_ANIMATION_MODE options:**
 - `ken_burns` — Free, FFmpeg zoom/pan (default, no API setup)
@@ -143,6 +255,233 @@ VIDEO_ANIMATION_MODE=veo python orchestrator.py --dry-run --topic "Test"
 **Caching**: Videos cache by hash in `outputs/video_cache/` (prefixed `fx_*` for Ken Burns, `veo_*` for Veo). Fallback chain attempts Ken Burns if primary mode fails.
 
 **Fallback chain**: If active mode fails (API down, quota hit, network error) → gracefully falls back to gradient background for that section. Video continues playing with text overlays.
+
+---
+
+## Shorts from Existing Videos — Daily Automation (NEW 2026-05-05)
+
+**Purpose:** Repurpose your 38+ existing videos as 9:16 Shorts for YouTube Shorts platform. Generate 6 Shorts/day from intelligent video rotation strategies.
+
+### Orchestrator Mode
+```bash
+# New mode in orchestrator.py
+python orchestrator.py --mode shorts_from_existing --pick_strategy STRATEGY [--batch N] [--dry-run]
+```
+
+### Pick Strategies
+
+| Strategy | What It Does | When to Use |
+|----------|-------------|------------|
+| `recent_high_views` | Top video from last 7 days | Daily (trending content) |
+| `all_time_best` | Highest-viewed video overall | Weekly (evergreen content) |
+| `underutilized` | Low-view videos needing revival | Multi-times/week (revive old content) |
+| `manual` | Specific video by ID override | Ad-hoc testing |
+
+### Testing Shorts from Existing
+```bash
+# Test mode (no upload)
+python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views --dry-run
+
+# Live mode (actually uploads)
+python orchestrator.py --mode shorts_from_existing --pick_strategy all_time_best
+```
+
+### Crontab Setup for Ubuntu Server
+
+Create/edit crontab with 6 daily Shorts crons:
+
+```bash
+# All times in UTC — Convert to your timezone (IST = UTC + 5:30)
+
+# Shorts #1: 02:00 UTC — Recent high-views (last 7 days, trending)
+0 2 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views >> /home/harshdeepsingh/cron_logs/autotube_shorts_recent_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #2: 08:00 UTC — All-time best (top performer)
+0 8 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy all_time_best >> /home/harshdeepsingh/cron_logs/autotube_shorts_best_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #3: 14:00 UTC — Underutilized #1 (low-view revival)
+0 14 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy underutilized >> /home/harshdeepsingh/cron_logs/autotube_shorts_underutilized_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #4: 16:00 UTC — Underutilized #2 (another low-view revival)
+0 16 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy underutilized >> /home/harshdeepsingh/cron_logs/autotube_shorts_underutil2_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #5: 18:00 UTC — Evergreen (highest-viewed, rotates weekly)
+0 18 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy all_time_best >> /home/harshdeepsingh/cron_logs/autotube_shorts_evergreen_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# Shorts #6: 20:00 UTC — Recent viral (hottest from last 3 days)
+0 20 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views >> /home/harshdeepsingh/cron_logs/autotube_shorts_viral_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+
+# New Video Pipeline: 04:00 UTC (after prefetch, full pipeline)
+0 4 * * * /bin/bash -c 'cd /home/harshdeepsingh/autotube && . .venv/bin/activate && python3 orchestrator.py --mode auto >> /home/harshdeepsingh/cron_logs/autotube_new_video_$(date +\%Y\%m\%d_\%H\%M\%S).log 2>&1'
+```
+
+**To apply to your Ubuntu server:**
+```bash
+# SSH into server
+ssh harshdeepsingh@your-server
+
+# Edit crontab
+crontab -e
+
+# Paste the 6 Shorts crons above (replace old broken entries)
+# Save and exit
+
+# Verify
+crontab -l
+```
+
+### Important Crontab Notes
+
+- **Log directory must exist:**
+  ```bash
+  mkdir -p /home/harshdeepsingh/cron_logs
+  ```
+
+- **Virtual env must be activated:**
+  ```bash
+  . .venv/bin/activate
+  ```
+
+- **Bash syntax required:**
+  - Use `/bin/bash -c 'command'` (not /bin/sh)
+  - Escape date format: `\%Y\%m\%d` (backslash-percent)
+  - Syntax: `$(date +\%Y\%m\%d_\%H\%M\%S)` inside quotes
+
+- **Time zones:**
+  - All times above are **UTC**
+  - Convert to your timezone: IST = UTC + 5:30
+  - Example: 02:00 UTC = 07:30 IST
+
+### Monitoring Crons
+```bash
+# Watch logs in real-time
+tail -f /home/harshdeepsingh/cron_logs/autotube_shorts_*.log
+
+# Check which cron just ran
+ls -lht /home/harshdeepsingh/cron_logs/ | head -5
+
+# Check running processes
+pgrep -af orchestrator.py
+
+# Check system load (if a cron is processing)
+top
+```
+
+### Result
+- **6 Shorts/day × 365 days = 2,190 Shorts/year**
+- Repurposing 38 existing videos through intelligent rotation
+- Zero additional research/scripting cost (uses existing videos)
+- Cost: Free (local processing, no API calls for this mode)
+
+---
+
+## Testing All Three New Features
+
+### Feature 1: Shorts (9:16 Vertical Format)
+```bash
+# Test Shorts generation locally
+VIDEO_FORMAT=shorts python orchestrator.py --dry-run --count 1 --topic "AI Tools"
+
+# Verify output:
+# - Video dimensions: 1080×1920 (run: ffprobe outputs/.../video.mp4)
+# - Script length: ~150 words
+# - Thumbnail: 1080×1920
+# - Tags include: #Shorts
+```
+
+### Feature 2: YouTube Comments Research
+```bash
+# Test comment topic extraction
+COMMENTS_ENABLED=true python orchestrator.py --dry-run --count 1 --topic "Test"
+
+# Verify in logs:
+# ✓ "YouTube Comments: N topics extracted"
+# ✓ "data/topics_history.json" has entries with source:"youtube_comments"
+# If auth missing: gracefully skips (expected behavior, no error)
+```
+
+### Feature 3: Auto-Playlists
+```bash
+# Test playlist grouping
+PLAYLIST_ENABLED=true python orchestrator.py --dry-run --count 1 --topic "AI Tools"
+
+# Verify in logs:
+# ✓ "Playlist resolved: AI Tools" or "Created playlist: AI Tools"
+# ✓ "data/playlists.json" contains new keyword→id mappings
+# Non-blocking: video succeeds even if playlist insert fails
+```
+
+### All Three Features Together
+```bash
+# Test all new features simultaneously
+VIDEO_FORMAT=shorts COMMENTS_ENABLED=true PLAYLIST_ENABLED=true \
+  python orchestrator.py --dry-run --count 1 --topic "Artificial Intelligence 2025"
+
+# Expected:
+# - 1080×1920 Shorts video generated
+# - Topics include YouTube comment suggestions
+# - Video tagged and grouped into AI playlist
+# - All features run without conflicts
+```
+
+### Shorts from Existing Videos
+```bash
+# Test shorts generation from existing videos
+python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views --dry-run
+
+# Expected:
+# - Selects 1 video from data/posted_videos.json
+# - Re-encodes to 1080×1920 Shorts format
+# - Prepares upload (no actual upload in dry-run)
+```
+
+### Checking Test Results
+```bash
+# View generated outputs
+ls -lh outputs/
+
+# Check most recent video
+ls -lht outputs/ | head -5
+
+# Inspect video properties
+ffprobe outputs/latest_id/video.mp4 | grep -i "duration\|width\|height"
+
+# Check topics and playlists
+cat data/topics_history.json | tail -20
+cat data/playlists.json
+```
+
+---
+
+## Feature Architecture & Hooks
+
+All three features use a **hook-based architecture** to avoid merge conflicts:
+
+### Research Hook: `_extra_sources()` in `research_agent.py`
+```python
+# research_agent.py:get_topics()
+if config.COMMENTS_ENABLED:
+    topics.extend(comment_agent.get_comment_topics(...))
+```
+**Result:** YouTube comments merge with Reddit + pytrends + RSS topics
+
+### Upload Hook: `_post_upload()` in `upload_agent.py`
+```python
+# upload_agent.py:publish()
+if config.PLAYLIST_ENABLED:
+    self._add_to_playlist(video_id, script)
+```
+**Result:** Videos auto-grouped into keyword-based playlists
+
+### Script Hook: Conditional prompt in `script_agent.py`
+```python
+# script_agent.py:generate()
+if config.IS_SHORTS:
+    prompt = SHORTS_USER_PROMPT  # 150 words, 3 sections
+else:
+    prompt = SCRIPT_USER_PROMPT  # 650 words, 6+ sections
+```
+**Result:** Appropriate script length and structure for format
 
 ---
 
@@ -404,6 +743,11 @@ If you see ANY API error in logs before committing, **trace back to the endpoint
 - **Pexels returns AI robot clips** — the `visual_queries` field in the script JSON controls this; queries should be cinematic, not topic-literal (e.g. "aerial cityscape" not "artificial intelligence")
 - **Video too long** — `SCRIPT_WORD_COUNT` in config.py controls length; 650 = ~4.5 min
 - **Font not found** — `video_agent.py` tries multiple system font paths; falls back to PIL default if none found; add your font path to the `candidates` list in `_load_fonts()`
+- **Shorts rendering too fast** — `SHORTS_WORD_COUNT=150` auto-sets duration; if video is <30s, increase `SHORTS_WORD_COUNT` or adjust pacing
+- **Playlist creation fails silently** — Upload still succeeds (non-blocking); check logs for OAuth permission scope. Ensure `generate_youtube_token.py` was run with `youtube.force-ssl` scope
+- **YouTube Comments returning 0 topics** — Requires YouTube OAuth token + uploaded videos on channel. Without auth, gracefully skips (expected). Enable with `COMMENTS_ENABLED=true`
+- **Cron syntax errors on Ubuntu** — Always use `/bin/bash -c 'command'` not `/bin/sh`; escape date format with backslash: `$(date +\%Y\%m\%d)` not `$(date+%Y%m%d)`
+- **VM runs out of memory during rendering** — 305+ second videos at 1920×1080 need 4-6GB RAM. If you see "Killed" in logs, upgrade VM RAM or add swap file
 
 ---
 
