@@ -170,7 +170,7 @@ class VideoAgent:
             logger.info(f"[FFmpeg Streaming] Exporting audio to {temp_audio.name}")
             audio_clip = final.audio
             if audio_clip:
-                audio_clip.write_audiofile(str(temp_audio))
+                audio_clip.write_audiofile(str(temp_audio), codec='aac')
 
             # FFmpeg command with streaming pipe input
             # -r fps -f rawvideo -pix_fmt rgb24 -s WxH -i pipe:0 = streaming RGB24 from stdin
@@ -1635,8 +1635,6 @@ class VideoAgent:
                             codec="libx264",
                             preset="ultrafast",
                             bitrate="4000k",
-                            verbose=False,
-                            logger=None,
                         )
 
                     # Append to concat list
