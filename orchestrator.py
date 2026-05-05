@@ -453,6 +453,7 @@ class Orchestrator:
 
         import json
         from pathlib import Path
+        from datetime import timedelta
 
         results = []
 
@@ -476,7 +477,6 @@ class Orchestrator:
 
         if pick_strategy == "recent_high_views":
             # Top video from last 7 days
-            from datetime import datetime, timedelta, timezone
             cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
             recent = [v for v in posted if v.get("uploaded_at", "") > cutoff]
             if recent:
@@ -497,22 +497,164 @@ class Orchestrator:
         self.logger.info(f"Converting {len(videos_to_convert)} videos to Shorts format")
 
         for video in videos_to_convert:
-            self.logger.info(f"Processing: {video.get('title', 'Unknown')}")
-            # Placeholder: actual implementation would:
-            # 1. Download video from YouTube (video_id)
-            # 2. Extract best 60-90s clip
-            # 3. Re-encode to 1080×1920
-            # 4. Re-upload as Shorts
-            # For now, just log
-            results.append({
-                "success": True,
-                "original_video_id": video.get("video_id"),
-                "shorts_video_id": f"shorts_{video.get('video_id', 'unknown')}",
-                "title": video.get("title", ""),
-                "mode": "shorts_from_existing"
-            })
+            try:
+                result = self._convert_to_shorts(video)
+                results.append(result)
+            except Exception as e:
+                self.logger.error(f"Failed to convert {video.get('title', 'Unknown')}: {e}")
+                results.append({
+                    "success": False,
+                    "original_video_id": video.get("video_id"),
+                    "title": video.get("title", ""),
+                    "error": str(e),
+                    "mode": "shorts_from_existing"
+                })
 
         return results
+
+    def _convert_to_shorts(self, video: Dict) -> Dict:
+        """Convert a single video to Shorts format (9:16) and upload."""
+        import subprocess
+        from moviepy import VideoFileClip
+
+        video_id = video.get("video_id", "")
+        title = video.get("title", "Unknown")
+
+        if not video_id:
+            raise ValueError(f"Video {title} has no video_id")
+
+        self.logger.info(f"Processing: {title}")
+
+        # Create output directory
+        job_id = f"shorts_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}"
+        out_dir = Path(config.OUTPUT_DIR) / job_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Step 1: Download video from YouTube
+            yt_url = f"https://www.youtube.com/watch?v={video_id}"
+            self.logger.info(f"  Downloading from {yt_url}...")
+            downloaded_path = str(out_dir / "downloaded.mp4")
+
+            # Use ffmpeg to download (requires yt-dlp or similar)
+            cmd = [
+                "ffmpeg", "-y", "-i", yt_url,
+                "-c", "copy", "-bsf:a", "aac_adtstoasc",
+                downloaded_path
+            ]
+
+            try:
+                subprocess.run(cmd, capture_output=True, timeout=300, check=True)
+            except Exception as e:
+                self.logger.warning(f"FFmpeg download failed, trying alternative method: {e}")
+                # Fallback: try using yt-dlp if available
+                try:
+                    import yt_dlp
+                    ydl_opts = {"outtmpl": str(out_dir / "downloaded.mp4"), "quiet": True}
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([yt_url])
+                except Exception as e2:
+                    self.logger.error(f"Both download methods failed: {e2}")
+                    raise RuntimeError(f"Failed to download video: {e2}")
+
+            if not Path(downloaded_path).exists():
+                raise RuntimeError("Download failed - no file created")
+
+            # Step 2: Extract best 60-90s clip (middle section of video)
+            self.logger.info(f"  Extracting 60-90s clip...")
+            clip = VideoFileClip(downloaded_path)
+            duration = clip.duration
+
+            # Extract from middle of video (skip first 10s)
+            start_time = max(10, duration / 2 - 45)
+            end_time = min(start_time + 75, duration)
+
+            if end_time - start_time < 60:
+                # If video is shorter than 60s, use full video
+                clipped = clip
+                self.logger.info(f"  Video shorter than 60s, using full {duration:.1f}s")
+            else:
+                clipped = clip.subclipped(start_time, end_time)
+                self.logger.info(f"  Extracted {clipped.duration:.1f}s clip ({start_time:.1f}s-{end_time:.1f}s)")
+
+            # Step 3: Re-encode to 1080×1920 Shorts format
+            self.logger.info(f"  Re-encoding to 1080×1920 Shorts format...")
+            shorts_video_path = str(out_dir / "shorts_video.mp4")
+
+            # Resize to 1080×1920 (maintain aspect, pillarbox if needed)
+            w, h = clipped.size
+            target_w, target_h = 1080, 1920
+
+            if w / h < target_w / target_h:
+                # Pillarbox (narrow video)
+                new_w = int(h * (target_w / target_h))
+                resized = clipped.resized(new_size=(new_w, h))
+                # Center crop to 1080×1920
+                x_offset = (new_w - target_w) // 2
+                resized = resized.cropped(x1=x_offset, y1=0, x2=x_offset+target_w, y2=target_h)
+            else:
+                # Letterbox (wide video)
+                new_h = int(w * (target_h / target_w))
+                resized = clipped.resized(new_size=(w, new_h))
+                # Center crop to 1080×1920
+                y_offset = (new_h - target_h) // 2
+                resized = resized.cropped(x1=0, y1=y_offset, x2=target_w, y2=y_offset+target_h)
+
+            # Use ffmpeg streaming for efficient encoding
+            resized.write_videofile(shorts_video_path, codec="libx264", audio_codec="aac", preset="ultrafast", fps=24)
+            self.logger.info(f"  ✓ Shorts video saved: {shorts_video_path}")
+
+            # Step 4: Generate minimal script for upload
+            shorts_script = {
+                "title": f"{title} #Shorts",
+                "description": f"Short-form version of '{title}'\n\n#Shorts #YouTube",
+                "tags": list(set(video.get("tags", []) + ["Shorts", "Short"])),
+                "sections": [],
+            }
+
+            # Step 5: Create thumbnail for Shorts (1080×1920)
+            thumbnail_path = str(out_dir / "thumbnail.jpg")
+            self.thumbnail.create(shorts_script, thumbnail_path)
+
+            # Step 6: Upload as Shorts
+            if self.dry_run:
+                self.logger.info(f"  [DRY RUN] Would upload to YouTube")
+                shorts_video_id = f"shorts_{video_id}"
+            else:
+                self.logger.info(f"  Uploading to YouTube as Shorts...")
+                uploader = self._get_uploader()
+                if uploader:
+                    upload_result = uploader.publish(
+                        shorts_video_path,
+                        thumbnail_path,
+                        shorts_script,
+                        slot_index=0,
+                        publish_immediately=True
+                    )
+                    shorts_video_id = upload_result.get("video_id", f"shorts_{video_id}")
+                    if not upload_result.get("success"):
+                        raise RuntimeError(f"Upload failed: {upload_result.get('error')}")
+                else:
+                    raise RuntimeError("Uploader not available")
+
+            self.logger.info(f"  ✓ Shorts uploaded: https://youtube.com/watch?v={shorts_video_id}")
+
+            return {
+                "success": True,
+                "original_video_id": video_id,
+                "shorts_video_id": shorts_video_id,
+                "title": title,
+                "shorts_path": shorts_video_path,
+                "mode": "shorts_from_existing",
+                "job_id": job_id,
+            }
+
+        finally:
+            # Cleanup temporary files
+            try:
+                clip.close()
+            except:
+                pass
 
     def _process_queued(self, row: Dict, slot_index: int = 0) -> Dict:
         """Process a script from the Supabase queue (skips research + script generation)."""
