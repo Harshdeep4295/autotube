@@ -740,7 +740,7 @@ class VideoAgent:
 
         results: Dict[int, Optional[str]] = {}
         # Limit to 2 concurrent requests to avoid Pollinations.ai rate limiting (429 errors)
-        with ThreadPoolExecutor(max_workers=min(len(sections), 2)) as ex:
+        with ThreadPoolExecutor(max_workers=1) as ex:
             futures = {ex.submit(fetch_one, (i, s)): i for i, s in enumerate(sections)}
             for future in as_completed(futures):
                 try:
@@ -784,7 +784,7 @@ class VideoAgent:
             logger.info(f"[V2] Section {i+1}/{len(sections)}: {path or 'gradient fallback'}")
             return i, path
 
-        with ThreadPoolExecutor(max_workers=min(len(sections), 6)) as ex:
+        with ThreadPoolExecutor(max_workers=1) as ex:
             futures = {ex.submit(_fetch_one, i): i for i in range(len(sections))}
             for future in as_completed(futures):
                 try:
