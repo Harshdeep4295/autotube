@@ -210,8 +210,21 @@ class VideoAgent:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                bufsize=10 * 1024 * 1024,  # 10MB buffer (small to reduce RAM)
+                bufsize=10 * 1024 * 1024,  # 10MB buffer
             )
+
+            # Read stdout/stderr in background threads to avoid deadlock
+            import threading
+            stderr_lines = []
+            def read_pipe(pipe, lines_list):
+                try:
+                    for line in iter(pipe.readline, b''):
+                        lines_list.append(line.decode('utf-8', errors='ignore'))
+                except:
+                    pass
+
+            stderr_thread = threading.Thread(target=read_pipe, args=(process.stderr, stderr_lines), daemon=True)
+            stderr_thread.start()
 
             # Stream frames from MoviePy → FFmpeg stdin
             frame_count = 0
@@ -236,21 +249,22 @@ class VideoAgent:
                 # Close stdin to signal EOF
                 process.stdin.close()
 
-                # Wait for FFmpeg to finish
-                stdout, stderr = process.communicate(timeout=600)
-                returncode = process.returncode
+                # Wait for FFmpeg to finish (with background thread reading stderr)
+                returncode = process.wait(timeout=600)
 
                 if returncode != 0:
+                    stderr_output = ''.join(stderr_lines)[-500:]
                     logger.error(f"[FFmpeg Streaming] FFmpeg failed with code {returncode}")
-                    logger.error(f"stderr: {stderr.decode('utf-8', errors='ignore')[:500]}")
+                    logger.error(f"stderr: {stderr_output}")
                     raise RuntimeError(f"FFmpeg encoding failed: {returncode}")
 
                 logger.info(f"[FFmpeg Streaming] Encode complete: {frame_count} frames written")
 
             except BrokenPipeError:
                 process.kill()
-                stdout, stderr = process.communicate()
-                logger.error(f"[FFmpeg Streaming] Broken pipe — FFmpeg error: {stderr.decode('utf-8', errors='ignore')[:500]}")
+                process.wait()
+                stderr_output = ''.join(stderr_lines)[-500:]
+                logger.error(f"[FFmpeg Streaming] Broken pipe — FFmpeg error: {stderr_output}")
                 raise
 
         finally:
