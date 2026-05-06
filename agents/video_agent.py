@@ -1311,11 +1311,7 @@ class VideoAgent:
                         _get_memory_status(f"AFTER_LOAD_CACHED_MP4_SECTION_{i+1}")
 
                         clip = self._resize_and_crop(raw, self.W, self.H)
-                        if clip.duration < section_dur:
-                            loops = math.ceil(section_dur / clip.duration)
-                            from moviepy import concatenate_videoclips as cv
-                            clip = cv([clip] * loops, method="chain")
-                        clip = clip.subclipped(0, section_dur)
+                        clip = clip.subclipped(0, min(clip.duration, section_dur))
                         section_clips.append(clip)
                         t += section_dur
                         _get_memory_status(f"AFTER_ADD_CACHED_MP4_SECTION_{i+1}")
@@ -1336,13 +1332,7 @@ class VideoAgent:
 
                     # Resize to fill 1920×1080 (crop to fit aspect ratio)
                     clip = self._resize_and_crop(raw, self.W, self.H)
-                    # Loop if section is longer than clip
-                    if clip.duration < section_dur:
-                        loops = math.ceil(section_dur / clip.duration)
-                        logger.info(f"  [PEXELS] Looping clip {loops}x to fill {section_dur:.1f}s duration")
-                        from moviepy import concatenate_videoclips as cv
-                        clip = cv([clip] * loops, method="chain")
-                    clip = clip.subclipped(0, section_dur)
+                    clip = clip.subclipped(0, min(clip.duration, section_dur))
                     section_clips.append(clip)
                     t += section_dur
                     _get_memory_status(f"AFTER_ADD_PEXELS_SECTION_{i+1}")
@@ -1465,12 +1455,9 @@ class VideoAgent:
         return ImageClip(np.array(img)).with_duration(duration)
 
     def _gradient_video(self, duration: float):
-        """Full animated gradient video fallback."""
-        from moviepy import concatenate_videoclips
-        clip = self._gradient_clip(min(duration, 5.0))
-        loops = math.ceil(duration / clip.duration)
-        base = concatenate_videoclips([clip] * loops, method="compose")
-        return base.subclipped(0, duration)
+        """Full animated gradient video fallback — no looping, continuous gradient."""
+        clip = self._gradient_clip(duration)
+        return clip
 
     # ── Pexels video download ─────────────────────────────────────────────────
 
