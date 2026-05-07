@@ -296,6 +296,17 @@ class VideoAgent:
     def render(self, script: Dict, audio_path: str, output_path: str, prefetched_images: Optional[Dict] = None) -> str:
         from moviepy import AudioFileClip, CompositeVideoClip, ColorClip, ImageClip
 
+        # Check disk space before rendering (need at least 2GB)
+        try:
+            disk_usage = psutil.disk_usage("/")
+            available_gb = disk_usage.free / (1024**3)
+            if available_gb < 2.0:
+                logger.warning(f"⚠️ LOW DISK SPACE: Only {available_gb:.1f}GB available (need 2GB+)")
+                if available_gb < 0.5:
+                    raise RuntimeError(f"CRITICAL: Disk space {available_gb:.1f}GB < 0.5GB minimum. Aborting render.")
+        except Exception as e:
+            logger.error(f"Disk check failed: {e}")
+
         os.makedirs(Path(output_path).parent, exist_ok=True)
 
         # Per-video caching: extract video_id from output_path and create cache folder
@@ -375,7 +386,10 @@ class VideoAgent:
         section_title_clips = self._build_section_title_clips(sections, total_duration)
 
         # 6. Generate SRT captions file (uploaded to YouTube after publish — not burned in)
-        self._generate_srt(sections, total_duration, str(Path(output_path).parent))
+        try:
+            self._generate_srt(sections, total_duration, str(Path(output_path).parent))
+        except Exception as e:
+            logger.warning(f"Failed to generate captions: {e} — video will continue without captions")
 
         # 7. Watermark — TOP LEFT
         watermark = self._make_watermark(total_duration)
@@ -1616,7 +1630,8 @@ class VideoAgent:
         try:
             # 1. Write each clip to temp file (done in caller, but validate)
             temp_dir = Path(cache_dir) / "concat_temps"
-            temp_dir.mkdir(exist_ok=True)
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"[FFmpeg Concat] Temp directory ready: {temp_dir}")
 
             concat_file = temp_dir / "concat_list.txt"
             output_file = temp_dir / "concat_output.mp4"
@@ -1655,6 +1670,13 @@ class VideoAgent:
 
             result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=600)
             if result.returncode != 0:
+                # Check disk space in error message
+                try:
+                    disk = psutil.disk_usage("/")
+                    available_gb = disk.free / (1024**3)
+                    logger.error(f"[FFmpeg Concat] DISK SPACE: {available_gb:.1f}GB available")
+                except:
+                    pass
                 logger.error(f"[FFmpeg Concat] Failed: {result.stderr[:500]}")
                 raise RuntimeError(f"FFmpeg concat failed: {result.returncode}")
 
