@@ -1539,8 +1539,22 @@ class VideoAgent:
 
         cache_path = Path(config.VIDEO_CACHE_DIR) / f"{url_hash}.mp4"
         if cache_path.exists() and cache_path.stat().st_size > 10_000:
-            self._new_hashes.add(url_hash)
-            return str(cache_path)
+            # Validate the cached file is actually readable (catches 0-byte-read corruption)
+            try:
+                import subprocess as _sp
+                probe = _sp.run(
+                    ["ffprobe", "-v", "error", "-select_streams", "v:0",
+                     "-show_entries", "stream=nb_frames", "-of", "csv=p=0", str(cache_path)],
+                    capture_output=True, text=True, timeout=10
+                )
+                if probe.returncode != 0:
+                    raise RuntimeError("ffprobe failed")
+            except Exception:
+                logger.warning(f"Cached clip {cache_path.name} is corrupted — deleting and re-downloading")
+                cache_path.unlink(missing_ok=True)
+            else:
+                self._new_hashes.add(url_hash)
+                return str(cache_path)
 
         try:
             with requests.get(url, stream=True, timeout=60) as resp:
@@ -2083,6 +2097,7 @@ class VideoAgent:
                 idx += 1
                 t += chunk_dur  # advance by full chunk_dur (including gap)
 
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
         srt_path = str(Path(output_dir) / "captions.srt")
         with open(srt_path, "w", encoding="utf-8") as f:
             f.write("\n\n".join(entries) + "\n")

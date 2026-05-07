@@ -475,33 +475,41 @@ class Orchestrator:
         # Pick videos based on strategy
         videos_to_convert = []
 
+        # Build a larger candidate pool so we can fall through on download failures
+        CANDIDATE_POOL = max(batch * 5, 10)
+
         if pick_strategy == "recent_high_views":
-            # Top video from last 7 days
+            # Top videos from last 7 days, then fall through to older ones
             cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
             recent = [v for v in posted if v.get("uploaded_at", "") > cutoff]
-            if recent:
-                videos_to_convert = recent[:batch]
+            candidates = (recent + [v for v in posted if v not in recent])[:CANDIDATE_POOL]
 
         elif pick_strategy == "all_time_best":
-            # Highest viewed (we track video_id but not views, so just take first N)
-            videos_to_convert = posted[:batch]
+            candidates = posted[:CANDIDATE_POOL]
 
         elif pick_strategy == "underutilized":
-            # Just take the last N videos (oldest/likely lowest views)
-            videos_to_convert = posted[-batch:]
+            candidates = posted[-CANDIDATE_POOL:]
 
-        if not videos_to_convert:
+        else:
+            candidates = []
+
+        if not candidates:
             self.logger.warning(f"No videos matched strategy '{pick_strategy}'")
             return results
 
-        self.logger.info(f"Converting {len(videos_to_convert)} videos to Shorts format")
+        self.logger.info(f"Converting {batch} video(s) to Shorts format (pool: {len(candidates)} candidates)")
 
-        for video in videos_to_convert:
+        # Try candidates in order until we get `batch` successes
+        succeeded = 0
+        for video in candidates:
+            if succeeded >= batch:
+                break
             try:
                 result = self._convert_to_shorts(video)
                 results.append(result)
+                succeeded += 1
             except Exception as e:
-                self.logger.error(f"Failed to convert {video.get('title', 'Unknown')}: {e}")
+                self.logger.warning(f"Skipping '{video.get('title', 'Unknown')}': {e} — trying next candidate")
                 results.append({
                     "success": False,
                     "original_video_id": video.get("video_id"),
@@ -509,6 +517,9 @@ class Orchestrator:
                     "error": str(e),
                     "mode": "shorts_from_existing"
                 })
+
+        if succeeded == 0:
+            self.logger.error(f"All {len(candidates)} candidates failed — no Shorts produced")
 
         return results
 
@@ -550,8 +561,19 @@ class Orchestrator:
                 # Fallback: try using yt-dlp if available
                 try:
                     import yt_dlp
-                    ydl_opts = {"outtmpl": str(out_dir / "downloaded.mp4"), "quiet": True}
+                    ydl_opts = {
+                        "outtmpl": str(out_dir / "downloaded.mp4"),
+                        "quiet": True,
+                        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                    }
+                    # Use cookies file if present (needed when YouTube requires sign-in)
+                    cookies_path = Path("cookies.txt")
+                    if cookies_path.exists():
+                        ydl_opts["cookiefile"] = str(cookies_path)
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(yt_url, download=False)
+                        if info is None:
+                            raise RuntimeError("Video metadata unavailable — video may be private or deleted")
                         ydl.download([yt_url])
                 except Exception as e2:
                     self.logger.error(f"Both download methods failed: {e2}")
