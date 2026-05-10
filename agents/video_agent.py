@@ -534,16 +534,19 @@ class VideoAgent:
                     else:
                         path = None
                 elif mode == "pexels":
-                    cinematic_fallbacks = [
-                        "aerial cityscape drone",
-                        "ocean waves cinematic",
-                        "mountain landscape sunrise",
-                        "forest path light",
-                        "city night lights",
-                        "abstract light motion",
-                    ]
-                    fb_query = cinematic_fallbacks[section_idx % len(cinematic_fallbacks)]
-                    paths = self._fetch_pexels_clips(fb_query, n=1)
+                    # Try actual query first, then cinematic fallback
+                    paths = self._fetch_pexels_clips(query, n=1)
+                    if not paths:
+                        cinematic_fallbacks = [
+                            "aerial cityscape drone",
+                            "ocean waves cinematic",
+                            "mountain landscape sunrise",
+                            "forest path light",
+                            "city night lights",
+                            "abstract light motion",
+                        ]
+                        fb_query = cinematic_fallbacks[section_idx % len(cinematic_fallbacks)]
+                        paths = self._fetch_pexels_clips(fb_query, n=1)
                     path = paths[0] if paths else None
                 elif mode == "seedance":
                     path = self._fetch_seedance_video(query, section_idx)
@@ -947,13 +950,13 @@ class VideoAgent:
         return results
 
     def _try_section_video_chain_v2(self, section_idx, query, primary_mode, section_duration=8.0):
-        """V2 fallback chain: Pixabay → Ken Burns (with correct duration)."""
+        """V2 fallback chain: ken_burns → pixabay → pexels (portrait-aware)."""
         if primary_mode == "veo":
-            modes = ["veo", "pixabay", "ken_burns"]
+            modes = ["veo", "ken_burns", "pixabay", "pexels"]
         elif primary_mode == "ken_burns":
-            modes = ["ken_burns", "pixabay"]
+            modes = ["ken_burns", "pixabay", "pexels"]
         else:
-            modes = ["pixabay", "ken_burns"]
+            modes = ["pixabay", "ken_burns", "pexels"]
 
         for mode in modes:
             try:
@@ -964,15 +967,29 @@ class VideoAgent:
                         path = self._concatenate_clips(paths, section_duration)
                     else:
                         path = None
+                elif mode == "pexels":
+                    paths = self._fetch_pexels_clips(query, n=1)
+                    if not paths:
+                        cinematic_fallbacks = [
+                            "aerial cityscape drone",
+                            "ocean waves cinematic",
+                            "mountain landscape sunrise",
+                            "forest path light rays",
+                            "city night lights bokeh",
+                            "abstract light motion blur",
+                        ]
+                        fb_q = cinematic_fallbacks[section_idx % len(cinematic_fallbacks)]
+                        paths = self._fetch_pexels_clips(fb_q, n=1)
+                    path = paths[0] if paths else None
                 elif mode == "ken_burns":
                     img = self._fetch_ai_image(query, section_idx)
                     if img:
                         effect = self.animation_effects[0] if self.animation_effects else ANIMATION_EFFECTS[0]
-                        # V2 fix: use actual section_duration (not hardcoded 5.0)
                         cache_key = hashlib.md5(
                             f"{img}|{effect['name']}|{section_duration:.2f}".encode()
                         ).hexdigest()[:12]
-                        path = str(self._get_cache_dir() / f"fx_{cache_key}.mp4")
+                        # Use global cache path — must match where _image_to_ken_burns_clip writes
+                        path = str(Path(config.VIDEO_CACHE_DIR) / f"fx_{cache_key}.mp4")
                         try:
                             self._image_to_ken_burns_clip(img, section_duration, effect=effect)
                         except Exception:
@@ -1357,14 +1374,50 @@ class VideoAgent:
                     logger.info(f"  [FALLBACK] Using gradient fallback for this section")
                     _get_memory_status(f"ERROR_LOAD_PEXELS_SECTION_{i+1}")
 
-            # Gradient fallback for this section
-            logger.warning(f"  [GRADIENT] Using solid gradient fallback for section {i}")
-            section_clips.append(self._gradient_clip(section_dur))
+            # All clip sources failed — emergency Pexels fetch before using solid fallback
+            logger.warning(f"  [EMERGENCY] All clip sources failed for section {i}, trying emergency Pexels fetch...")
+            emergency_clip = None
+            emergency_queries = [
+                visual_query if visual_query else "",
+                "aerial cityscape drone",
+                "ocean waves cinematic",
+                "nature landscape",
+                "abstract light",
+            ]
+            for eq in emergency_queries:
+                if not eq:
+                    continue
+                paths = self._fetch_pexels_clips(eq, n=1)
+                if paths:
+                    try:
+                        raw = VideoFileClip(paths[0])
+                        raw = raw.with_fps(self.FPS)
+                        emergency_clip = self._resize_and_crop(raw, self.W, self.H)
+                        emergency_clip = emergency_clip.subclipped(0, min(emergency_clip.duration, section_dur))
+                        logger.info(f"  ✓ [EMERGENCY] Got Pexels clip for query='{eq}'")
+                        break
+                    except Exception as ee:
+                        logger.warning(f"  ✗ [EMERGENCY] Pexels clip load failed ({ee})")
+            if emergency_clip:
+                section_clips.append(emergency_clip)
+            else:
+                logger.warning(f"  [LAST_RESORT] All sources exhausted, using solid color for section {i}")
+                section_clips.append(self._gradient_clip(section_dur))
             t += section_dur
-            _get_memory_status(f"SECTION_{i+1}_END_GRADIENT_FALLBACK")
+            _get_memory_status(f"SECTION_{i+1}_END_FALLBACK")
 
         if not section_clips:
-            logger.error(f"[BUILD_BASE_VIDEO] No section clips available, using gradient fallback for entire video")
+            logger.error(f"[BUILD_BASE_VIDEO] No section clips available — trying emergency Pexels fetch")
+            paths = self._fetch_pexels_clips("nature cinematic aerial", n=1)
+            if not paths:
+                paths = self._fetch_pexels_clips("ocean waves", n=1)
+            if paths:
+                from moviepy import VideoFileClip
+                raw = VideoFileClip(paths[0])
+                clip = self._resize_and_crop(raw, self.W, self.H)
+                clip = clip.subclipped(0, min(clip.duration, total_duration))
+                return clip
+            logger.error("[BUILD_BASE_VIDEO] Emergency fetch also failed — using solid color fallback")
             return self._gradient_video(total_duration)
 
         logger.info(f"\n[BUILD_BASE_VIDEO] ═════════════════════════════════════════")
@@ -1424,10 +1477,10 @@ class VideoAgent:
             logger.info(f"  [TRIM] Trimming {base.duration - total_duration:.1f}s excess")
             base = base.subclipped(0, total_duration)
         elif base.duration < total_duration - 0.1:
-            # Pad with last section's gradient
+            # Pad by looping base video to fill the gap (no gradient)
             pad_duration = total_duration - base.duration
-            logger.info(f"  [PAD] Adding {pad_duration:.1f}s gradient padding")
-            pad = self._gradient_clip(pad_duration)
+            logger.info(f"  [PAD] Extending {pad_duration:.1f}s by looping last clip")
+            pad = base.subclipped(max(0, base.duration - pad_duration), base.duration)
             base = concatenate_videoclips([base, pad], method="chain")
 
         logger.info(f"  Final duration: {base.duration:.1f}s ✓")
@@ -1452,20 +1505,9 @@ class VideoAgent:
         return ColorClip(size=(self.W, self.H), color=(0, 0, 0)).with_duration(duration)
 
     def _gradient_clip(self, duration: float):
-        """Single gradient ImageClip for the given duration."""
+        """Solid dark color ImageClip — last resort only, no lines."""
         from moviepy import ImageClip
-        bg_start, bg_end, accent = self.colors
-        img = Image.new("RGB", (self.W, self.H))
-        draw = ImageDraw.Draw(img)
-        for y in range(self.H):
-            t = y / self.H
-            r = int(bg_start[0] + (bg_end[0] - bg_start[0]) * t)
-            g = int(bg_start[1] + (bg_end[1] - bg_start[1]) * t)
-            b = int(bg_start[2] + (bg_end[2] - bg_start[2]) * t)
-            draw.line([(0, y), (self.W, y)], fill=(r, g, b))
-        # Subtle grid lines for depth
-        for x in range(0, self.W, 80):
-            draw.line([(x, 0), (x, self.H)], fill=(255, 255, 255, 8))
+        img = Image.new("RGB", (self.W, self.H), color=(10, 10, 20))
         return ImageClip(np.array(img)).with_duration(duration)
 
     def _gradient_video(self, duration: float):
