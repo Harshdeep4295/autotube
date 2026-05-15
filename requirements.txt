@@ -5,6 +5,7 @@
 anthropic>=0.34.0
 google-genai>=1.0.0
 openai>=1.0.0  # For Groq API (uses OpenAI SDK)
+boto3>=1.34.0  # For AWS Bedrock fallback
 
 # Research
 pytrends>=4.9.2

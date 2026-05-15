@@ -1,8 +1,8 @@
 """
 Script Agent
-Generates structured video scripts with 3-way fallback: Claude → Gemini → Groq
-Hybrid mode: tries Claude first, auto-falls back to Gemini on quota exhaustion, then Groq.
-All three API keys recommended for resilience. Can be overridden via SCRIPT_MODEL_PROVIDER env var.
+Generates structured video scripts with 4-way fallback: Claude → Gemini → Bedrock → Groq
+Hybrid mode: tries Claude first, auto-falls back on quota exhaustion.
+All API keys recommended for resilience. Can be overridden via SCRIPT_MODEL_PROVIDER env var.
 """
 
 import json
@@ -27,48 +27,45 @@ class ScriptAgent:
 
     def generate(self, topic: Dict) -> Dict:
         """
-        3-way fallback script generation: Claude → Gemini → Groq.
+        4-way fallback script generation: Claude → Gemini → Bedrock → Groq.
 
-        Default behavior (auto mode): Try Claude → if quota hit, try Gemini → if quota hit, try Groq
-        Force single provider: Set SCRIPT_MODEL_PROVIDER=claude|gemini|groq to use only that provider
+        Default behavior (auto mode): Try Claude → Gemini → Bedrock → Groq on quota exhaustion
+        Force single provider: Set SCRIPT_MODEL_PROVIDER=claude|gemini|bedrock|groq
 
         Args:
             topic: dict with keys: topic (str), angle (str), source (str)
         Returns:
             Parsed script dict with keys: title, description, tags, sections, etc.
         Raises:
-            RuntimeError: after all retries exhausted on all three providers
+            RuntimeError: after all retries exhausted on all providers
         """
         provider = config.SCRIPT_MODEL_PROVIDER.lower()
         topic_name = topic.get("topic", "")[:60]
 
-        # If user forces a specific provider, use only that
         if provider == "claude":
             logger.info(f"Generating script via Claude (forced) for topic: {topic_name}")
             return self._call_with_retry(self._call_claude, topic)
         elif provider == "gemini":
             logger.info(f"Generating script via Gemini (forced) for topic: {topic_name}")
             return self._call_with_retry(self._call_gemini, topic)
+        elif provider == "bedrock":
+            logger.info(f"Generating script via Bedrock (forced) for topic: {topic_name}")
+            return self._call_with_retry(self._call_bedrock, topic)
         elif provider == "groq":
             logger.info(f"Generating script via Groq (forced) for topic: {topic_name}")
             return self._call_with_retry(self._call_groq, topic)
-        elif provider == "hybrid":
-            # Hybrid mode: Claude primary, Gemini fallback, Groq ultimate fallback
-            logger.info(f"Generating script via HYBRID (Claude→Gemini→Groq) for topic: {topic_name}")
-            return self._hybrid_generate(topic)
-        elif provider == "auto":
-            # Auto mode: 3-way fallback (Claude → Gemini → Groq)
-            logger.info(f"Generating script via AUTO mode (Claude→Gemini→Groq) for topic: {topic_name}")
+        elif provider in ("hybrid", "auto"):
+            logger.info(f"Generating script via AUTO mode (Claude→Gemini→Bedrock→Groq) for topic: {topic_name}")
             return self._hybrid_generate(topic)
         else:
             raise ValueError(
                 f"Unknown SCRIPT_MODEL_PROVIDER='{provider}'. "
-                f"Valid values: 'auto' (default 3-way fallback), 'hybrid', 'claude', 'gemini', 'groq'. "
+                f"Valid values: 'auto', 'hybrid', 'claude', 'gemini', 'bedrock', 'groq'. "
                 f"Set the SCRIPT_MODEL_PROVIDER environment variable."
             )
 
     def _hybrid_generate(self, topic: Dict) -> Dict:
-        """3-way fallback: Claude → Gemini → Groq on quota exhaustion."""
+        """4-way fallback: Claude → Gemini → Bedrock → Groq on quota exhaustion."""
         errors = {}
 
         # Try Claude first
@@ -77,7 +74,6 @@ class ScriptAgent:
         except Exception as exc:
             errors['claude'] = exc
             if not self._is_quota_error(exc):
-                # Non-quota error (e.g., JSON parse), re-raise immediately
                 raise
             logger.warning(f"Claude quota exhausted: {exc}. Falling back to Gemini…")
 
@@ -87,20 +83,29 @@ class ScriptAgent:
         except Exception as exc:
             errors['gemini'] = exc
             if not self._is_quota_error(exc):
-                # Non-quota error, re-raise immediately
                 raise
-            logger.warning(f"Gemini quota exhausted: {exc}. Falling back to Groq…")
+            logger.warning(f"Gemini quota exhausted: {exc}. Falling back to Bedrock…")
 
-        # Try Groq third (ultimate fallback)
+        # Try Bedrock third
+        try:
+            return self._call_with_retry(self._call_bedrock, topic)
+        except Exception as exc:
+            errors['bedrock'] = exc
+            if not self._is_quota_error(exc):
+                raise
+            logger.warning(f"Bedrock failed: {exc}. Falling back to Groq…")
+
+        # Try Groq fourth (ultimate fallback)
         try:
             return self._call_with_retry(self._call_groq, topic)
         except Exception as exc:
             errors['groq'] = exc
             logger.error(f"All providers exhausted. Groq error: {exc}")
             raise RuntimeError(
-                f"Script generation failed: all 3 providers exhausted. "
-                f"Claude: {errors['claude']}. "
-                f"Gemini: {errors['gemini']}. "
+                f"Script generation failed: all 4 providers exhausted. "
+                f"Claude: {errors.get('claude')}. "
+                f"Gemini: {errors.get('gemini')}. "
+                f"Bedrock: {errors.get('bedrock')}. "
                 f"Groq: {exc}"
             )
 
@@ -235,6 +240,45 @@ class ScriptAgent:
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"[Groq] API error: {e}")
+            raise
+
+    # ── Provider: AWS Bedrock ────────────────────────────────────────────────
+
+    def _call_bedrock(self, topic: Dict) -> str:
+        import boto3  # lazy import — only needed if using bedrock
+        if not config.AWS_ACCESS_KEY_ID or not config.AWS_SECRET_ACCESS_KEY:
+            raise ValueError(
+                "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not set. "
+                "Add them to your .env file for Bedrock fallback."
+            )
+        client = boto3.client(
+            "bedrock-runtime",
+            region_name=config.AWS_REGION,
+            aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY,
+        )
+        prompt_template = get_script_user_prompt(config.LANGUAGE, config.IS_SHORTS)
+        user_prompt = prompt_template.format(
+            topic=topic.get("topic", ""),
+            summary=topic.get("angle", ""),
+        )
+        try:
+            response = client.converse(
+                modelId=config.BEDROCK_MODEL,
+                system=[{"text": SCRIPT_SYSTEM_PROMPT}],
+                messages=[
+                    {"role": "user", "content": [{"text": user_prompt}]}
+                ],
+                inferenceConfig={
+                    "maxTokens": 4096,
+                    "temperature": 0.7,
+                },
+            )
+            output_text = response["output"]["message"]["content"][0]["text"]
+            logger.info(f"[Bedrock] API request successful ({config.BEDROCK_MODEL})")
+            return output_text
+        except Exception as e:
+            logger.error(f"[Bedrock] API error: {e}")
             raise
 
     # ── Response parser ───────────────────────────────────────────────────────

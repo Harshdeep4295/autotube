@@ -54,8 +54,24 @@ class Config:
     )
     GEMINI_MODEL: str = "gemini-2.0-flash-lite"
 
-    # ── Groq settings (tertiary fallback — Claude → Gemini → Groq) ────────────
-    # Set GROQ_API_KEY in .env or GitHub Secrets for 3-way fallback resilience.
+    # ── AWS Bedrock settings (fallback — Claude → Gemini → Bedrock → Groq) ───
+    # Set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + AWS_REGION in .env
+    # Enable model access in Bedrock console first (one-time step).
+    AWS_ACCESS_KEY_ID: str = field(
+        default_factory=lambda: os.getenv("AWS_ACCESS_KEY_ID", "")
+    )
+    AWS_SECRET_ACCESS_KEY: str = field(
+        default_factory=lambda: os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    )
+    AWS_REGION: str = field(
+        default_factory=lambda: os.getenv("AWS_REGION", "us-east-1")
+    )
+    BEDROCK_MODEL: str = field(
+        default_factory=lambda: os.getenv("BEDROCK_MODEL", "us.amazon.nova-lite-v1:0")
+    )
+
+    # ── Groq settings (ultimate fallback — Claude → Gemini → Bedrock → Groq) ─
+    # Set GROQ_API_KEY in .env or GitHub Secrets for 4-way fallback resilience.
     # Get free API key from https://console.groq.com/ (free tier available).
     GROQ_API_KEY: str = field(
         default_factory=lambda: os.getenv("GROQ_API_KEY", "")
