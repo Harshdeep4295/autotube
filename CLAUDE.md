@@ -225,11 +225,47 @@ TTS_VOICES = {
 # Setup: regenerate YouTube token with analytics scope
 ```
 
-### v4: Approval Queue (NEW 2026-05-15)
+### v4: Approval Queue + WhatsApp Notifications (NEW 2026-05-15)
 ```python
 APPROVAL_REQUIRED = false        # Set to true to require manual script approval before rendering
-                                  # Scripts saved to data/pending_approval.json
-                                  # Use: python review.py (interactive CLI to approve/reject/edit)
+                                  # Scripts saved to Supabase pending_videos with approved=false
+                                  # Approve via: WhatsApp reply, CLI (python review.py), or Supabase dashboard
+
+# WhatsApp Cloud API (sends approval requests to your phone)
+WHATSAPP_ENABLED = false         # Enable WhatsApp notifications
+WHATSAPP_PHONE_NUMBER_ID = ""    # From Meta Business > WhatsApp > Phone Numbers
+WHATSAPP_ACCESS_TOKEN = ""       # Permanent token from Meta Business > System Users
+WHATSAPP_RECIPIENT = ""          # Your phone number (with country code, e.g. "919876543210")
+WHATSAPP_VERIFY_TOKEN = "autotube_verify_2026"  # For webhook verification
+```
+
+**WhatsApp Approval Flow:**
+1. Pipeline generates script → saves to Supabase with `approved=false`
+2. WhatsApp sends you: title, thumbnail text, word count, tags
+3. You reply `1` (approve), `2` (reject), or `3` (view full script)
+4. Next pipeline run picks up approved scripts and renders them
+5. **Auto-approve:** If no response in `APPROVAL_TIMEOUT_HOURS` (default 6h), script auto-approves
+6. **Reminder cron:** `remind_pending.py` sends WhatsApp summary every 2 hours
+
+**WhatsApp Commands:**
+- `1` → Approve oldest pending script
+- `2` → Reject oldest pending script
+- `3` → Show script details
+- `status` → List all pending scripts
+- `approve <id>` → Approve specific script by ID
+- `reject <id>` → Reject specific script by ID
+
+**Webhook + Reminder Setup:**
+```bash
+# Run webhook server (required for receiving WhatsApp replies)
+uvicorn webhook_server:app --host 0.0.0.0 --port 8765
+
+# Expose via Cloudflare Tunnel (for HTTPS, required by Meta)
+cloudflared tunnel --url http://localhost:8765
+# Use the generated URL as your webhook URL in Meta Business settings
+
+# Reminder cron (every 2 hours, sends pending count to WhatsApp)
+0 */2 * * * cd /home/harshdeepsingh/autotube && .venv/bin/python3 remind_pending.py >> /home/harshdeepsingh/cron_logs/autotube_reminder.log 2>&1
 ```
 
 ### Feature 1: Multi-Format Videos (NEW 2026-05-05)

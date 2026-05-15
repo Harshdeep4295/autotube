@@ -33,6 +33,10 @@ google-auth-httplib2>=0.1.1
 # Topic history database
 supabase>=2.0.0
 
+# WhatsApp webhook server
+fastapi>=0.115.0
+uvicorn>=0.30.0
+
 # Utilities
 python-dotenv>=1.0.0
 APScheduler>=3.10.0

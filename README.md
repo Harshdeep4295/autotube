@@ -279,6 +279,52 @@ autotube/
 
 ---
 
+## WhatsApp Approval (Optional)
+
+Approve/reject scripts from your phone — no need to SSH into the server.
+
+### How It Works
+```
+Cron generates script → Saved to Supabase (pending) → WhatsApp notification sent
+    ↓
+You reply "1" (approve) or "2" (reject) from your phone
+    ↓
+Next pipeline run renders approved scripts → WhatsApp confirms "Published ✅"
+```
+
+### Setup
+1. Create a Meta Business account and WhatsApp Business app
+2. Get your Phone Number ID and permanent access token
+3. Set env vars:
+   ```bash
+   APPROVAL_REQUIRED=true
+   WHATSAPP_ENABLED=true
+   WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+   WHATSAPP_ACCESS_TOKEN=your_permanent_token
+   WHATSAPP_RECIPIENT=919876543210  # your number with country code
+   ```
+4. Run the webhook server:
+   ```bash
+   uvicorn webhook_server:app --host 0.0.0.0 --port 8765
+   ```
+5. Expose via Cloudflare Tunnel (Meta requires HTTPS):
+   ```bash
+   cloudflared tunnel --url http://localhost:8765
+   ```
+6. Set the tunnel URL as your webhook in Meta Business settings
+
+### Commands (reply to bot)
+| Reply | Action |
+|-------|--------|
+| `1` | Approve oldest pending script |
+| `2` | Reject oldest pending script |
+| `3` | Show full script details |
+| `status` | List all pending scripts |
+| `approve 42` | Approve script #42 |
+| `reject 42` | Reject script #42 |
+
+---
+
 ## Re-authorizing YouTube
 
 If the token expires (unused 6+ months) or you revoke access:

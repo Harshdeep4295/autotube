@@ -297,7 +297,9 @@ class Orchestrator:
         # Pre-flight: Cleanup old outputs to ensure disk space
         self._cleanup_old_outputs(max_age_days=1)
 
-        # Step 0: Check for unpublished scripts in queue first (no API calls needed)
+        # Step 0: Auto-approve expired scripts, then check queue
+        self._auto_approve_expired()
+
         if not topic_override:
             self.logger.info("Step 1/6: Checking for pending videos in queue…")
             pending_scripts = self._fetch_pending_scripts_for_render(count)
@@ -816,6 +818,18 @@ class Orchestrator:
                 youtube_url=result.get("url"),
             )
 
+            # Notify via WhatsApp
+            if config.WHATSAPP_ENABLED:
+                try:
+                    from agents.whatsapp_agent import WhatsAppAgent
+                    WhatsAppAgent().send_status_update(
+                        result.get("title", "Video"),
+                        "published",
+                        result.get("url", ""),
+                    )
+                except Exception:
+                    pass
+
         except Exception as e:
             result["error"]     = str(e)
             result["traceback"] = traceback.format_exc()
@@ -825,6 +839,16 @@ class Orchestrator:
 
             # Update Supabase with failure
             self._update_pending_status(row["id"], "failed", error_text=str(e))
+
+            # Notify via WhatsApp
+            if config.WHATSAPP_ENABLED:
+                try:
+                    from agents.whatsapp_agent import WhatsAppAgent
+                    WhatsAppAgent().send_status_update(
+                        row.get("topic", "Video"), "failed"
+                    )
+                except Exception:
+                    pass
 
             if not config.SKIP_ON_FAIL:
                 raise
@@ -839,15 +863,26 @@ class Orchestrator:
         try:
             from supabase import create_client
             client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+
+            auto_approve = not config.APPROVAL_REQUIRED
             res = client.table("pending_videos").insert({
                 "topic": topic,
                 "script_json": script,
                 "image_cache": image_cache,
                 "status": "pending",
-                "approved": True,
+                "approved": auto_approve,
             }).execute()
             row_id = res.data[0]["id"] if res.data else None
-            self.logger.info(f"Saved to Supabase: {topic} (row_id={row_id})")
+            self.logger.info(f"Saved to Supabase: {topic} (row_id={row_id}, approved={auto_approve})")
+
+            if not auto_approve and config.WHATSAPP_ENABLED:
+                try:
+                    from agents.whatsapp_agent import WhatsAppAgent
+                    wa = WhatsAppAgent()
+                    wa.send_approval_request(row_id, script)
+                except Exception as wa_err:
+                    self.logger.warning(f"WhatsApp notification failed (non-blocking): {wa_err}")
+
             return row_id
         except Exception as e:
             self.logger.error(f"Failed to save pending video to Supabase: {e}")
@@ -924,6 +959,57 @@ class Orchestrator:
             return count
         except Exception as e:
             self.logger.error(f"Failed to count pending videos from Supabase: {e}")
+            return 0
+
+    def _auto_approve_expired(self) -> int:
+        """Auto-approve scripts that have been pending longer than APPROVAL_TIMEOUT_HOURS."""
+        if not config.APPROVAL_REQUIRED:
+            return 0
+        if not (config.SUPABASE_URL and config.SUPABASE_KEY):
+            return 0
+        try:
+            from supabase import create_client
+            from datetime import datetime, timezone, timedelta
+
+            client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+            cutoff = (datetime.now(tz=timezone.utc) - timedelta(hours=config.APPROVAL_TIMEOUT_HOURS)).isoformat()
+
+            res = (
+                client.table("pending_videos")
+                .select("id, topic, created_at")
+                .eq("status", "pending")
+                .eq("approved", False)
+                .lt("created_at", cutoff)
+                .execute()
+            )
+
+            if not res.data:
+                return 0
+
+            ids = [r["id"] for r in res.data]
+            client.table("pending_videos").update(
+                {"approved": True}
+            ).in_("id", ids).execute()
+
+            self.logger.info(
+                f"Auto-approved {len(ids)} scripts (older than {config.APPROVAL_TIMEOUT_HOURS}h): "
+                f"{[r['topic'][:30] for r in res.data]}"
+            )
+
+            if config.WHATSAPP_ENABLED:
+                try:
+                    from agents.whatsapp_agent import WhatsAppAgent
+                    titles = [r["topic"][:40] for r in res.data]
+                    WhatsAppAgent()._send_message(
+                        f"⏰ *Auto-approved {len(ids)} script(s)* (no response in {config.APPROVAL_TIMEOUT_HOURS}h):\n"
+                        + "\n".join(f"• {t}" for t in titles)
+                    )
+                except Exception:
+                    pass
+
+            return len(ids)
+        except Exception as e:
+            self.logger.error(f"Auto-approve check failed: {e}")
             return 0
 
     def _fetch_pending_scripts_for_render(self, count: int = 1) -> List[Dict]:

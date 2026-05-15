@@ -174,6 +174,26 @@ class Config:
     APPROVAL_REQUIRED: bool = field(
         default_factory=lambda: os.getenv("APPROVAL_REQUIRED", "false").lower() == "true"
     )
+    APPROVAL_TIMEOUT_HOURS: int = field(
+        default_factory=lambda: int(os.getenv("APPROVAL_TIMEOUT_HOURS", "6"))
+    )
+
+    # ── WhatsApp Cloud API (approval notifications) ──────────────────────────
+    WHATSAPP_ENABLED: bool = field(
+        default_factory=lambda: os.getenv("WHATSAPP_ENABLED", "false").lower() == "true"
+    )
+    WHATSAPP_PHONE_NUMBER_ID: str = field(
+        default_factory=lambda: os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+    )
+    WHATSAPP_ACCESS_TOKEN: str = field(
+        default_factory=lambda: os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+    )
+    WHATSAPP_RECIPIENT: str = field(
+        default_factory=lambda: os.getenv("WHATSAPP_RECIPIENT", "")
+    )
+    WHATSAPP_VERIFY_TOKEN: str = field(
+        default_factory=lambda: os.getenv("WHATSAPP_VERIFY_TOKEN", "autotube_verify_2026")
+    )
 
     # ── Video rendering ───────────────────────────────────────────────────────
     VIDEO_WIDTH: int = field(default_factory=lambda: (
