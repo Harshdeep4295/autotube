@@ -67,7 +67,7 @@ class Config:
         default_factory=lambda: os.getenv("AWS_REGION", "us-east-1")
     )
     BEDROCK_MODEL: str = field(
-        default_factory=lambda: os.getenv("BEDROCK_MODEL", "us.amazon.nova-lite-v1:0")
+        default_factory=lambda: os.getenv("BEDROCK_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
     )
 
     # ── Groq settings (ultimate fallback — Claude → Gemini → Bedrock → Groq) ─

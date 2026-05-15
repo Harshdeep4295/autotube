@@ -110,18 +110,19 @@ class ScriptAgent:
             )
 
     def _is_quota_error(self, exc: Exception) -> bool:
-        """Detect if error is due to quota exhaustion or auth failure."""
+        """Detect if error is due to quota exhaustion, auth failure, or missing key."""
         error_str = str(exc).lower()
-        # Quota/auth indicators
         quota_keywords = [
-            "429",  # Rate limit (429 Too Many Requests)
-            "quota",  # Quota exceeded
-            "rate limit",  # Rate limited
-            "overloaded",  # Server overloaded
-            "401",  # Unauthorized
-            "403",  # Forbidden
-            "authentication",  # Auth error
-            "invalid api key",  # Bad API key
+            "429",
+            "quota",
+            "rate limit",
+            "overloaded",
+            "401",
+            "403",
+            "authentication",
+            "invalid api key",
+            "not set",
+            "too short",
         ]
         return any(keyword in error_str for keyword in quota_keywords)
 
@@ -133,6 +134,16 @@ class ScriptAgent:
             try:
                 raw = fn(topic)
                 return self._parse_response(raw)
+            except ValueError as exc:
+                if "not set" in str(exc).lower():
+                    raise RuntimeError(str(exc))
+                last_exc = exc
+                delay = config.CLAUDE_BACKOFF * (2 ** attempt)
+                logger.warning(
+                    f"Script attempt {attempt + 1}/{config.CLAUDE_RETRIES} failed: {exc}. "
+                    f"Retrying in {delay:.0f}s…"
+                )
+                time.sleep(delay)
             except Exception as exc:
                 last_exc = exc
                 delay = config.CLAUDE_BACKOFF * (2 ** attempt)
@@ -244,6 +255,17 @@ class ScriptAgent:
 
     # ── Provider: AWS Bedrock ────────────────────────────────────────────────
 
+    _BEDROCK_WORD_COUNT_BOOST = (
+        "\n\nABSOLUTE WORD COUNT REQUIREMENT — #1 PRIORITY:\n"
+        "You MUST produce at least 1000 total words across all section \"text\" fields.\n"
+        "- hook: at least 65 words\n"
+        "- context: at least 100 words\n"
+        "- main_1 through main_5: at least 140 words EACH\n"
+        "- cta: at least 80 words\n"
+        "If you produce fewer than 1000 total words, output is REJECTED.\n"
+        "Write FULL voiceover narration with specific examples and data — not summaries."
+    )
+
     def _call_bedrock(self, topic: Dict) -> str:
         import boto3  # lazy import — only needed if using bedrock
         if not config.AWS_ACCESS_KEY_ID or not config.AWS_SECRET_ACCESS_KEY:
@@ -262,15 +284,16 @@ class ScriptAgent:
             topic=topic.get("topic", ""),
             summary=topic.get("angle", ""),
         )
+        system_prompt = SCRIPT_SYSTEM_PROMPT + self._BEDROCK_WORD_COUNT_BOOST
         try:
             response = client.converse(
                 modelId=config.BEDROCK_MODEL,
-                system=[{"text": SCRIPT_SYSTEM_PROMPT}],
+                system=[{"text": system_prompt}],
                 messages=[
                     {"role": "user", "content": [{"text": user_prompt}]}
                 ],
                 inferenceConfig={
-                    "maxTokens": 4096,
+                    "maxTokens": 8192,
                     "temperature": 0.7,
                 },
             )
