@@ -17,9 +17,39 @@ The user reviews all changes before committing. Do not automate git operations.
 
 ---
 
-## What's New (2026-05-05)
+## What's New (2026-05-15) — v4 Release
 
-### Three Major Features Added
+### v4 Features (Mid-Roll Revenue + Multi-Language + Analytics)
+
+| Feature | What | How to Enable | Result |
+|---------|------|---------------|--------|
+| **Mid-Roll Ads** | 8+ minute videos (1100 words, 8 sections) | Default — no config needed | 2-3x RPM from mid-roll ad eligibility |
+| **Voice Variety** | Random voice selection from niche-specific pools | Default — automatic | No two videos sound the same, avoids "bot channel" flags |
+| **CC0 Music** | Auto-fetch royalty-free background music from Pixabay | `MUSIC_ENABLED=true` | Zero copyright strikes, auto-downloads 5+ tracks |
+| **Analytics Feedback** | YouTube Analytics → topic scoring boost | Requires `yt-analytics.readonly` OAuth scope | High-performing topics get priority in research |
+| **Approval Queue** | Manual review before upload | `APPROVAL_REQUIRED=true` | Human creative control, YouTube policy compliance |
+| **3 New Niches** | Legal & Tax, Senior Health, Soundscapes | `CHANNEL_NICHE="Legal & Tax"` etc. | Full pipeline support (subreddits, RSS, colors, voices) |
+| **Multi-Language** | Hindi and Spanish video generation | `LANGUAGE=hi` or `LANGUAGE=es` | Localized scripts, native TTS voices, adjusted word counts |
+
+### Quick Start (v4)
+```bash
+# Standard run (now 8+ minutes for mid-roll ads)
+.venv/bin/python3 orchestrator.py --dry-run --topic "AI Tools 2025"
+
+# Hindi video
+LANGUAGE=hi .venv/bin/python3 orchestrator.py --dry-run --topic "AI Tools"
+# or: ./run_hindi.sh --dry-run --topic "AI Tools"
+
+# Spanish video
+LANGUAGE=es .venv/bin/python3 orchestrator.py --dry-run --topic "AI Tools"
+# or: ./run_spanish.sh --dry-run --topic "AI Tools"
+
+# With approval queue (scripts saved for review before rendering)
+APPROVAL_REQUIRED=true .venv/bin/python3 orchestrator.py --dry-run --topic "AI Tools"
+python review.py  # interactive CLI to approve/reject/edit pending scripts
+```
+
+### v3 Features (2026-05-05)
 
 | Feature | What | How to Enable | Result |
 |---------|------|---------------|--------|
@@ -27,21 +57,14 @@ The user reviews all changes before committing. Do not automate git operations.
 | **YouTube Comments** | Research topics from audience comments | `COMMENTS_ENABLED=true` | Audience-driven topic research + Reddit + pytrends |
 | **Auto-Playlists** | Auto-group videos into keyword playlists | `PLAYLIST_ENABLED=true` (default) | All videos organized by topic, no manual work |
 
-### New Orchestrator Mode
+### Orchestrator Modes
 ```bash
+# Standard new video (default, now 8+ min for mid-roll)
+python orchestrator.py --mode auto --dry-run --topic "AI Tools"
+
 # Generate Shorts from existing videos (6 daily crons)
 python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views
 # Strategies: recent_high_views, all_time_best, underutilized
-```
-
-### Quick Start
-```bash
-# Test all three features
-VIDEO_FORMAT=shorts COMMENTS_ENABLED=true PLAYLIST_ENABLED=true \
-  python orchestrator.py --dry-run --count 1 --topic "AI Tools"
-
-# Test Shorts from existing videos
-python orchestrator.py --mode shorts_from_existing --pick_strategy recent_high_views --dry-run
 ```
 
 See sections below for detailed setup, testing, and crontab configuration.
@@ -77,8 +100,13 @@ Output lands in `outputs/<date>_<id>/video.mp4`. Open with `open outputs/`.
 | `agents/gcp_cost_tracker.py` | GCP credit usage monitoring vs $300 budget |
 | `agents/thumbnail_agent.py` | Pillow → JPEG thumbnail (landscape 1280×720 or Shorts 1080×1920) |
 | `agents/upload_agent.py` | YouTube Data API v3, OAuth2, resumable upload, playlist management |
+| `agents/music_agent.py` | Pixabay CC0 music auto-fetch → `data/music/` (v4) |
+| `agents/analytics_agent.py` | YouTube Analytics feedback loop → topic boost scoring (v4) |
 | `agents/comment_research_agent.py` | YouTube comments → audience-driven topic research |
-| `templates/prompts.py` | All LLM prompt templates — landscape, Shorts, and YouTube comment guidance |
+| `review.py` | Manual approval queue CLI — approve/reject/edit pending scripts (v4) |
+| `run_hindi.sh` | Convenience script: `LANGUAGE=hi` pipeline runner (v4) |
+| `run_spanish.sh` | Convenience script: `LANGUAGE=es` pipeline runner (v4) |
+| `templates/prompts.py` | All LLM prompt templates — landscape, Shorts, multi-language, and YouTube comment guidance |
 | `.github/workflows/daily_pipeline.yml` | 4 cron triggers (09/12/15/18 IST) |
 
 ---
@@ -113,7 +141,15 @@ client.models.generate_content(
 
 ### Script JSON structure
 `script_agent.py` requires these keys: `title`, `description`, `tags`, `sections`, `thumbnail_text`.
-`video_agent.py` also uses: `visual_queries` (list of 6 cinematic Pexels search terms, one per section) and `hook_title_text` (bold opener text). These are optional with fallbacks.
+`video_agent.py` also uses: `visual_queries` (list of 8 cinematic Pexels search terms, one per section) and `hook_title_text` (bold opener text). These are optional with fallbacks.
+
+### Multi-Language Support (v4)
+Set `LANGUAGE` env var to generate scripts and voiceovers in other languages:
+- `en` (default) — English, 1100 words, US/UK voices
+- `hi` — Hindi, 900 words, Hindi neural voices
+- `es` — Spanish, 1000 words, Spanish neural voices
+
+The `get_script_user_prompt(language, is_shorts)` helper in `templates/prompts.py` injects language-specific instructions into the LLM prompt. Voice agent auto-selects from the language's voice pool via `config.TTS_VOICES_BY_LANGUAGE`.
 
 ### Pexels clip caching
 Downloaded clips are cached in `outputs/video_cache/` by URL hash. If you change search queries, clear the cache: `rm -rf outputs/video_cache/*`
@@ -147,16 +183,53 @@ The video rendering pipeline now auto-detects available RAM and uses memory-effi
 
 ### Basic Settings
 ```python
-CHANNEL_NICHE = "AI & Tech"      # Options: AI & Tech | Finance | Business | Health | History | English Learning
-                                  # Changing niche auto-switches: subreddits, RSS feeds, accent colors, script angle guidance
+CHANNEL_NICHE = "AI & Tech"      # Options: AI & Tech | Finance | Business | Health | History | English Learning | Legal & Tax | Senior Health | Soundscapes
+                                  # Changing niche auto-switches: subreddits, RSS feeds, accent colors, script angle guidance, TTS voices
 CHANNEL_NAME = "AutoTube"        # shown in top-left watermark
-SCRIPT_WORD_COUNT = 650          # ~4.5 min — don't increase beyond 800
-SCRIPT_MODEL_PROVIDER            # "claude" or "gemini" — set via env var
+SCRIPT_WORD_COUNT = 1100         # ~8 min — mid-roll ad eligible (v4, was 650)
+TARGET_VIDEO_SECONDS = 440       # Target duration for 1100 words at 150 wpm (v4, was 300)
+SCRIPT_MODEL_PROVIDER            # "auto" (3-way fallback), "claude", "gemini", "groq" — set via env var
 VIDEO_BACKGROUND_MODE            # "ai_images" (V2, default) or "pexels" (V1) — set via env var / GitHub Variable
 VIDEO_ANIMATION_MODE             # "ken_burns" (default), "veo" — switch via env var
 MUSIC_ENABLED                    # "true" (default) or "false" — IMPORTANT: only use CC0 music, YouTube deducts 55% for licensed music
 DARK_OVERLAY_OPACITY = 0.52      # how dark the footage overlay is (0.4–0.65)
-PEXELS_CLIPS_PER_VIDEO = 6       # Dynamic: matches actual section count (4-8 based on script complexity)
+PEXELS_CLIPS_PER_VIDEO = 8       # Dynamic: matches actual section count (v4: 8 sections for mid-roll length)
+```
+
+### v4: Multi-Language Pipeline (NEW 2026-05-15)
+```python
+LANGUAGE = "en"                  # "en" (default), "hi" (Hindi), "es" (Spanish) — set via env var
+                                  # Controls: script language, TTS voice selection, word count
+# Per-language word counts (auto-applied via config.ACTIVE_WORD_COUNT property):
+SCRIPT_WORD_COUNT_BY_LANGUAGE = {"en": 1100, "hi": 900, "es": 1000}
+
+# Per-language TTS voice pools (random selection per video):
+TTS_VOICES_BY_LANGUAGE = {
+    "hi": ["hi-IN-MadhurNeural", "hi-IN-SwaraNeural"],
+    "es": ["es-MX-DaliaNeural", "es-ES-AlvaroNeural", "es-MX-JorgeNeural"],
+}
+
+# Per-niche English voice pools (random selection per video):
+TTS_VOICES = {
+    "AI & Tech": ["en-US-GuyNeural", "en-US-DavisNeural", "en-GB-RyanNeural"],
+    "Finance": ["en-US-DavisNeural", "en-GB-RyanNeural", "en-AU-WilliamNeural"],
+    # ... all 9 niches have 3-voice pools
+}
+```
+
+### v4: Analytics Feedback Loop (NEW 2026-05-15)
+```python
+# Requires: YouTube OAuth token with yt-analytics.readonly scope
+# agents/analytics_agent.py pulls views, RPM, retention → stores in data/topic_performance.json
+# research_agent.py multiplies topic scores by analytics boost (0.5x–2.0x)
+# Setup: regenerate YouTube token with analytics scope
+```
+
+### v4: Approval Queue (NEW 2026-05-15)
+```python
+APPROVAL_REQUIRED = false        # Set to true to require manual script approval before rendering
+                                  # Scripts saved to data/pending_approval.json
+                                  # Use: python review.py (interactive CLI to approve/reject/edit)
 ```
 
 ### Feature 1: Multi-Format Videos (NEW 2026-05-05)

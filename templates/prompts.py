@@ -34,6 +34,24 @@ CONTENT ANGLE PRIORITY (highest RPM first):
   1. Specific business strategies with numbers ($12-18 RPM)
   2. Case studies of real companies ($10-15 RPM)
   3. Entrepreneurship / side income ideas ($10-14 RPM)""",
+    "Legal & Tax": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. Tax saving strategies with specific numbers ($12-18 RPM) — "IRS allows this $X deduction most people miss"
+  2. Legal rights most people don't know ($10-16 RPM) — "Your landlord can't legally do this"
+  3. Recent law changes with impact ($8-14 RPM) — "New 2026 tax rule saves families $X"
+  AVOID: generic legal disclaimers — be specific, cite real statutes/rules with numbers""",
+    "Senior Health": """
+CONTENT ANGLE PRIORITY (highest RPM first):
+  1. Science-backed longevity habits ($8-12 RPM) — "Study shows X adds Y years to lifespan"
+  2. Supplement and nutrition deep dives ($6-10 RPM) — "This vitamin reduced risk by X%"
+  3. Exercise routines for 50+ ($6-10 RPM) — specific, evidence-based routines with numbers
+  AVOID: vague wellness advice — always cite studies, use specific numbers""",
+    "Soundscapes": """
+CONTENT ANGLE: This niche uses MINIMAL narration.
+  - Script should be a short 3-sentence scene description only (title card + ambient description)
+  - Target: 60-180 minutes of continuous atmosphere (script is just the intro)
+  - Hook is just a title card, then pure soundscape
+  - Word count should be ~100-150 words max (just intro + brief description + CTA)""",
     "default": """
 CONTENT ANGLE PRIORITY: Focus on specific, actionable insights with real numbers.
 Avoid generic overviews. Every video should answer: "What should the viewer DO differently after watching?" """,
@@ -101,12 +119,24 @@ Return this exact JSON structure (no extra text outside the JSON):
       "section_name": "main_3",
       "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE REAL ANSWER', 'THE FIX', 'WHAT WORKS')",
       "text": "Third insight — the most surprising or counterintuitive point. Short sentences. End with micro-cliffhanger.",
+      "word_count": 160
+    }},
+    {{
+      "section_name": "main_4",
+      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE DEEPER ISSUE', 'HIDDEN COST', 'REAL WORLD')",
+      "text": "Fourth insight — real-world application or case study with specific numbers. Short sentences. End with micro-cliffhanger.",
+      "word_count": 160
+    }},
+    {{
+      "section_name": "main_5",
+      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'WHAT'S NEXT', 'THE FUTURE', 'YOUR MOVE')",
+      "text": "Fifth insight — future implications or actionable next steps. Short sentences. End with micro-cliffhanger.",
       "word_count": 155
     }},
     {{
       "section_name": "cta",
       "section_display_title": "",
-      "text": "Quick summary of the 3 key takeaways (1 sentence each). CTA: like + subscribe + ask a specific question.",
+      "text": "Quick summary of the 5 key takeaways (1 sentence each). CTA: like + subscribe + ask a specific question.",
       "word_count": 90
     }}
   ],
@@ -116,23 +146,21 @@ Return this exact JSON structure (no extra text outside the JSON):
     "TOPIC-RELEVANT cinematic query for section 3 (main_1)",
     "TOPIC-RELEVANT cinematic query for section 4 (main_2)",
     "TOPIC-RELEVANT cinematic query for section 5 (main_3)",
-    "TOPIC-RELEVANT cinematic query for section 6 (cta)"
+    "TOPIC-RELEVANT cinematic query for section 6 (main_4)",
+    "TOPIC-RELEVANT cinematic query for section 7 (main_5)",
+    "TOPIC-RELEVANT cinematic query for section 8 (cta)"
   ],
   "thumbnail_text": "3-4 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47 TOOLS TESTED', 'AI KILLED THIS', '$50K MISTAKE')",
   "thumbnail_subtext": "2-3 word VALUE PROPOSITION shown below main text — use ROI/outcome framing like 'SAVES 3 HRS', 'EARN MORE', 'FREE TOOL', 'IN 2026' — NOT a description of the video",
   "thumbnail_stat": "A bold number or stat from the video to use as a badge (e.g. '47', '$50K', '10X', '2026') — leave empty string if none",
   "pexels_search_query": "2-3 word search term for stock footage",
-  "total_word_count": 750
+  "total_word_count": 1100
 }}
 
-DYNAMIC SECTIONS — If the topic has MORE than 3 key insights, add additional main_X sections (main_4, main_5, etc.). Each should have:
-  - section_name: "main_4", "main_5", etc.
-  - section_display_title: 2-4 WORDS ALL CAPS
-  - text: ~160 words with micro-cliffhanger
-  - word_count: ~160
-
-If you add N total sections, the visual_queries array MUST have exactly N strings (one per section in order).
-Keep total word count proportional: ~750 words for 6 sections, ~900 words for 8 sections.
+DYNAMIC SECTIONS — The default structure above has 8 sections (~1100 words, ~7.5 min video).
+If the topic needs FEWER insights, you may remove main_4 and/or main_5 (minimum 6 sections).
+If you add/remove sections, the visual_queries array MUST have exactly N strings (one per section in order).
+Keep total word count proportional: ~750 for 6 sections, ~900 for 7, ~1100 for 8 sections.
 
 CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count should be proportional to section count.
 
@@ -251,3 +279,17 @@ CRITICAL FOR SHORTS:
   6. HOOK (40 words): Grab attention in first 3 seconds with a bold claim, stat, or question
   7. VEO SAFETY (if using Veo text-to-video): AVOID hands, faces, people — use landscapes, machines, objects
 """
+
+# ── Multi-language support ────────────────────────────────────────────────────
+
+LANGUAGE_INSTRUCTION = {
+    "en": "",
+    "hi": "\n\nIMPORTANT: Write the ENTIRE script in Hindi (Devanagari script). Title, description, section text — ALL in Hindi. Tags can be bilingual (Hindi + English) for discoverability. The visual_queries MUST remain in English (for Pexels/Veo API).",
+    "es": "\n\nIMPORTANT: Write the ENTIRE script in Spanish. Title, description, section text — ALL in Spanish. Tags can be bilingual (Spanish + English) for discoverability. The visual_queries MUST remain in English (for Pexels/Veo API).",
+}
+
+
+def get_script_user_prompt(language: str = "en", is_shorts: bool = False) -> str:
+    """Returns the appropriate user prompt with language instruction appended."""
+    base = SHORTS_USER_PROMPT if is_shorts else SCRIPT_USER_PROMPT
+    return base + LANGUAGE_INSTRUCTION.get(language, "")

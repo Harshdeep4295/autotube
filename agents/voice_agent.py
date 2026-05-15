@@ -7,6 +7,7 @@ Falls back to pyttsx3 (offline) if network is unavailable.
 import asyncio
 import logging
 import os
+import random
 from pathlib import Path
 from typing import Dict
 
@@ -51,11 +52,22 @@ class VoiceAgent:
 
     # ── Edge TTS (primary) ────────────────────────────────────────────────────
 
+    def _pick_voice(self) -> str:
+        """Pick a random voice from the language-appropriate or niche-appropriate pool."""
+        if config.LANGUAGE != "en":
+            voices = config.TTS_VOICES_BY_LANGUAGE.get(config.LANGUAGE, ["en-US-JennyNeural"])
+        else:
+            voices = config.TTS_VOICES.get(config.CHANNEL_NICHE, ["en-US-JennyNeural"])
+        voice = random.choice(voices)
+        logger.info(f"Selected TTS voice: {voice}")
+        return voice
+
     async def _synthesize_edge_tts(self, text: str, output_path: str) -> None:
         import edge_tts
+        voice = self._pick_voice()
         communicate = edge_tts.Communicate(
             text=text,
-            voice=config.TTS_VOICE,
+            voice=voice,
             rate=config.TTS_RATE,
             pitch=config.TTS_PITCH,
         )

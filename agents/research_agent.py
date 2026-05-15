@@ -81,6 +81,22 @@ RSS_FEEDS_BY_NICHE = {
         "https://www.bbc.co.uk/learningenglish/english/rss",
         "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
     ],
+    "Legal & Tax": [
+        "https://www.irs.gov/newsroom/feed",
+        "https://taxfoundation.org/feed/",
+        "https://www.scotusblog.com/feed/",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
+    ],
+    "Senior Health": [
+        "https://www.nih.gov/news-events/news-releases/feed",
+        "https://rss.medicalnewstoday.com/",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+        "https://feeds.reuters.com/reuters/healthNews",
+    ],
+    "Soundscapes": [
+        "https://www.musicradar.com/rss",
+        "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml",
+    ],
 }
 
 # Default fallback (AI & Tech)
@@ -301,6 +317,19 @@ class ResearchAgent:
             topic["quality_score"] = self._score_topic_quality(topic)
 
         scored = self._score_topics(raw_topics)
+
+        # Analytics feedback: boost/penalize topics based on past video performance
+        try:
+            from agents.analytics_agent import AnalyticsAgent
+            analytics = AnalyticsAgent()
+            for topic in scored:
+                boost = analytics.get_topic_boost(topic.get("topic", ""))
+                if boost != 1.0:
+                    topic["composite_score"] = round(topic.get("composite_score", 0) * boost, 2)
+                    logger.info(f"  Analytics boost: {topic['topic'][:40]} x{boost:.2f}")
+        except Exception:
+            pass
+
         filtered = self._deduplicate(scored, history)
 
         # ENHANCEMENT: Filter by quality score (keep only >0.35 quality for high-RPM content)

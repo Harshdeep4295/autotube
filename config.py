@@ -108,6 +108,18 @@ class Config:
             "EnglishLearning", "grammar", "ENGLISH", "languagelearning",
             "LearnEnglish", "linguistics", "teachers", "IELTS",
         ],
+        "Legal & Tax": [
+            "legaladvice", "tax", "personalfinance", "taxpros",
+            "law", "LegalAdviceUK", "Accounting", "financialplanning",
+        ],
+        "Senior Health": [
+            "longevity", "nutrition", "HealthyLiving", "AskDocs",
+            "Supplements", "Biohackers", "aging", "FitnessOver50",
+        ],
+        "Soundscapes": [
+            "ambientmusic", "lofi", "asmr", "productivity",
+            "GetStudying", "focusmusic", "meditation", "DeepWork",
+        ],
     })
 
     @property
@@ -118,13 +130,50 @@ class Config:
         return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
 
     # ── Script / content ──────────────────────────────────────────────────────
-    SCRIPT_WORD_COUNT: int = 750   # ~5 min at 150 wpm
-    TARGET_VIDEO_SECONDS: int = 300  # 5 minutes
+    SCRIPT_WORD_COUNT: int = 1100  # ~7.5 min at 150 wpm (enables mid-roll ads at 8+ min threshold)
+    TARGET_VIDEO_SECONDS: int = 440  # 7.3 minutes
 
     # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
-    TTS_VOICE: str = "en-US-JennyNeural"  # US female, warm and professional
+    TTS_VOICE: str = "en-US-JennyNeural"  # US female, warm and professional (legacy default)
     TTS_RATE: str = "+8%"                # slightly faster = more engaging
     TTS_PITCH: str = "+0Hz"
+
+    # Per-niche voice pools — voice_agent picks randomly from these per video
+    TTS_VOICES: dict = field(default_factory=lambda: {
+        "AI & Tech": ["en-US-DavisNeural", "en-US-GuyNeural", "en-US-JennyNeural"],
+        "Finance": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-JennyNeural"],
+        "Business": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-AriaNeural"],
+        "Health": ["en-US-AriaNeural", "en-US-JennyNeural", "en-US-GuyNeural"],
+        "History": ["en-GB-SoniaNeural", "en-US-DavisNeural", "en-US-GuyNeural"],
+        "English Learning": ["en-US-JennyNeural", "en-US-AriaNeural", "en-GB-SoniaNeural"],
+        "Legal & Tax": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-JennyNeural"],
+        "Senior Health": ["en-US-AriaNeural", "en-US-JennyNeural", "en-US-GuyNeural"],
+        "Soundscapes": ["en-US-AriaNeural", "en-GB-SoniaNeural", "en-US-JennyNeural"],
+    })
+
+    # ── Multi-language support ────────────────────────────────────────────────
+    LANGUAGE: str = field(default_factory=lambda: os.getenv("LANGUAGE", "en"))
+
+    TTS_VOICES_BY_LANGUAGE: dict = field(default_factory=lambda: {
+        "en": ["en-US-JennyNeural", "en-US-GuyNeural", "en-US-DavisNeural", "en-US-AriaNeural"],
+        "hi": ["hi-IN-MadhurNeural", "hi-IN-SwaraNeural"],
+        "es": ["es-US-PalomaNeural", "es-US-AlonsoNeural", "es-MX-DaliaNeural"],
+    })
+
+    SCRIPT_WORD_COUNT_BY_LANGUAGE: dict = field(default_factory=lambda: {
+        "en": 1100,
+        "hi": 900,
+        "es": 950,
+    })
+
+    @property
+    def ACTIVE_WORD_COUNT(self) -> int:
+        return self.SCRIPT_WORD_COUNT_BY_LANGUAGE.get(self.LANGUAGE, 1100)
+
+    # ── Manual approval queue ─────────────────────────────────────────────────
+    APPROVAL_REQUIRED: bool = field(
+        default_factory=lambda: os.getenv("APPROVAL_REQUIRED", "false").lower() == "true"
+    )
 
     # ── Video rendering ───────────────────────────────────────────────────────
     VIDEO_WIDTH: int = field(default_factory=lambda: (

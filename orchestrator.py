@@ -287,6 +287,13 @@ class Orchestrator:
     def run(self, count: int = 1, topic_override: Optional[str] = None) -> List[Dict]:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
 
+        # Pre-flight: Ensure background music library is stocked
+        try:
+            from agents.music_agent import ensure_music_available
+            ensure_music_available(min_tracks=5)
+        except Exception:
+            pass
+
         # Pre-flight: Cleanup old outputs to ensure disk space
         self._cleanup_old_outputs(max_age_days=1)
 
@@ -330,6 +337,14 @@ class Orchestrator:
 
         self._print_summary(results)
         self._save_report(results)
+
+        # Post-run: Pull analytics metrics (non-blocking)
+        if any(r.get("success") for r in results):
+            try:
+                from agents.analytics_agent import AnalyticsAgent
+                AnalyticsAgent().pull_metrics()
+            except Exception:
+                pass
 
         # Final cleanup after all uploads complete
         if any(r.get("success") for r in results):
