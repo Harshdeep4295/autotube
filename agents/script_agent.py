@@ -257,13 +257,14 @@ class ScriptAgent:
 
     _BEDROCK_WORD_COUNT_BOOST = (
         "\n\nABSOLUTE WORD COUNT REQUIREMENT — #1 PRIORITY:\n"
-        "You MUST produce at least 1000 total words across all section \"text\" fields.\n"
-        "- hook: at least 65 words\n"
-        "- context: at least 100 words\n"
-        "- main_1 through main_5: at least 140 words EACH\n"
-        "- cta: at least 80 words\n"
-        "If you produce fewer than 1000 total words, output is REJECTED.\n"
-        "Write FULL voiceover narration with specific examples and data — not summaries."
+        "You MUST produce at least 550 total words across all section \"text\" fields.\n"
+        "- hook: at least 50 words\n"
+        "- context: at least 80 words\n"
+        "- main_1 through main_3: at least 120 words EACH\n"
+        "- cta: at least 60 words\n"
+        "If you produce fewer than 500 total words, output is REJECTED.\n"
+        "Write FULL voiceover narration with specific examples and data — not summaries.\n"
+        "DO NOT add #Shorts to the title. This is a LANDSCAPE video, NOT a Short."
     )
 
     def _call_bedrock(self, topic: Dict) -> str:
@@ -355,12 +356,13 @@ class ScriptAgent:
         # Update claimed word count to match actual (fix inflated/inaccurate claims)
         data['total_word_count'] = actual_words
 
-        if actual_words < 80:
-            logger.warning(f"⚠️  Script critically short ({actual_words} words). Rejecting...")
-            raise ValueError(f"Script too short ({actual_words} words, minimum 80 required).")
+        min_words = 80 if config.IS_SHORTS else 350
+        if actual_words < min_words:
+            logger.warning(f"⚠️  Script critically short ({actual_words} words, min {min_words}). Rejecting...")
+            raise ValueError(f"Script too short ({actual_words} words, minimum {min_words} required for {'shorts' if config.IS_SHORTS else 'landscape'}).")
         else:
             logger.info(
-                f"✓ Script accepted: {actual_words} words (Groq limitation — videos will be ~{int(actual_words/150 * 5)} min)"
+                f"✓ Script accepted: {actual_words} words (~{actual_words // 100} min at ~100 effective wpm)"
             )
 
         logger.info(

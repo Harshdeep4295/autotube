@@ -146,8 +146,8 @@ class Config:
         return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
 
     # ── Script / content ──────────────────────────────────────────────────────
-    SCRIPT_WORD_COUNT: int = 1100  # ~7.5 min at 150 wpm (enables mid-roll ads at 8+ min threshold)
-    TARGET_VIDEO_SECONDS: int = 440  # 7.3 minutes
+    SCRIPT_WORD_COUNT: int = 600  # ~4 min at ~100 effective wpm (edge-tts actual rate)
+    TARGET_VIDEO_SECONDS: int = 270  # 4.5 minutes
 
     # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
     TTS_VOICE: str = "en-US-JennyNeural"  # US female, warm and professional (legacy default)
@@ -177,9 +177,9 @@ class Config:
     })
 
     SCRIPT_WORD_COUNT_BY_LANGUAGE: dict = field(default_factory=lambda: {
-        "en": 1100,
-        "hi": 900,
-        "es": 950,
+        "en": 600,
+        "hi": 500,
+        "es": 550,
     })
 
     @property
@@ -317,7 +317,7 @@ class Config:
 
     # ── Video caption / B-roll settings ──────────────────────────────────────
     VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips and AI images
-    PEXELS_CLIPS_PER_VIDEO: int = 6                # Dynamic per actual sections (4-8 based on script complexity)
+    PEXELS_CLIPS_PER_VIDEO: int = 6                # Dynamic per actual sections (5-7 based on script complexity)
     CAPTION_FONT_SIZE: int = 52
     CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
     DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast

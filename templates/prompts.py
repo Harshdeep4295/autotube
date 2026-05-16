@@ -94,50 +94,38 @@ Return this exact JSON structure (no extra text outside the JSON):
     {{
       "section_name": "hook",
       "section_display_title": "",
-      "text": "Hook using one of the 4 proven formulas. Under 75 words. End with a micro-cliffhanger teasing the next section.",
-      "word_count": 75
+      "text": "Hook using one of the 4 proven formulas. Under 60 words. End with a micro-cliffhanger teasing the next section.",
+      "word_count": 60
     }},
     {{
       "section_name": "context",
       "section_display_title": "2-4 WORDS, ALL CAPS — viewer-facing chapter heading shown on screen (e.g. 'WHY THIS MATTERS', 'THE PROBLEM', 'WHAT CHANGED')",
       "text": "Why this matters NOW. Specific numbers and recent data. Short sentences max 15 words. End with a micro-cliffhanger.",
-      "word_count": 110
+      "word_count": 90
     }},
     {{
       "section_name": "main_1",
       "section_display_title": "2-4 WORDS ALL CAPS chapter heading for this point (e.g. 'THE FIRST SIGN', 'MISTAKE #1', 'THE DATA')",
       "text": "First key insight. Specific example with real numbers. Every sentence under 15 words. End with micro-cliffhanger.",
-      "word_count": 160
+      "word_count": 130
     }},
     {{
       "section_name": "main_2",
       "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'IT GETS WORSE', 'THE TWIST', 'WHAT THEY MISSED')",
       "text": "Second key insight — contrasting or escalating. Specific data. Short sentences. End with micro-cliffhanger.",
-      "word_count": 160
+      "word_count": 130
     }},
     {{
       "section_name": "main_3",
       "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE REAL ANSWER', 'THE FIX', 'WHAT WORKS')",
       "text": "Third insight — the most surprising or counterintuitive point. Short sentences. End with micro-cliffhanger.",
-      "word_count": 160
-    }},
-    {{
-      "section_name": "main_4",
-      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'THE DEEPER ISSUE', 'HIDDEN COST', 'REAL WORLD')",
-      "text": "Fourth insight — real-world application or case study with specific numbers. Short sentences. End with micro-cliffhanger.",
-      "word_count": 160
-    }},
-    {{
-      "section_name": "main_5",
-      "section_display_title": "2-4 WORDS ALL CAPS chapter heading (e.g. 'WHAT'S NEXT', 'THE FUTURE', 'YOUR MOVE')",
-      "text": "Fifth insight — future implications or actionable next steps. Short sentences. End with micro-cliffhanger.",
-      "word_count": 155
+      "word_count": 120
     }},
     {{
       "section_name": "cta",
       "section_display_title": "",
-      "text": "Quick summary of the 5 key takeaways (1 sentence each). CTA: like + subscribe + ask a specific question.",
-      "word_count": 90
+      "text": "Quick summary of the 3 key takeaways (1 sentence each). CTA: like + subscribe + ask a specific question.",
+      "word_count": 70
     }}
   ],
   "visual_queries": [
@@ -146,21 +134,20 @@ Return this exact JSON structure (no extra text outside the JSON):
     "TOPIC-RELEVANT cinematic query for section 3 (main_1)",
     "TOPIC-RELEVANT cinematic query for section 4 (main_2)",
     "TOPIC-RELEVANT cinematic query for section 5 (main_3)",
-    "TOPIC-RELEVANT cinematic query for section 6 (main_4)",
-    "TOPIC-RELEVANT cinematic query for section 7 (main_5)",
-    "TOPIC-RELEVANT cinematic query for section 8 (cta)"
+    "TOPIC-RELEVANT cinematic query for section 6 (cta)"
   ],
   "thumbnail_text": "3-4 WORDS MAX, ALL CAPS — include a number if possible (e.g. '47 TOOLS TESTED', 'AI KILLED THIS', '$50K MISTAKE')",
   "thumbnail_subtext": "2-3 word VALUE PROPOSITION shown below main text — use ROI/outcome framing like 'SAVES 3 HRS', 'EARN MORE', 'FREE TOOL', 'IN 2026' — NOT a description of the video",
   "thumbnail_stat": "A bold number or stat from the video to use as a badge (e.g. '47', '$50K', '10X', '2026') — leave empty string if none",
   "pexels_search_query": "2-3 word search term for stock footage",
-  "total_word_count": 1100
+  "total_word_count": 600
 }}
 
-DYNAMIC SECTIONS — The default structure above has 8 sections (~1100 words, ~7.5 min video).
-If the topic needs FEWER insights, you may remove main_4 and/or main_5 (minimum 6 sections).
+DYNAMIC SECTIONS — The default structure above has 6 sections (~600 words, ~4 min video at ~100 effective wpm).
+If the topic has more depth, you may add main_4 (maximum 7 sections, ~700 words).
 If you add/remove sections, the visual_queries array MUST have exactly N strings (one per section in order).
-Keep total word count proportional: ~750 for 6 sections, ~900 for 7, ~1100 for 8 sections.
+Keep total word count proportional: ~500 for 5 sections, ~600 for 6, ~700 for 7 sections.
+DO NOT exceed 700 total words. DO NOT add #Shorts to the title — this is a landscape video.
 
 CRITICAL for sections: Every sentence must be 15 words or fewer. Add a micro-cliffhanger at the end of every section except cta. Total word count should be proportional to section count.
 
