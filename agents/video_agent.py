@@ -33,6 +33,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import psutil
 import requests
+from concurrent.futures import ProcessPoolExecutor
 from PIL import Image, ImageDraw, ImageFont
 
 from agents.imagen_agent import ImagenImageGenerator
@@ -291,10 +292,545 @@ class VideoAgent:
             logger="bar",
         )
 
+    # ── Parallel FFmpeg render (4-at-a-time, no MoviePy compositing) ─────────
+
+    def _render_parallel_ffmpeg(self, script: Dict, audio_path: str, output_path: str, prefetched_images: Optional[Dict] = None) -> str:
+        """
+        Fast render path: generates ken_burns segments in parallel (4 at a time),
+        concatenates with FFmpeg -c copy, overlays title/watermark as PNGs,
+        and mixes audio — all without MoviePy frame iteration.
+        ~3-4x faster than the MoviePy streaming path on 2-core machines.
+        """
+        import shutil
+        from moviepy import AudioFileClip
+
+        os.makedirs(Path(output_path).parent, exist_ok=True)
+        video_dir = Path(output_path).parent
+        self.cache_dir = video_dir / "cache"
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+        logger.info(f"[PARALLEL_RENDER] ═══════════════════════════════════════")
+        _get_memory_status("PARALLEL_RENDER_START")
+
+        audio_path = self._apply_audio_processing(audio_path)
+        audio = AudioFileClip(audio_path)
+        total_duration = audio.duration
+        sections = script.get("sections", [])
+        visual_queries = script.get("visual_queries", [])
+        hook_title_text = script.get("hook_title_text", script.get("title", "").upper()[:30])
+
+        logger.info(f"Audio duration: {total_duration:.1f}s — rendering {len(sections)} sections")
+
+        # Calculate section durations
+        total_words = sum(len(s.get("text", "").split()) for s in sections)
+        section_durations = {}
+        for i, section in enumerate(sections):
+            words = len(section.get("text", "").split())
+            section_durations[i] = max(2.0, (words / max(total_words, 1)) * total_duration)
+
+        # 1. Fetch AI images (already uses ThreadPoolExecutor internally)
+        logger.info(f"[PHASE_1] Fetching section images...")
+        if prefetched_images is not None:
+            section_clip_paths = prefetched_images
+        elif config.VIDEO_BACKGROUND_MODE == "pexels":
+            section_clip_paths = self._fetch_section_clips(sections, visual_queries)
+        else:
+            section_clip_paths = self._get_section_videos(sections, visual_queries, section_durations)
+
+        # Assign random animation effects
+        pool = list(self.animation_effects) if self.animation_effects else list(ANIMATION_EFFECTS)
+        random.shuffle(pool)
+        section_effects = [pool[i % len(pool)] for i in range(len(sections))]
+
+        # 2. Generate ken_burns clips as FILES (4 parallel at a time)
+        logger.info(f"[PHASE_2] Generating ken_burns segments (4 parallel)...")
+        _get_memory_status("BEFORE_PARALLEL_KENBURNS")
+
+        segment_paths = self._generate_segments_parallel(
+            sections, section_clip_paths, section_durations, section_effects, visual_queries
+        )
+        _get_memory_status("AFTER_PARALLEL_KENBURNS")
+
+        if not segment_paths:
+            logger.error("[PARALLEL_RENDER] No segments generated — falling back to MoviePy render")
+            return self.render(script, audio_path, output_path, prefetched_images)
+
+        logger.info(f"[PHASE_2] Generated {len(segment_paths)} segment files")
+
+        # 3. Concatenate segments with FFmpeg (zero-copy)
+        logger.info(f"[PHASE_3] Concatenating {len(segment_paths)} segments...")
+        concat_path = str(self.cache_dir / "base_concat.mp4")
+        self._ffmpeg_concat_segments(segment_paths, concat_path)
+        _get_memory_status("AFTER_CONCAT")
+
+        # 4. Render overlay images as PNGs
+        logger.info(f"[PHASE_4] Rendering overlay images...")
+        hook_png = str(self.cache_dir / "hook_card.png")
+        watermark_png = str(self.cache_dir / "watermark.png")
+        self._save_hook_card_png(hook_title_text, hook_png)
+        self._save_watermark_png(watermark_png)
+
+        # Render section title PNGs with their timing info
+        section_title_pngs = self._save_section_title_pngs(sections, section_durations)
+
+        # 5. Final composite: overlays + dark filter + audio (single FFmpeg pass)
+        logger.info(f"[PHASE_5] Final FFmpeg composite + audio mix...")
+        music_path = self._get_music_path(total_duration)
+        self._ffmpeg_final_composite(
+            base_video=concat_path,
+            output_path=output_path,
+            audio_path=audio_path,
+            music_path=music_path,
+            hook_png=hook_png,
+            hook_duration=min(3.5, total_duration * 0.08),
+            watermark_png=watermark_png,
+            section_title_pngs=section_title_pngs,
+            total_duration=total_duration,
+        )
+
+        _get_memory_status("PARALLEL_RENDER_COMPLETE")
+        logger.info(f"[PARALLEL_RENDER] Video saved: {output_path}")
+
+        # Generate SRT captions
+        try:
+            self._generate_srt(sections, total_duration, str(Path(output_path).parent))
+        except Exception as e:
+            logger.warning(f"SRT generation failed: {e}")
+
+        self._save_used_clips()
+        return output_path
+
+    def _generate_segments_parallel(
+        self, sections, clip_paths, section_durations, section_effects, visual_queries
+    ) -> List[str]:
+        """Generate ken_burns segment .mp4 files, 4 at a time using ThreadPoolExecutor."""
+        segment_paths = []
+        batch_size = 4
+        n_sections = len(sections)
+
+        def _make_segment(i):
+            """Generate one segment and return its file path."""
+            clip_path = clip_paths.get(i)
+            duration = section_durations[i]
+            effect = section_effects[i] if i < len(section_effects) else None
+            visual_query = (visual_queries[i] if i < len(visual_queries) else "") if visual_queries else ""
+
+            # If we have a .jpg image, apply ken_burns (returns cached .mp4)
+            if clip_path and clip_path.endswith(".jpg"):
+                cache_key = hashlib.md5(
+                    f"{clip_path}|{effect['name'] if effect else 'zoom_in'}|{duration:.2f}".encode()
+                ).hexdigest()[:12]
+                cache_path = Path(config.VIDEO_CACHE_DIR) / f"fx_{cache_key}.mp4"
+
+                if cache_path.exists() and cache_path.stat().st_size > 10_000:
+                    logger.info(f"  [SEG {i}] Cache hit: {cache_path.name}")
+                    return str(cache_path)
+
+                # Generate with FFmpeg ken_burns
+                return self._generate_ken_burns_segment(clip_path, duration, effect, i)
+
+            elif clip_path and clip_path.endswith(".mp4") and Path(clip_path).exists():
+                # Already an .mp4, normalize it to our specs
+                return self._normalize_segment(clip_path, duration, i)
+
+            else:
+                # Fallback: try fetching an AI image, or use gradient
+                if visual_query:
+                    img = self._fetch_ai_image(visual_query, i)
+                    if img:
+                        return self._generate_ken_burns_segment(img, duration, effect, i)
+
+                # Last resort: solid color segment
+                return self._generate_gradient_segment(duration, i)
+
+        # Process in batches of 4
+        for batch_start in range(0, n_sections, batch_size):
+            batch_end = min(batch_start + batch_size, n_sections)
+            batch_indices = list(range(batch_start, batch_end))
+            logger.info(f"  [BATCH] Processing segments {batch_start+1}-{batch_end} (parallel)...")
+
+            with ThreadPoolExecutor(max_workers=batch_size) as executor:
+                futures = {executor.submit(_make_segment, i): i for i in batch_indices}
+                for future in as_completed(futures):
+                    idx = futures[future]
+                    try:
+                        path = future.result()
+                        if path:
+                            segment_paths.append((idx, path))
+                            logger.info(f"  [SEG {idx}] ✓ Done: {Path(path).name}")
+                        else:
+                            logger.warning(f"  [SEG {idx}] ✗ Failed (None returned)")
+                    except Exception as e:
+                        logger.error(f"  [SEG {idx}] ✗ Exception: {e}")
+
+            gc.collect()
+
+        # Sort by index to maintain order
+        segment_paths.sort(key=lambda x: x[0])
+        return [path for _, path in segment_paths]
+
+    def _generate_ken_burns_segment(self, img_path: str, duration: float, effect: Optional[Dict], section_idx: int) -> Optional[str]:
+        """Generate a single ken_burns segment as an .mp4 file. Returns path or None."""
+        if effect is None:
+            effect = ANIMATION_EFFECTS[0]
+
+        n_frames = max(int(self.FPS * duration), 1)
+
+        def expr(s: str) -> str:
+            return s.replace("N", str(n_frames))
+
+        z_expr = expr(effect["z"])
+        x_expr = expr(effect["x"])
+        y_expr = expr(effect["y"])
+
+        cache_key = hashlib.md5(
+            f"{img_path}|{effect['name']}|{duration:.2f}".encode()
+        ).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"fx_{cache_key}.mp4"
+
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            return str(cache_path)
+
+        vf = (
+            f"zoompan="
+            f"z='{z_expr}':"
+            f"x='{x_expr}':"
+            f"y='{y_expr}':"
+            f"d={n_frames}:"
+            f"s={self.W}x{self.H}:"
+            f"fps={self.FPS}"
+        )
+        grade = self.color_grade
+        vf += f",eq=saturation={grade['saturation']}:brightness={grade['brightness']}:contrast={grade['contrast']}"
+
+        if config.CHANNEL_NICHE in ("History", "Finance"):
+            vf += ",noise=c0s=12:c1s=12:c2s=12:allf=t"
+        vf += ",vignette=PI/4"
+        if config.CHANNEL_NICHE == "AI & Tech":
+            vf += ",rgbashift=rh=1:bh=-1"
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-loop", "1", "-i", img_path,
+            "-vf", vf,
+            "-t", f"{duration:.3f}",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+            "-r", str(self.FPS),
+            "-pix_fmt", "yuv420p",
+            str(cache_path),
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=180)
+            if result.returncode != 0:
+                logger.error(f"  [SEG {section_idx}] FFmpeg ken_burns error: {result.stderr.decode()[:200]}")
+                return None
+            return str(cache_path)
+        except Exception as e:
+            logger.error(f"  [SEG {section_idx}] FFmpeg ken_burns exception: {e}")
+            return None
+
+    def _normalize_segment(self, clip_path: str, duration: float, section_idx: int) -> Optional[str]:
+        """Normalize an existing .mp4 to our target specs (resolution, fps, codec)."""
+        cache_key = hashlib.md5(f"{clip_path}|norm|{duration:.2f}".encode()).hexdigest()[:12]
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"norm_{cache_key}.mp4"
+
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            return str(cache_path)
+
+        cmd = [
+            "ffmpeg", "-y", "-i", clip_path,
+            "-vf", f"scale={self.W}:{self.H}:force_original_aspect_ratio=increase,crop={self.W}:{self.H}",
+            "-t", f"{duration:.3f}",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+            "-r", str(self.FPS),
+            "-pix_fmt", "yuv420p",
+            "-an",
+            str(cache_path),
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=180)
+            if result.returncode == 0:
+                return str(cache_path)
+            logger.warning(f"  [SEG {section_idx}] Normalize failed: {result.stderr.decode()[:200]}")
+            return None
+        except Exception as e:
+            logger.warning(f"  [SEG {section_idx}] Normalize exception: {e}")
+            return None
+
+    def _generate_gradient_segment(self, duration: float, section_idx: int) -> Optional[str]:
+        """Generate a solid dark color segment as fallback."""
+        cache_path = Path(config.VIDEO_CACHE_DIR) / f"gradient_{section_idx}_{duration:.1f}.mp4"
+        if cache_path.exists() and cache_path.stat().st_size > 10_000:
+            return str(cache_path)
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "lavfi", "-i", f"color=c=0x0A0A14:s={self.W}x{self.H}:d={duration:.3f}:r={self.FPS}",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+            "-pix_fmt", "yuv420p",
+            str(cache_path),
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            if result.returncode == 0:
+                return str(cache_path)
+            return None
+        except Exception:
+            return None
+
+    def _ffmpeg_concat_segments(self, segment_paths: List[str], output_path: str):
+        """Concatenate segment .mp4 files using FFmpeg concat demuxer (zero re-encode)."""
+        concat_list = Path(output_path).parent / "concat_list.txt"
+
+        # Filter out None/missing paths and use absolute paths
+        valid_paths = [str(Path(seg).absolute()) for seg in segment_paths if seg and Path(seg).exists()]
+        if not valid_paths:
+            raise RuntimeError("No valid segment files to concatenate")
+
+        with open(concat_list, "w") as f:
+            for seg in valid_paths:
+                f.write(f"file '{seg}'\n")
+
+        logger.info(f"[CONCAT] Concat list ({len(valid_paths)} files): {concat_list}")
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "concat", "-safe", "0",
+            "-i", str(concat_list),
+            "-c", "copy",
+            output_path,
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=300)
+        if result.returncode != 0:
+            stderr = result.stderr.decode()
+            logger.error(f"[CONCAT] FFmpeg concat failed (rc={result.returncode}):\n{stderr[-500:]}")
+            logger.error(f"[CONCAT] Concat list contents:")
+            for seg in valid_paths:
+                exists = Path(seg).exists()
+                size = Path(seg).stat().st_size if exists else 0
+                logger.error(f"  {seg} (exists={exists}, size={size})")
+            raise RuntimeError(f"FFmpeg concat failed: {result.returncode}")
+        logger.info(f"[CONCAT] ✓ Concatenated {len(valid_paths)} segments → {Path(output_path).name}")
+
+    def _save_hook_card_png(self, text: str, output_path: str):
+        """Render hook title card and save as PNG with alpha."""
+        try:
+            img = self._render_hook_card_image(text)
+            img.save(output_path, "PNG")
+        except Exception as e:
+            logger.warning(f"Hook card PNG failed: {e}")
+            # Create a transparent placeholder
+            Image.new("RGBA", (self.W, self.H), (0, 0, 0, 0)).save(output_path, "PNG")
+
+    def _save_watermark_png(self, output_path: str):
+        """Render watermark and save as PNG with alpha for FFmpeg overlay."""
+        try:
+            _, _, accent = self.colors
+            font = self.fonts["label"]
+            dummy = Image.new("RGBA", (1, 1))
+            d = ImageDraw.Draw(dummy)
+            bbox = d.textbbox((0, 0), config.CHANNEL_NAME, font=font)
+            tw = bbox[2] - bbox[0]
+
+            icon_r = 10
+            icon_diam = icon_r * 2
+            spacing = 10
+            total_w = icon_diam + spacing + tw + 24
+            img_h = 40
+
+            img = Image.new("RGBA", (total_w, img_h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rounded_rectangle([0, 0, total_w, img_h], radius=8, fill=(0, 0, 0, 110))
+            cx = 12 + icon_r
+            cy = img_h // 2
+            draw.ellipse([cx - icon_r, cy - icon_r, cx + icon_r, cy + icon_r], fill=(*accent, 230))
+            tx = 12 + icon_diam + spacing
+            draw.text((tx, cy), config.CHANNEL_NAME, font=font, fill=(255, 255, 255, 200), anchor="lm")
+            img.save(output_path, "PNG")
+        except Exception as e:
+            logger.warning(f"Watermark PNG failed: {e}")
+            Image.new("RGBA", (100, 40), (0, 0, 0, 0)).save(output_path, "PNG")
+
+    def _save_section_title_pngs(self, sections, section_durations) -> List[Tuple[str, float, float]]:
+        """Render section title cards as PNGs. Returns list of (png_path, start_time, duration)."""
+        results = []
+        t = 0.0
+        CARD_DURATION = 2.5
+
+        for i, section in enumerate(sections):
+            dur = section_durations[i]
+            display_title = section.get("section_display_title", "").strip()
+            name = section.get("section_name", "")
+
+            if display_title and name not in ("hook", "cta"):
+                try:
+                    img = self._render_section_title_image(display_title)
+                    png_path = str(self.cache_dir / f"section_title_{i}.png")
+                    img.save(png_path, "PNG")
+                    card_dur = min(CARD_DURATION, dur * 0.4)
+                    results.append((png_path, t, card_dur))
+                except Exception as e:
+                    logger.warning(f"Section title {i} PNG failed: {e}")
+            t += dur
+
+        return results
+
+    def _get_music_path(self, duration: float) -> Optional[str]:
+        """Get a random music file path if music is enabled. Validates it has an audio stream."""
+        if not config.MUSIC_ENABLED:
+            return None
+        music_dir = Path(config.MUSIC_DIR)
+        music_files = list(music_dir.glob("*.mp3")) + list(music_dir.glob("*.wav"))
+        if not music_files:
+            return None
+
+        # Shuffle and find first file with a valid audio stream
+        random.shuffle(music_files)
+        for mf in music_files:
+            try:
+                result = subprocess.run(
+                    ["ffprobe", "-v", "quiet", "-select_streams", "a", "-show_entries", "stream=codec_type", str(mf)],
+                    capture_output=True, timeout=10
+                )
+                if "audio" in result.stdout.decode():
+                    return str(mf)
+            except Exception:
+                continue
+        return None
+
+    def _ffmpeg_final_composite(
+        self,
+        base_video: str,
+        output_path: str,
+        audio_path: str,
+        music_path: Optional[str],
+        hook_png: str,
+        hook_duration: float,
+        watermark_png: str,
+        section_title_pngs: List[Tuple[str, float, float]],
+        total_duration: float,
+    ):
+        """
+        Single FFmpeg command to composite:
+        - Base video (already concatenated)
+        - Dark overlay (colorchannelmixer)
+        - Hook title card PNG (first N seconds)
+        - Watermark PNG (full duration, top-left)
+        - Section title PNGs (timed)
+        - Voice audio + background music mix
+        """
+        # Build filter_complex
+        inputs = ["-i", base_video, "-i", audio_path]
+        input_idx = 2  # 0=video, 1=audio
+
+        # Add hook card input
+        inputs.extend(["-i", hook_png])
+        hook_idx = input_idx
+        input_idx += 1
+
+        # Add watermark input
+        inputs.extend(["-i", watermark_png])
+        watermark_idx = input_idx
+        input_idx += 1
+
+        # Add section title inputs
+        title_indices = []
+        for png_path, _, _ in section_title_pngs:
+            inputs.extend(["-i", png_path])
+            title_indices.append(input_idx)
+            input_idx += 1
+
+        # Add music input if available (use -stream_loop to loop it, -noautorotate to skip album art)
+        music_idx = None
+        if music_path:
+            inputs.extend(["-stream_loop", "-1", "-i", music_path])
+            music_idx = input_idx
+            input_idx += 1
+
+        # Build filter graph
+        opacity = config.DARK_OVERLAY_OPACITY
+        filters = []
+
+        # Trim base video to exact duration
+        filters.append(f"[0:v]trim=0:{total_duration:.3f},setpts=PTS-STARTPTS[base]")
+
+        # Dark overlay using colorlevels (simulates dark transparent overlay)
+        brightness = 1.0 - opacity
+        filters.append(f"[base]colorlevels=rimax={brightness:.3f}:gimax={brightness:.3f}:bimax={brightness:.3f}[dark]")
+
+        # Overlay hook card (first N seconds with fade)
+        filters.append(
+            f"[{hook_idx}:v]format=rgba,fade=t=in:st=0:d=0.3,fade=t=out:st={hook_duration-0.3:.3f}:d=0.3[hook_fade]"
+        )
+        filters.append(
+            f"[dark][hook_fade]overlay=0:0:enable='between(t,0,{hook_duration:.3f})'[v1]"
+        )
+
+        # Overlay watermark (top-left, full duration)
+        filters.append(f"[{watermark_idx}:v]format=rgba[wm]")
+        filters.append(f"[v1][wm]overlay=32:32[v2]")
+
+        # Overlay section titles
+        current_label = "v2"
+        for i, (_, start_time, card_dur) in enumerate(section_title_pngs):
+            end_time = start_time + card_dur
+            next_label = f"v{3+i}"
+            title_input = f"[{title_indices[i]}:v]"
+            filters.append(f"{title_input}format=rgba[title_{i}]")
+            # Position upper-center (x centered, y=140)
+            filters.append(
+                f"[{current_label}][title_{i}]overlay=(W-w)/2:140:enable='between(t,{start_time:.3f},{end_time:.3f})'[{next_label}]"
+            )
+            current_label = next_label
+
+        # Audio mixing
+        if music_path and music_idx is not None:
+            filters.append(f"[{music_idx}:a:0]atrim=0:{total_duration:.3f},asetpts=PTS-STARTPTS,volume=0.06[music]")
+            filters.append(f"[1:a:0][music]amix=inputs=2:duration=first:dropout_transition=2[aout]")
+            audio_map = "[aout]"
+        else:
+            audio_map = "1:a:0"
+
+        filter_complex = ";".join(filters)
+
+        cmd = [
+            "ffmpeg", "-y",
+            *inputs,
+            "-filter_complex", filter_complex,
+            "-map", f"[{current_label}]",
+            "-map", audio_map,
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+            "-c:a", "aac", "-b:a", "192k",
+            "-t", f"{total_duration:.3f}",
+            "-movflags", "+faststart",
+            output_path,
+        ]
+
+        logger.info(f"[FINAL_COMPOSITE] Running FFmpeg with {input_idx} inputs, {len(filters)} filter steps...")
+        logger.debug(f"[FINAL_COMPOSITE] Filter:\n{filter_complex}")
+
+        result = subprocess.run(cmd, capture_output=True, timeout=600)
+        if result.returncode != 0:
+            stderr = result.stderr.decode()[-500:]
+            logger.error(f"[FINAL_COMPOSITE] FFmpeg failed: {stderr}")
+            raise RuntimeError(f"FFmpeg final composite failed: {result.returncode}\n{stderr}")
+
+        logger.info(f"[FINAL_COMPOSITE] ✓ Output: {output_path}")
+
     # ── Public entry point ────────────────────────────────────────────────────
 
     def render(self, script: Dict, audio_path: str, output_path: str, prefetched_images: Optional[Dict] = None) -> str:
         from moviepy import AudioFileClip, CompositeVideoClip, ColorClip, ImageClip
+
+        # Try fast parallel FFmpeg path first (4-at-a-time, no MoviePy compositing)
+        import shutil
+        if shutil.which("ffmpeg"):
+            try:
+                logger.info("[RENDER] Attempting fast parallel FFmpeg render path...")
+                return self._render_parallel_ffmpeg(script, audio_path, output_path, prefetched_images)
+            except Exception as e:
+                logger.warning(f"[RENDER] Parallel FFmpeg path failed: {type(e).__name__}: {e}")
+                logger.info("[RENDER] Falling back to MoviePy render path...")
 
         # Check disk space before rendering (need at least 2GB)
         try:
