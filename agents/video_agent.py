@@ -803,6 +803,7 @@ class VideoAgent:
             "-c:a", "aac", "-b:a", "192k",
             "-t", f"{total_duration:.3f}",
             "-movflags", "+faststart",
+            "-s", f"{self.W}x{self.H}",
             output_path,
         ]
 

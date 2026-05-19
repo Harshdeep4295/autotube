@@ -106,7 +106,8 @@ Optional: `visual_queries` (8 cinematic search terms), `hook_title_text`
 ## Config Quick Reference
 
 ```python
-CHANNEL_NICHE = "AI & Tech"      # AI & Tech | Finance | Business | Health | History | English Learning | Legal & Tax | Senior Health | Soundscapes
+CHANNEL_NICHE = <random>         # Randomly picks each run from: AI & Tech | Finance | Business | Health | History | English Learning | Legal & Tax | Senior Health | Soundscapes
+                                 # Override with env var CHANNEL_NICHE="Finance" to force a specific niche
 SCRIPT_WORD_COUNT = 1100         # ~8 min — mid-roll eligible
 VIDEO_BACKGROUND_MODE            # "ai_images" (default) or "pexels"
 VIDEO_ANIMATION_MODE             # "ken_burns" (default, free) or "veo" (GCP, $0.80/video)
@@ -184,6 +185,19 @@ When `APPROVAL_REQUIRED=true`:
 - **Music files with only album art** → `_get_music_path()` validates audio stream exists
 - **FFmpeg concat fails** → ensure all segments use identical codec/resolution/fps/pix_fmt
 - **Cron syntax on Ubuntu** → `/bin/bash -c`, escape `\%Y\%m\%d`
+- **Audio "Failed to find MPEG frames"** → pyttsx3 fallback must FFmpeg-convert WAV→MP3 (not rename). Fixed in voice_agent.py.
+- **Portrait videos from general pipeline** → `_ffmpeg_final_composite()` enforces `-s {W}x{H}`. Never remove it.
+- **Kling/Pika/Seedance code** → ARCHIVED. Methods are no-op stubs. Do NOT re-add imports from `agents.kling_video_agent`.
+
+---
+
+## Architecture Decisions (2026-05-19)
+
+- **Voice fallback chain:** edge-tts (retries up to 3 voices from niche pool) → pyttsx3 + FFmpeg WAV→MP3 conversion. Never rename WAV to .mp3 — always convert.
+- **Video resolution enforcement:** Final composite FFmpeg command includes explicit `-s {W}x{H}` flag. Shorts conversion uses single-pass FFmpeg with `scale+pad` filter (no MoviePy for resize).
+- **Niche rotation:** `CHANNEL_NICHE` randomly selected each run (env var override available). All downstream agents (voice, research, colors, thumbnails) auto-adapt.
+- **Disk cleanup:** Pre-flight check — if <2GB free, aggressively clears ALL outputs + cache before render. Normal cleanup: cache >500MB gets cleared, output dirs >6h old deleted.
+- **Dead code policy:** Kling/Pika/Seedance/Replicate methods are no-op stubs returning `{}`. Do NOT add real imports — the modules don't exist.
 
 ---
 
