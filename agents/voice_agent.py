@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import random
+import subprocess
 from pathlib import Path
 from typing import Dict
 
@@ -34,61 +35,79 @@ class VoiceAgent:
 
         logger.info(f"Synthesizing {len(text.split())} words of narration…")
 
-        # Primary: edge-tts (free, high quality, Microsoft neural voices)
         try:
             asyncio.run(self._synthesize_edge_tts(text, output_path))
             logger.info(f"Voiceover saved (edge-tts): {output_path}")
-            return output_path
         except Exception as e:
             logger.warning(f"edge-tts failed: {e} — falling back to pyttsx3")
+            try:
+                self._synthesize_pyttsx3(text, output_path)
+                logger.info(f"Voiceover saved (pyttsx3 fallback): {output_path}")
+            except Exception as e2:
+                raise RuntimeError(f"Both TTS engines failed. pyttsx3 error: {e2}")
 
-        # Fallback: pyttsx3 (offline, lower quality)
-        try:
-            self._synthesize_pyttsx3(text, output_path)
-            logger.info(f"Voiceover saved (pyttsx3 fallback): {output_path}")
-            return output_path
-        except Exception as e:
-            raise RuntimeError(f"Both TTS engines failed. pyttsx3 error: {e}")
+        if not os.path.exists(output_path) or os.path.getsize(output_path) < 1024:
+            raise RuntimeError(f"Synthesis produced invalid output: {output_path}")
+
+        return output_path
 
     # ── Edge TTS (primary) ────────────────────────────────────────────────────
 
-    def _pick_voice(self) -> str:
-        """Pick a random voice from the language-appropriate or niche-appropriate pool."""
+    async def _synthesize_edge_tts(self, text: str, output_path: str) -> None:
+        import edge_tts
+
         if config.LANGUAGE != "en":
             voices = config.TTS_VOICES_BY_LANGUAGE.get(config.LANGUAGE, ["en-US-JennyNeural"])
         else:
-            voices = config.TTS_VOICES.get(config.CHANNEL_NICHE, ["en-US-JennyNeural"])
-        voice = random.choice(voices)
-        logger.info(f"Selected TTS voice: {voice}")
-        return voice
+            voices = list(config.TTS_VOICES.get(config.CHANNEL_NICHE, ["en-US-JennyNeural"]))
+        random.shuffle(voices)
 
-    async def _synthesize_edge_tts(self, text: str, output_path: str) -> None:
-        import edge_tts
-        voice = self._pick_voice()
-        communicate = edge_tts.Communicate(
-            text=text,
-            voice=voice,
-            rate=config.TTS_RATE,
-            pitch=config.TTS_PITCH,
-        )
-        await communicate.save(output_path)
+        last_error = None
+        for voice in voices[:3]:
+            try:
+                logger.info(f"Trying edge-tts voice: {voice}")
+                communicate = edge_tts.Communicate(
+                    text=text,
+                    voice=voice,
+                    rate=config.TTS_RATE,
+                    pitch=config.TTS_PITCH,
+                )
+                await communicate.save(output_path)
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
+                    return
+                last_error = RuntimeError(f"Output file too small with voice {voice}")
+            except Exception as e:
+                last_error = e
+                logger.warning(f"edge-tts voice {voice} failed: {e}")
+
+        raise last_error
 
     # ── pyttsx3 fallback (offline) ────────────────────────────────────────────
 
     def _synthesize_pyttsx3(self, text: str, output_path: str) -> None:
         import pyttsx3
         engine = pyttsx3.init()
-        engine.setProperty("rate", 165)  # slightly faster than default 200
+        engine.setProperty("rate", 165)
         engine.setProperty("volume", 1.0)
 
-        # pyttsx3 works better with WAV; save as WAV then rename
         wav_path = output_path.replace(".mp3", ".wav")
         engine.save_to_file(text, wav_path)
         engine.runAndWait()
 
-        # Rename WAV to MP3 (it's still PCM but MoviePy can handle it)
-        if os.path.exists(wav_path):
-            os.rename(wav_path, output_path)
+        if not os.path.exists(wav_path):
+            raise RuntimeError("pyttsx3 failed to produce WAV output")
+
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", wav_path, "-acodec", "libmp3lame", "-b:a", "192k", output_path],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"FFmpeg WAV→MP3 conversion failed: {e.stderr.decode()}") from e
+        finally:
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
 
     # ── Text builder ──────────────────────────────────────────────────────────
 

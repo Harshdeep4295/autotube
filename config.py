@@ -8,6 +8,7 @@ Upload times are set in IST and auto-converted to UTC internally.
 
 import json
 import os
+import random
 from dataclasses import dataclass, field
 from typing import List
 from dotenv import load_dotenv
@@ -86,7 +87,10 @@ class Config:
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
     # Options: AI & Tech | Finance | Business | Health | History | English Learning
-    CHANNEL_NICHE: str = "AI & Tech"
+    CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", random.choice([
+        "AI & Tech", "Finance", "Business", "Health", "History",
+        "English Learning", "Legal & Tax", "Senior Health", "Soundscapes",
+    ])))
     CHANNEL_NAME: str = "AutoTube"   # Your actual channel name (shown in watermark)
 
     # ── Research ──────────────────────────────────────────────────────────────

@@ -202,54 +202,11 @@ class Orchestrator:
             except Exception as e:
                 self.logger.error(f"Prefetch failed for '{topic['topic']}': {e}")
 
-        self.logger.info(f"Prefetch complete: {queued_count} scripts queued with async Kling tasks")
+        self.logger.info(f"Prefetch complete: {queued_count} scripts queued")
 
     def _submit_kling_tasks_async(self, sections: List[Dict], visual_queries: List[str]) -> Dict[int, Optional[str]]:
-        """Submit Kling tasks asynchronously for all sections. Returns task_id dict (fires and forgets)."""
-        import asyncio
-        from agents.kling_video_agent import KlingVideoGenerator
-
-        async def _submit_all():
-            try:
-                generator = KlingVideoGenerator()
-                results = {}
-
-                for i, section in enumerate(sections):
-                    query = (
-                        visual_queries[i].strip()
-                        if i < len(visual_queries) and visual_queries[i].strip()
-                        else f"cinematic section {i+1}"
-                    )
-
-                    # Submit task (returns task_id or None if cached)
-                    task_id = await generator.submit(
-                        prompt=query,
-                        section_idx=i,
-                        duration=5
-                    )
-                    results[i] = task_id
-
-                await generator.close()
-                return results
-            except Exception as e:
-                self.logger.warning(f"Error submitting Kling tasks: {e}")
-                return {}
-
-        # Run async tasks
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        try:
-            return loop.run_until_complete(_submit_all())
-        except Exception as e:
-            self.logger.warning(f"Failed to submit Kling tasks: {e}")
-            return {}
+        """Kling integration archived — returns empty (uses Ken Burns/Veo instead)."""
+        return {}
 
     def run_render(self, count: int = 1) -> List[Dict]:
         """Job 2: Pull pending scripts from Supabase queue → voice + video + upload."""
@@ -599,10 +556,11 @@ class Orchestrator:
             if not Path(downloaded_path).exists():
                 raise RuntimeError("Download failed - no file created")
 
-            # Step 2: Extract best 60-90s clip (middle section of video)
-            self.logger.info(f"  Extracting 60-90s clip...")
+            # Step 2: Determine clip timing from video duration
+            self.logger.info(f"  Determining clip timing...")
             clip = VideoFileClip(downloaded_path)
             duration = clip.duration
+            clip.close()
 
             # Extract from middle of video (skip first 10s)
             start_time = max(10, duration / 2 - 45)
@@ -610,37 +568,30 @@ class Orchestrator:
 
             if end_time - start_time < 60:
                 # If video is shorter than 60s, use full video
-                clipped = clip
+                start_time = 0
+                end_time = duration
                 self.logger.info(f"  Video shorter than 60s, using full {duration:.1f}s")
             else:
-                clipped = clip.subclipped(start_time, end_time)
-                self.logger.info(f"  Extracted {clipped.duration:.1f}s clip ({start_time:.1f}s-{end_time:.1f}s)")
+                self.logger.info(f"  Will extract {end_time - start_time:.1f}s clip ({start_time:.1f}s-{end_time:.1f}s)")
 
-            # Step 3: Re-encode to 1080×1920 Shorts format
-            self.logger.info(f"  Re-encoding to 1080×1920 Shorts format...")
+            # Step 3: Re-encode to 1080×1920 Shorts format using FFmpeg directly
+            self.logger.info(f"  Re-encoding to 1080×1920 Shorts format via FFmpeg...")
             shorts_video_path = str(out_dir / "shorts_video.mp4")
 
-            # Resize to 1080×1920 (maintain aspect, pillarbox if needed)
-            w, h = clipped.size
-            target_w, target_h = 1080, 1920
+            cmd = [
+                "ffmpeg", "-y", "-i", downloaded_path,
+                "-ss", str(start_time), "-t", str(end_time - start_time),
+                "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                "-c:a", "aac", "-b:a", "128k",
+                shorts_video_path
+            ]
 
-            if w / h < target_w / target_h:
-                # Pillarbox (narrow video)
-                new_w = int(h * (target_w / target_h))
-                resized = clipped.resized(new_size=(new_w, h))
-                # Center crop to 1080×1920
-                x_offset = (new_w - target_w) // 2
-                resized = resized.cropped(x1=x_offset, y1=0, x2=x_offset+target_w, y2=target_h)
-            else:
-                # Letterbox (wide video)
-                new_h = int(w * (target_h / target_w))
-                resized = clipped.resized(new_size=(w, new_h))
-                # Center crop to 1080×1920
-                y_offset = (new_h - target_h) // 2
-                resized = resized.cropped(x1=0, y1=y_offset, x2=target_w, y2=y_offset+target_h)
-
-            # Use ffmpeg streaming for efficient encoding
-            resized.write_videofile(shorts_video_path, codec="libx264", audio_codec="aac", preset="ultrafast", fps=24)
+            import subprocess
+            result = subprocess.run(cmd, capture_output=True, timeout=300)
+            if result.returncode != 0:
+                stderr = result.stderr.decode()[-500:]
+                raise RuntimeError(f"FFmpeg shorts conversion failed: {stderr}")
             self.logger.info(f"  ✓ Shorts video saved: {shorts_video_path}")
 
             # Step 4: Generate minimal script for upload
@@ -1286,44 +1237,8 @@ class Orchestrator:
             self.logger.warning(f"Failed to save Kling task IDs for row {row_id}: {e}")
 
     async def _check_kling_tasks(self, row_id: int, kling_task_ids: Dict[str, str], script: Dict, timeout_per_task: int = 60) -> Dict[int, Optional[str]]:
-        """Check and download Kling videos (at render time or during harvest). Default 60s timeout per task."""
-        from agents.kling_video_agent import KlingVideoGenerator
-
-        if not kling_task_ids:
-            return {}
-
-        try:
-            generator = KlingVideoGenerator()
-            results = {}
-
-            visual_queries = script.get("visual_queries", [])
-
-            for section_idx_str, task_id in kling_task_ids.items():
-                section_idx = int(section_idx_str)
-                query = visual_queries[section_idx] if section_idx < len(visual_queries) else "cinematic"
-
-                # Poll with configurable timeout
-                path = await generator.check_and_download(
-                    task_id=task_id,
-                    prompt=query,
-                    section_idx=section_idx,
-                    duration=5,
-                    timeout_seconds=timeout_per_task
-                )
-                results[section_idx] = path
-                if path:
-                    log_prefix = "[HARVEST]" if timeout_per_task == 30 else "[KLING-RENDER]"
-                    self.logger.info(f"{log_prefix} Section {section_idx}: downloaded {Path(path).name}")
-                else:
-                    log_prefix = "[HARVEST]" if timeout_per_task == 30 else "[KLING-RENDER]"
-                    self.logger.info(f"{log_prefix} Section {section_idx}: not ready in {timeout_per_task}s")
-
-            await generator.close()
-            return results
-
-        except Exception as e:
-            self.logger.warning(f"Failed to check Kling tasks: {e}")
-            return {}
+        """Kling integration archived — returns empty."""
+        return {}
 
     def _get_latest_script_path(self) -> Optional[Path]:
         """Find the most recent script.json in outputs/ for dry-run testing."""
@@ -1375,7 +1290,7 @@ class Orchestrator:
         except Exception as e:
             self.logger.warning(f"Failed to log to Firestore: {e}")
 
-    def _cleanup_old_outputs(self, max_age_days: int = 1, clear_cache_percent: float = 0.2) -> None:
+    def _cleanup_old_outputs(self, max_age_days: float = 0.25, clear_cache_percent: float = 0.2) -> None:
         """Auto-cleanup old outputs and video cache after successful upload.
 
         Clears:
@@ -1387,9 +1302,37 @@ class Orchestrator:
             if not outputs_dir.exists():
                 return
 
-            now = time.time()
             deleted_size = 0
             deleted_dirs = []
+
+            # Force cleanup if disk space critically low
+            import shutil as shutil_disk
+            disk_usage = shutil_disk.disk_usage("/")
+            available_gb = disk_usage.free / (1024**3)
+            if available_gb < 2.0:
+                self.logger.warning(f"⚠️ LOW DISK: {available_gb:.1f}GB free — forcing aggressive cleanup")
+                # Force delete ALL output dirs (not just old ones)
+                for item in outputs_dir.iterdir():
+                    if not item.is_dir() or item.name == "video_cache":
+                        continue
+                    try:
+                        size = sum(f.stat().st_size for f in item.rglob("*") if f.is_file())
+                        shutil.rmtree(item)
+                        deleted_size += size
+                        deleted_dirs.append(f"{item.name} ({size/1024/1024:.1f}MB)")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to delete {item.name}: {e}")
+                # Also force clear cache regardless of size
+                cache_dir = outputs_dir / "video_cache"
+                if cache_dir.exists():
+                    cache_size = sum(f.stat().st_size for f in cache_dir.rglob("*") if f.is_file())
+                    if cache_size > 0:
+                        shutil.rmtree(cache_dir)
+                        cache_dir.mkdir(exist_ok=True)
+                        self.logger.info(f"[CLEANUP] Force-cleared video cache ({cache_size/1024/1024:.0f}MB)")
+                return  # Skip normal cleanup since we did aggressive
+
+            now = time.time()
 
             for item in outputs_dir.iterdir():
                 if not item.is_dir() or item.name == "video_cache":
@@ -1416,7 +1359,7 @@ class Orchestrator:
             cache_dir = outputs_dir / "video_cache"
             if cache_dir.exists():
                 cache_size = sum(f.stat().st_size for f in cache_dir.rglob("*") if f.is_file())
-                if cache_size > 2.5 * 1024 * 1024 * 1024:  # > 2.5GB
+                if cache_size > 500 * 1024 * 1024:  # > 500MB
                     try:
                         shutil.rmtree(cache_dir)
                         cache_dir.mkdir(exist_ok=True)
