@@ -106,8 +106,7 @@ Optional: `visual_queries` (8 cinematic search terms), `hook_title_text`
 ## Config Quick Reference
 
 ```python
-CHANNEL_NICHE = <random>         # Randomly picks each run from: AI & Tech | Finance | Business | Health | History | English Learning | Legal & Tax | Senior Health | Soundscapes
-                                 # Override with env var CHANNEL_NICHE="Finance" to force a specific niche
+CHANNEL_NICHE = "AI & Tech"      # LOCKED — random rotation killed the channel (0 views). Override with env var if needed.
 SCRIPT_WORD_COUNT = 1100         # ~8 min — mid-roll eligible
 VIDEO_BACKGROUND_MODE            # "ai_images" (default) or "pexels"
 VIDEO_ANIMATION_MODE             # "ken_burns" (default, free) or "veo" (GCP, $0.80/video)

@@ -87,10 +87,7 @@ class Config:
     # ── Channel settings ──────────────────────────────────────────────────────
     # Change these to match your YouTube channel before the first run.
     # Options: AI & Tech | Finance | Business | Health | History | English Learning
-    CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", random.choice([
-        "AI & Tech", "Finance", "Business", "Health", "History",
-        "English Learning", "Legal & Tax", "Senior Health", "Soundscapes",
-    ])))
+    CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", "AI & Tech"))
     CHANNEL_NAME: str = "AutoTube"   # Your actual channel name (shown in watermark)
 
     # ── Research ──────────────────────────────────────────────────────────────
@@ -100,7 +97,7 @@ class Config:
     TRENDS_GEO: str = "US"
     TRENDS_CATEGORY: int = 0       # 0 = all categories; 5 = Tech; 7 = Finance
     TOPIC_HISTORY_DAYS: int = 30   # deduplication window (skip topics used recently)
-    TOPICS_PER_RUN: int = 4        # how many scored topics to fetch (pick top N)
+    TOPICS_PER_RUN: int = 1        # 1 video/day — give each video room to breathe
 
     # Per-niche subreddit defaults — used when SUBREDDITS is empty
     NICHE_SUBREDDITS: dict = field(default_factory=lambda: {
@@ -244,10 +241,7 @@ class Config:
     # ── Upload schedule (IST) ─────────────────────────────────────────────────
     # Edit these IST times; UTC conversion is automatic.
     UPLOAD_TIMES_IST: List[str] = field(default_factory=lambda: [
-        "09:00",  # morning
-        "12:00",  # lunch
-        "15:00",  # afternoon
-        "18:00",  # evening
+        "18:00",  # single daily upload — evening IST (peak engagement)
     ])
 
     @property

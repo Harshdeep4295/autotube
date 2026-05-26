@@ -86,7 +86,7 @@ Context: {summary}
 
 Return this exact JSON structure (no extra text outside the JSON):
 {{
-  "title": "YouTube video title using one of these proven formats (max 65 chars): 'I Tested [X] — Here's What Happened' / '[#] Things That [Outcome] Better Than [Alternative]' / 'The [Thing] Everyone Missed In [Topic]' / 'I Used [Tool] to [Specific Outcome] — Results Shocked Me'. Include a number or specific stat when possible.",
+  "title": "YouTube video title (40-65 chars). RULES: 1) NEVER use 'Here's What Happened' or 'Results Shocked Me' — these are spam patterns. 2) MUST be specific to this exact topic — no generic framing. 3) Include a concrete number, dollar amount, or percentage. 4) Create genuine curiosity gap. GOOD examples: 'Claude 4 Beats GPT-5 on Every Benchmark — Except One', 'This $0 AI Tool Replaced My $200/mo Stack', 'Why 73% of Developers Quit React in 2026', 'The 4-Line Python Script That Broke AWS'. BAD examples (NEVER USE): 'I Tested X — Here's What Happened', 'X Things That Y', 'Results Shocked Me', 'What Happened Next'.",
   "description": "YouTube description 150-200 words with 3 calls to action and natural keywords. Add 3-5 chapter timestamps.",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10"],
   "hook_title_text": "3-4 WORDS MAX (ALL CAPS, punchy stat or claim — shown as opening title card)",
@@ -219,7 +219,7 @@ Context: {summary}
 
 Return this exact JSON structure (no extra text outside the JSON):
 {{
-  "title": "YouTube Shorts title (max 60 chars) that MUST END WITH #Shorts. Use proven formats: '[Stat] #Shorts' / 'I [Action] #Shorts' / '[Question]? #Shorts' — include a number or specific stat when possible.",
+  "title": "YouTube Shorts title (max 60 chars) that MUST END WITH #Shorts. MUST be specific to this topic with a number or stat. NEVER use 'Here's What Happened' or 'Results Shocked Me'. GOOD: 'GPT-5 Failed This Simple Test #Shorts', '73% of Devs Don't Know This Python Trick #Shorts'. BAD: 'I Tested X #Shorts'.",
   "description": "Shorts description 75-100 words with natural keywords and 1-2 calls to action. Keep it punchy and action-oriented.",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"],
   "hook_title_text": "2-3 WORDS MAX (ALL CAPS, punchy opener — shown as opening text overlay)",

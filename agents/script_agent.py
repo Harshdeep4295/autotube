@@ -349,6 +349,32 @@ class ScriptAgent:
                 f"Expected at least 3."
             )
 
+        # Title quality validation
+        title = data.get("title", "")
+        _banned_title_phrases = [
+            "here's what happened", "results shocked me", "shocked me",
+            "here's what i found", "here's what changed",
+            "what happened next", "you won't believe",
+        ]
+        title_lower = title.lower()
+        for phrase in _banned_title_phrases:
+            if phrase in title_lower:
+                raise ValueError(f"Title uses banned spam phrase '{phrase}': {title}")
+        if len(title) < 30:
+            raise ValueError(f"Title too short ({len(title)} chars, min 30): {title}")
+        if len(title) > 80:
+            data["title"] = title[:77] + "..."
+            logger.warning(f"Title truncated to 80 chars: {data['title']}")
+
+        # Year validation — reject stale year references
+        import re
+        from datetime import datetime as _dt
+        current_year = _dt.now().year
+        year_matches = re.findall(r'\b(20[0-9]{2})\b', title)
+        for year_str in year_matches:
+            if int(year_str) < current_year - 1:
+                raise ValueError(f"Title references stale year {year_str} (current: {current_year}): {title}")
+
         # Validate word count — accept what model produces (Groq limitations)
         actual_words = sum(len(s.get("text", "").split()) for s in data.get("sections", []))
         claimed_words = data.get('total_word_count', actual_words)
