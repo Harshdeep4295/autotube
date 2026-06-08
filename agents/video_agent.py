@@ -373,7 +373,14 @@ class VideoAgent:
         # Render section title PNGs with their timing info
         section_title_pngs = self._save_section_title_pngs(sections, section_durations)
 
-        # 5. Final composite: overlays + dark filter + audio (single FFmpeg pass)
+        # Generate SRT captions BEFORE composite so we can burn them in
+        srt_path = None
+        try:
+            srt_path = self._generate_srt(sections, total_duration, str(Path(output_path).parent))
+        except Exception as e:
+            logger.warning(f"SRT generation failed: {e}")
+
+        # 5. Final composite: overlays + dark filter + audio + subtitles (single FFmpeg pass)
         logger.info(f"[PHASE_5] Final FFmpeg composite + audio mix...")
         music_path = self._get_music_path(total_duration)
         self._ffmpeg_final_composite(
@@ -386,16 +393,11 @@ class VideoAgent:
             watermark_png=watermark_png,
             section_title_pngs=section_title_pngs,
             total_duration=total_duration,
+            srt_path=srt_path,
         )
 
         _get_memory_status("PARALLEL_RENDER_COMPLETE")
         logger.info(f"[PARALLEL_RENDER] Video saved: {output_path}")
-
-        # Generate SRT captions
-        try:
-            self._generate_srt(sections, total_duration, str(Path(output_path).parent))
-        except Exception as e:
-            logger.warning(f"SRT generation failed: {e}")
 
         self._save_used_clips()
         return output_path
@@ -538,7 +540,9 @@ class VideoAgent:
             return str(cache_path)
 
         cmd = [
-            "ffmpeg", "-y", "-i", clip_path,
+            "ffmpeg", "-y",
+            "-stream_loop", "-1",
+            "-i", clip_path,
             "-vf", f"scale={self.W}:{self.H}:force_original_aspect_ratio=increase,crop={self.W}:{self.H}",
             "-t", f"{duration:.3f}",
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
@@ -709,6 +713,7 @@ class VideoAgent:
         watermark_png: str,
         section_title_pngs: List[Tuple[str, float, float]],
         total_duration: float,
+        srt_path: Optional[str] = None,
     ):
         """
         Single FFmpeg command to composite:
@@ -780,6 +785,16 @@ class VideoAgent:
             # Position upper-center (x centered, y=140)
             filters.append(
                 f"[{current_label}][title_{i}]overlay=(W-w)/2:140:enable='between(t,{start_time:.3f},{end_time:.3f})'[{next_label}]"
+            )
+            current_label = next_label
+
+        # Burn in subtitles if SRT available
+        if srt_path and Path(srt_path).exists():
+            escaped_srt = srt_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+            sub_style = "FontSize=22,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,MarginV=40"
+            next_label = f"v{int(current_label[1:]) + 1}" if current_label[0] == 'v' else "vsub"
+            filters.append(
+                f"[{current_label}]subtitles='{escaped_srt}':force_style='{sub_style}'[{next_label}]"
             )
             current_label = next_label
 
