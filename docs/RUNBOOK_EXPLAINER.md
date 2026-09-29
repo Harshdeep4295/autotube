@@ -42,9 +42,9 @@ research_agent.mark_used → the topic is recorded only after a successful uploa
 ## 2. One-time setup
 
 ### 2.1 New YouTube channel
-1. YouTube → your avatar → **Settings → Add or manage your channel(s) → Create a channel**
-   (a brand-account channel). Name it for the niche, e.g. "Practical AI", "Run It Local" or "AI You Own".
-2. Put the name in the GitHub **variable** `CHANNEL_NAME` (shown as the watermark).
+The channel is **Run It Local**. Name, handle, description, keywords, logo, banner, watermark and the
+step-by-step list are in [CHANNEL_SETUP.md](CHANNEL_SETUP.md). `CHANNEL_NAME` defaults to "Run It Local";
+set the GitHub variable only if you choose another name.
 
 ### 2.2 YouTube API credentials for the NEW channel (free)
 1. Google Cloud console → create a project → **APIs & Services → Library → YouTube Data API v3 → Enable**.
@@ -66,7 +66,7 @@ research_agent.mark_used → the topic is recorded only after a successful uploa
 | Secret | `GEMINI_API_KEY` | from 2.3 |
 | Secret | `GROQ_API_KEY` | optional |
 | Secret | `YOUTUBE_TOKEN_JSON` | token JSON from 2.2 (the whole `{...}`) |
-| Variable | `CHANNEL_NAME` | the new channel's name |
+| Variable | `CHANNEL_NAME` | optional, default "Run It Local" |
 | Variable | `KOKORO_VOICE` | optional, default `am_michael` |
 | Variable | `GEMINI_FREE_MODELS` / `GROQ_FREE_MODELS` | optional. Change these when a free model is retired |
 

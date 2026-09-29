@@ -181,6 +181,7 @@ class ExplainerAgent:
             "text": safe.get("thumbnail_text") or safe.get("title", "")[:30],
             "subtext": safe.get("thumbnail_subtext", ""),
             "icon": safe.get("thumbnail_icon", "lightbulb"),
+            "channel": config.CHANNEL_NAME,
         })], 300)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(thumb_png), "-q:v", "3", str(thumb)], check=True)
         thumb_png.unlink(missing_ok=True)
