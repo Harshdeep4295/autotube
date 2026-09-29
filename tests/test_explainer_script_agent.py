@@ -48,6 +48,8 @@ OUTLINE = json.dumps({
 def no_network(monkeypatch):
     monkeypatch.setattr(esa, "fetch_text", lambda url: "")
     monkeypatch.setattr(esa.config, "EXPLAINER_TARGET_WORDS", 120)
+    monkeypatch.setattr(esa.config, "EXPLAINER_MIN_SECONDS", 0)
+    monkeypatch.setattr(esa, "CHAPTER_MIN_SHARE", 0.8)
 
 
 def test_generate_assembles_chapters_and_marks_chapter_starts():
@@ -70,4 +72,33 @@ def test_invalid_chapter_json_gets_one_repair_round_trip():
 def test_too_short_script_is_rejected():
     llm = ScriptedLLM([OUTLINE, chapter(1), chapter(1), chapter(1), chapter(1), chapter(1), chapter(1)])
     with pytest.raises(Exception):
+        ExplainerScriptAgent(llm).generate({"topic": "Local LLMs"})
+
+
+def test_parse_json_obj_accepts_list_shapes():
+    assert parse_json_obj('[{"title": "t", "chapters": []}]') == {"title": "t", "chapters": []}
+    shots = parse_json_obj('[{"text": "a b"}, {"text": "c d"}]')
+    assert shots == {"shots": [{"text": "a b"}, {"text": "c d"}]}
+
+
+def test_salvage_shots_from_cut_off_answer():
+    full = json.loads(chapter(3))["shots"]
+    text = json.dumps({"shots": full})
+    cut = text[: text.index("narration line number 2") + 10]   # third shot cut mid-string
+    assert esa.salvage_shots(cut) == full[:2]
+
+
+def test_short_chapter_is_topped_up_and_cta_stays_last():
+    # last chapter comes back with 2 shots (26 words); the top-up adds 3 more before the CTA
+    llm = ScriptedLLM([OUTLINE, chapter(4), chapter(4, 4), chapter(2, 8, cta=True), chapter(3, 20)])
+    script = ExplainerScriptAgent(llm).generate({"topic": "Local LLMs"})
+    assert len(script["shots"]) == 13
+    assert script["shots"][-1]["scene"]["type"] == "cta_end"
+    assert "do NOT repeat" in llm.prompts[-1]
+
+
+def test_script_shorter_than_min_seconds_fails_before_render(monkeypatch):
+    monkeypatch.setattr(esa.config, "EXPLAINER_MIN_SECONDS", 480)
+    llm = ScriptedLLM([OUTLINE, chapter(4), chapter(4, 4), chapter(4, 8, cta=True)])
+    with pytest.raises(RuntimeError, match="script too short"):
         ExplainerScriptAgent(llm).generate({"topic": "Local LLMs"})

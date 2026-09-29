@@ -88,3 +88,22 @@ def test_llm_follows_retired_model_successor_and_remembers_it():
 def test_default_gemini_models_are_current(monkeypatch):
     monkeypatch.delenv("GEMINI_FREE_MODELS", raising=False)
     assert Config().GEMINI_FREE_MODELS == ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+
+
+def test_llm_retries_overloaded_model_then_succeeds(monkeypatch):
+    from agents import llm as llm_mod
+    monkeypatch.setattr(llm_mod.time, "sleep", lambda s: None)
+    calls = []
+
+    def flaky(model, *a):
+        calls.append(model)
+        if len(calls) == 1:
+            raise RuntimeError("503 UNAVAILABLE. This model is currently experiencing high demand.")
+        return '{"ok": 1}'
+
+    class Fake(llm_mod.FreeLLM):
+        def chain(self):
+            return [("gemini", "gemini-3.8-flash", flaky), ("gemini", "gemini-3.5-flash-lite", flaky)]
+
+    assert Fake().complete("s", "u") == '{"ok": 1}'
+    assert calls == ["gemini-3.8-flash", "gemini-3.8-flash"]
