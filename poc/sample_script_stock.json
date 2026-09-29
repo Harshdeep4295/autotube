@@ -1,0 +1,188 @@
+{
+  "title": "Run a Real AI Model on Your Own Laptop (Free, Offline) [stock footage version]",
+  "hook_title_text": "RUN AI OFFLINE",
+  "shots": [
+    {
+      "text": "You don't need a data center to run a capable AI model. You need the laptop you already own.",
+      "emphasis": [
+        "laptop you already own"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "server room data center aisle"
+      }
+    },
+    {
+      "text": "Open AI models now run fully offline. No subscription, and your data never leaves your machine.",
+      "emphasis": [
+        "fully offline"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "person typing on laptop at night"
+      }
+    },
+    {
+      "text": "You need three things. The right tool, the right model size, and enough memory.",
+      "emphasis": [
+        "three things"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "hands typing on laptop keyboard close up"
+      }
+    },
+    {
+      "text": "Start with the tool. Ollama and LM Studio are both free, and they handle the hard parts for you.",
+      "emphasis": [
+        "Ollama",
+        "LM Studio"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "software developer computer screen close up"
+      }
+    },
+    {
+      "text": "With Ollama, one command downloads a model and starts a chat, right in your terminal.",
+      "emphasis": [
+        "one command"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "programmer terminal code on screen dark"
+      }
+    },
+    {
+      "text": "Prefer buttons over commands? LM Studio gives you a chat window, much like the apps you already use.",
+      "emphasis": [
+        "chat window"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "computer monitor user interface office"
+      }
+    },
+    {
+      "text": "Next, pick the right model size. Size is measured in billions of parameters.",
+      "emphasis": [
+        "billions of parameters"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "abstract digital network data"
+      }
+    },
+    {
+      "text": "Bigger models are smarter, but they are also slower and hungrier for memory.",
+      "emphasis": [
+        "slower",
+        "hungrier"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "abstract glowing neural network nodes, cinematic blue light"
+      }
+    },
+    {
+      "text": "A seven or eight billion parameter model, compressed to four bits, needs about five gigabytes of memory.",
+      "emphasis": [
+        "five gigabytes"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "computer memory ram module"
+      }
+    },
+    {
+      "text": "That fits comfortably on most laptops with sixteen gigabytes of RAM.",
+      "emphasis": [
+        "sixteen gigabytes"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "laptop on wooden desk"
+      }
+    },
+    {
+      "text": "That compression is called quantization. It shrinks the model, with only a small loss in quality.",
+      "emphasis": [
+        "quantization"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "zipping compressing files abstract"
+      }
+    },
+    {
+      "text": "Finally, memory. On a Mac with Apple silicon, the GPU shares system memory, which helps a lot.",
+      "emphasis": [
+        "Apple silicon"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "computer chip macro"
+      }
+    },
+    {
+      "text": "On Windows or Linux, a graphics card with its own video memory makes answers much faster.",
+      "emphasis": [
+        "graphics card"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "graphics card inside gaming pc"
+      }
+    },
+    {
+      "text": "No graphics card? It still works on the processor. Answers just arrive more slowly.",
+      "emphasis": [
+        "still works"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "computer processor fan spinning"
+      }
+    },
+    {
+      "text": "So why bother? Privacy, for one. Your notes and your code stay on your own disk.",
+      "emphasis": [
+        "Privacy"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "padlock over a laptop screen, dark moody cinematic lighting"
+      }
+    },
+    {
+      "text": "It also works with no internet at all. On a plane, or anywhere with bad Wi-Fi.",
+      "emphasis": [
+        "no internet"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "working on laptop in airplane"
+      }
+    },
+    {
+      "text": "My advice? Start with a small model, check that it is fast enough, then try a bigger one.",
+      "emphasis": [
+        "Start with a small model"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "person thinking at desk with laptop"
+      }
+    },
+    {
+      "text": "Which model would you try first? Tell me in the comments, and subscribe for more practical AI guides.",
+      "emphasis": [
+        "subscribe"
+      ],
+      "visual": {
+        "type": "broll",
+        "query": "person using laptop smiling at home"
+      }
+    }
+  ]
+}

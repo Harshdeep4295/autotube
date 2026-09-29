@@ -1,4 +1,4 @@
-name: AutoTube Daily Pipeline
+name: AutoTube Daily Pipeline (legacy renderer)
 
 on:
   workflow_dispatch:          # manual trigger from GitHub Actions tab only (scheduled runs disabled)
@@ -86,6 +86,7 @@ jobs:
           SCRIPT_MODEL_PROVIDER:          ${{ github.event.inputs.model_provider || secrets.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE:         ${{ secrets.VIDEO_BACKGROUND_MODE || 'ai_images' }}
           VIDEO_ANIMATION_MODE:          ${{ secrets.VIDEO_ANIMATION_MODE || 'ken_burns' }}
+          VIDEO_STYLE:                   legacy
           GCP_PROJECT_ID:                 ${{ secrets.GCP_PROJECT_ID }}
           GCP_GCS_BUCKET:                 ${{ secrets.GCP_GCS_BUCKET }}
           AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.AI_VIDEO_GCP_SERVICE_ACCOUNT_JSON }}

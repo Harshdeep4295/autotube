@@ -38,6 +38,40 @@ class Config:
         default_factory=lambda: os.getenv("SCRIPT_MODEL_PROVIDER", "auto")
     )
 
+    # ── Free-only mode (default ON) ───────────────────────────────────────────
+    # Refuses to start if a paid service is configured (Claude API, Bedrock, Veo,
+    # GCS backup). The LLM chain becomes Gemini free tier → Groq free tier.
+    FREE_ONLY: bool = field(
+        default_factory=lambda: os.getenv("FREE_ONLY", "true").lower() != "false"
+    )
+    # Free-tier model lists, tried in order. Free tiers change often — override
+    # with comma-separated env vars instead of editing code.
+    GEMINI_FREE_MODELS: List[str] = field(default_factory=lambda: [
+        m.strip() for m in os.getenv(
+            "GEMINI_FREE_MODELS", "gemini-2.5-flash-lite,gemini-2.5-flash"
+        ).split(",") if m.strip()
+    ])
+    GROQ_FREE_MODELS: List[str] = field(default_factory=lambda: [
+        m.strip() for m in os.getenv(
+            "GROQ_FREE_MODELS", "openai/gpt-oss-120b,qwen/qwen3-32b"
+        ).split(",") if m.strip()
+    ])
+
+    # ── Video style ───────────────────────────────────────────────────────────
+    # "explainer" → Remotion animated explainer (default, see docs/PLAN_EXPLAINER_AND_AI_VIDEO.md)
+    # "legacy"    → old AI-image + Ken Burns renderer (agents/video_agent.py)
+    VIDEO_STYLE: str = field(default_factory=lambda: os.getenv("VIDEO_STYLE", "explainer").lower())
+    EXPLAINER_DIR: str = "video/explainer"
+    EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "480")))
+    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1150")))
+
+    # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
+    VOICE_ENGINE: str = field(default_factory=lambda: os.getenv("VOICE_ENGINE", "kokoro").lower())
+    KOKORO_VOICE: str = field(default_factory=lambda: os.getenv("KOKORO_VOICE", "am_michael"))
+    KOKORO_SPEED: float = field(default_factory=lambda: float(os.getenv("KOKORO_SPEED", "1.05")))
+    # "whisper" = word timings from faster-whisper (falls back automatically), "proportional" = estimate
+    WORD_TIMINGS: str = field(default_factory=lambda: os.getenv("WORD_TIMINGS", "whisper").lower())
+
     # ── Claude settings ───────────────────────────────────────────────────────
     ANTHROPIC_API_KEY: str = field(
         default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
@@ -88,7 +122,24 @@ class Config:
     # Change these to match your YouTube channel before the first run.
     # Options: AI & Tech | Finance | Business | Health | History | English Learning
     CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", "AI & Tech"))
-    CHANNEL_NAME: str = "AutoTube"   # Your actual channel name (shown in watermark)
+    CHANNEL_NAME: str = field(default_factory=lambda: os.getenv("CHANNEL_NAME", "AutoTube"))
+
+    # Sub-niche for the new channel (2026-09-29): practical, free / open-source AI
+    # tools people can run and use themselves. Evergreen how-to + explainers, fits
+    # the animated scene catalogue (terminal, chat, compare, charts).
+    CHANNEL_SUBNICHE: str = field(default_factory=lambda: os.getenv(
+        "CHANNEL_SUBNICHE",
+        "Practical AI: free and open-source AI tools you can run and use yourself",
+    ))
+    # A research topic must contain at least one of these (case-insensitive) to be used.
+    NICHE_KEYWORDS: List[str] = field(default_factory=lambda: [
+        k.strip().lower() for k in os.getenv("NICHE_KEYWORDS", (
+            "ai,llm,gpt,chatgpt,claude,gemini,llama,mistral,qwen,deepseek,ollama,lm studio,"
+            "open-source model,open source model,open-weight,local model,self-host,"
+            "stable diffusion,whisper,transformer,neural,machine learning,agent,copilot,"
+            "prompt,inference,gpu,quantiz,rag,embedding,fine-tun,hugging face,automation"
+        )).split(",") if k.strip()
+    ])
 
     # ── Research ──────────────────────────────────────────────────────────────
     # Subreddits are auto-selected based on CHANNEL_NICHE if SUBREDDITS is left empty.
@@ -98,6 +149,10 @@ class Config:
     TRENDS_CATEGORY: int = 0       # 0 = all categories; 5 = Tech; 7 = Finance
     TOPIC_HISTORY_DAYS: int = 30   # deduplication window (skip topics used recently)
     TOPICS_PER_RUN: int = 1        # 1 video/day — give each video room to breathe
+    # Subreddits used for the practical-AI sub-niche (reddit often blocks cloud IPs; best-effort)
+    SUBNICHE_SUBREDDITS: List[str] = field(default_factory=lambda: [
+        "LocalLLaMA", "ollama", "selfhosted", "ArtificialInteligence", "OpenAI", "StableDiffusion",
+    ])
 
     # Per-niche subreddit defaults — used when SUBREDDITS is empty
     NICHE_SUBREDDITS: dict = field(default_factory=lambda: {
@@ -144,6 +199,8 @@ class Config:
         """Returns explicit SUBREDDITS if set, otherwise uses niche defaults."""
         if self.SUBREDDITS:
             return self.SUBREDDITS
+        if self.VIDEO_STYLE == "explainer":
+            return self.SUBNICHE_SUBREDDITS
         return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
 
     # ── Script / content ──────────────────────────────────────────────────────
@@ -254,7 +311,12 @@ class Config:
         default_factory=lambda: os.getenv("YOUTUBE_TOKEN_JSON", "data/youtube_token.json")
     )
     VIDEO_CATEGORY_ID: str = "28"   # 28 = Science & Technology
-    VIDEO_PRIVACY: str = "public"
+    # Uploads are PRIVATE by default: a human publishes after review.
+    VIDEO_PRIVACY: str = field(default_factory=lambda: os.getenv("VIDEO_PRIVACY", "private"))
+    # Sets status.containsSyntheticMedia (YouTube "altered or synthetic content" disclosure).
+    VIDEO_SYNTHETIC_MEDIA: bool = field(
+        default_factory=lambda: os.getenv("VIDEO_SYNTHETIC_MEDIA", "true").lower() != "false"
+    )
     VIDEO_MADE_FOR_KIDS: bool = False
 
     # ── Feature 3: Auto-Playlist (Series detection) ─────────────────────────────
@@ -308,9 +370,9 @@ class Config:
     # "kling"      → Kling API video generation (requires API key)
     # "pika"       → Pika video generation (requires API key)
     # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (COMPLETELY FREE ✓)
-    # Default: "veo" (best quality, uses GCP free credits). Falls back to Ken Burns if quota exceeded.
+    # Default: "ken_burns" (free). "veo" is paid and refused when FREE_ONLY=true.
     VIDEO_ANIMATION_MODE: str = field(
-        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "veo")
+        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "ken_burns")
     )
 
     # ── Video caption / B-roll settings ──────────────────────────────────────
@@ -356,6 +418,29 @@ class Config:
 
     # ── Failure handling ──────────────────────────────────────────────────────
     SKIP_ON_FAIL: bool = True   # skip failed videos and continue pipeline
+
+
+    def paid_features_in_use(self) -> List[str]:
+        """Paid services that are currently configured. Empty list = free-only safe."""
+        paid = []
+        if self.SCRIPT_MODEL_PROVIDER.lower() in ("claude", "bedrock"):
+            paid.append(f"SCRIPT_MODEL_PROVIDER={self.SCRIPT_MODEL_PROVIDER} (paid API)")
+        if self.VIDEO_ANIMATION_MODE.lower() == "veo":
+            paid.append("VIDEO_ANIMATION_MODE=veo (Vertex AI, paid)")
+        if os.getenv("GCS_BUCKET_NAME"):
+            paid.append("GCS_BUCKET_NAME set (Cloud Storage backup, paid)")
+        return paid
+
+    def assert_free_only(self) -> None:
+        """Raise if FREE_ONLY is on and a paid service is configured."""
+        if not self.FREE_ONLY:
+            return
+        paid = self.paid_features_in_use()
+        if paid:
+            raise RuntimeError(
+                "FREE_ONLY=true but paid services are configured: " + "; ".join(paid)
+                + ". Unset them, or set FREE_ONLY=false to allow paid services."
+            )
 
 
 config = Config()

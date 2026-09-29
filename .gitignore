@@ -40,3 +40,14 @@ env/
 
 # code related or repo related
 data/music/*
+
+# POC render outputs
+poc/*.mp4
+poc/explainer/node_modules/
+poc/explainer/out/
+poc/ai_video/out/
+
+# Explainer renderer (Remotion)
+video/explainer/node_modules/
+video/explainer/test-output/
+video/explainer/out/

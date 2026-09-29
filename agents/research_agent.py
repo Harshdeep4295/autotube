@@ -19,6 +19,7 @@ Deduplication:
   - Fuzzy similarity via difflib.SequenceMatcher (>0.75 ratio = too similar)
 """
 
+import html
 import json
 import logging
 import os
@@ -48,18 +49,15 @@ RSS_FEEDS_BY_NICHE = {
     "AI & Tech": [
         "https://feeds.feedburner.com/TechCrunch",
         "https://www.wired.com/feed/rss",
-        "https://feeds.reuters.com/reuters/technologyNews",
         "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
     ],
     "Finance": [
-        "https://feeds.reuters.com/reuters/businessNews",
         "https://www.cnbc.com/id/100003114/device/rss/rss.html",
         "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
         "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
     ],
     "Business": [
         "https://feeds.feedburner.com/entrepreneur/latest",
-        "https://feeds.reuters.com/reuters/businessNews",
         "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
         "https://feeds.inc.com/home/updates",
     ],
@@ -67,13 +65,11 @@ RSS_FEEDS_BY_NICHE = {
         "https://rss.medicalnewstoday.com/",
         "https://www.healthline.com/rss/health-news",
         "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
-        "https://feeds.reuters.com/reuters/healthNews",
     ],
     "History": [
         "https://feeds.feedburner.com/smithsonianmag/history-archaeology",
         "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         "https://www.historydiscovery.com/feed/",
-        "https://feeds.reuters.com/reuters/oddlyEnoughNews",
     ],
     "English Learning": [
         "https://feeds.feedburner.com/TechCrunch",          # tech English topics
@@ -91,7 +87,6 @@ RSS_FEEDS_BY_NICHE = {
         "https://www.nih.gov/news-events/news-releases/feed",
         "https://rss.medicalnewstoday.com/",
         "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
-        "https://feeds.reuters.com/reuters/healthNews",
     ],
     "Soundscapes": [
         "https://www.musicradar.com/rss",
@@ -238,7 +233,7 @@ class ResearchAgent:
 
         return min(score, 1.0)
 
-    def get_topics(self, count: int = config.TOPICS_PER_RUN) -> List[Dict]:
+    def get_topics(self, count: int = config.TOPICS_PER_RUN, record: bool = True) -> List[Dict]:
         """
         Returns up to `count` scored, deduplicated topic dicts.
         Each dict: {topic, angle, source, composite_score, quality_score, reddit_mentions}
@@ -309,6 +304,19 @@ class ResearchAgent:
             logger.error("All research sources failed — no topics found")
             return []
 
+        for t in raw_topics:
+            t["topic"] = self._clean(t["topic"])
+            if t.get("summary"):
+                t["summary"] = self._clean(t["summary"])
+
+        if config.VIDEO_STYLE == "explainer":
+            before = len(raw_topics)
+            raw_topics = [t for t in raw_topics if self.matches_niche(t)]
+            logger.info(f"Niche filter ({config.CHANNEL_SUBNICHE[:40]}…): {before} → {len(raw_topics)} topics")
+            if not raw_topics:
+                logger.error("No research topic matches the channel niche")
+                return []
+
         # ENHANCEMENT: Enrich angles with context and data
         for topic in raw_topics:
             summary = topic.get("summary", topic.get("angle", ""))
@@ -342,7 +350,8 @@ class ResearchAgent:
 
         selected = filtered[:count]
 
-        self._save_to_history(selected, history)
+        if record:
+            self._save_to_history(selected, history)
         logger.info(f"Selected {len(selected)} topics after scoring and deduplication")
         for s in selected:
             logger.info(f"  ✓ {s['topic'][:50]:<50} (quality: {s.get('quality_score', 0):.2f}, composite: {s['composite_score']:.2f})")
@@ -432,6 +441,8 @@ class ResearchAgent:
                     if len(title) > 10 and score > 100:
                         topics.append({
                             "topic": title[:100],
+                            "url": d.get("url") or f"https://www.reddit.com{d.get('permalink', '')}",
+                            "summary": (d.get("selftext") or "")[:600],
                             "angle": f"What Reddit is saying about: {title[:60]}",
                             "source": f"reddit_r/{sub}",
                             "trend_score": min(score / 100, 50),
@@ -454,6 +465,7 @@ class ResearchAgent:
                     if len(title) > 10:
                         topics.append({
                             "topic": title,
+                            "url": entry.get("link", ""),
                             "angle": summary or f"Breaking: {title}",
                             "summary": summary,  # Preserve for enrichment
                             "source": "rss",
@@ -483,6 +495,7 @@ class ResearchAgent:
                 if len(title) > 10 and score > 50:
                     topics.append({
                         "topic": title[:100],
+                        "url": item.get("url") or f"https://news.ycombinator.com/item?id={sid}",
                         "angle": f"Why the tech community is talking about: {title[:60]}",
                         "source": "hackernews",
                         "trend_score": min(score / 20, 60),
@@ -497,10 +510,16 @@ class ResearchAgent:
 
     def _fetch_devto(self) -> List[Dict]:
         """Fetch trending Dev.to articles — no auth required."""
-        params = {"top": 7, "per_page": 20}
-        r = requests.get(DEVTO_URL, params=params, timeout=10)
-        r.raise_for_status()
-        articles = r.json()
+        if config.VIDEO_STYLE == "explainer":
+            articles = []
+            for tag in ("ai", "llm", "machinelearning"):
+                r = requests.get(DEVTO_URL, params={"top": 7, "per_page": 10, "tag": tag}, timeout=10)
+                if r.ok:
+                    articles += r.json()
+        else:
+            r = requests.get(DEVTO_URL, params={"top": 7, "per_page": 20}, timeout=10)
+            r.raise_for_status()
+            articles = r.json()
 
         topics = []
         for art in articles:
@@ -511,6 +530,7 @@ class ResearchAgent:
             if len(title) > 10:
                 topics.append({
                     "topic": title[:100],
+                    "url": art.get("url", ""),
                     "angle": f"Developer perspective on: {title[:60]}",
                     "summary": description or f"Trending: {title[:80]}",  # For enrichment
                     "source": "devto",
@@ -533,6 +553,7 @@ class ResearchAgent:
                     if len(title) > 10:
                         topics.append({
                             "topic": title,
+                            "url": entry.get("link", ""),
                             "angle": summary or f"Community discussion: {title[:60]}",
                             "summary": summary,  # Preserve for enrichment
                             "source": "lobsters",
@@ -729,6 +750,30 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"YouTube Comments failed (skipping): {e}")
             return []
+
+    def mark_used(self, topics: List[Dict]) -> None:
+        """Record topics in history. Call only after a video was successfully produced,
+        so a failed run doesn't burn the topic."""
+        if topics:
+            self._save_to_history(topics, self._load_history())
+
+    @staticmethod
+    def matches_niche(topic: Dict) -> bool:
+        text = f"{topic.get('topic', '')} {topic.get('summary', '')}".lower()
+        for kw in config.NICHE_KEYWORDS:
+            if len(kw) <= 4:
+                if re.search(rf"\b{re.escape(kw)}s?\b", text):
+                    return True
+            elif kw in text:
+                return True
+        return False
+
+    @staticmethod
+    def _clean(text: str) -> str:
+        """Decode HTML entities (e.g. '&amp;') and drop tags from feed text."""
+        text = html.unescape(html.unescape(text or ""))
+        text = re.sub(r"<[^>]+>", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
 
     # ── Utilities ─────────────────────────────────────────────────────────────
 

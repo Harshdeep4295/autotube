@@ -1,6 +1,12 @@
 # AutoTube — Claude Code Instructions
 
-Autonomous faceless YouTube channel pipeline. Generates 8+ min videos daily with AI images + ken_burns animation. Targeting GitHub Actions for free compute (2,000 min/month).
+Autonomous faceless YouTube channel pipeline. **Default since 2026-09-29: animated explainer videos**
+(Remotion + Kokoro voice) for a new channel on _practical, free/open-source AI tools_. Free only
+(`FREE_ONLY=true`): Gemini/Groq free tiers, GitHub Actions standard runner. The old AI-image + Ken Burns
+renderer still exists as `VIDEO_STYLE=legacy`.
+
+**Start here:** `docs/RUNBOOK_EXPLAINER.md` (setup/run/test) and `docs/PLAN_EXPLAINER_AND_AI_VIDEO.md`
+(Phase A done, Phase B = AI clips on a free Kaggle GPU, not started).
 
 ---
 
@@ -12,7 +18,28 @@ After code changes: tell user what changed, suggest `git diff` review, suggest c
 
 ---
 
-## How to Run
+## Animated explainer (default pipeline)
+
+```bash
+# Offline render of the fixture script (no LLM, no upload)
+.venv/bin/python -m agents.explainer_agent tests/fixtures/explainer_script.json --out outputs/test
+# Full pipeline, no upload (needs GEMINI_API_KEY)
+.venv/bin/python orchestrator.py --dry-run [--topic "..."] [--script path.json]
+# Tests
+.venv/bin/python -m pytest -q
+(cd video/explainer && npm run test:scenes && npx tsc --noEmit)
+```
+
+Rules for this pipeline:
+- Scene catalogue lives in `agents/scene_schema.py`; one component per scene in
+  `video/explainer/src/scenes/` registered in `registry.tsx`. After catalogue changes run
+  `python -m agents.scene_schema --fixtures > video/explainer/test/fixtures.json`.
+- Load fonts inside compositions (`useFontsReady`), never at module level (breaks long renders).
+- Loudness-normalize voice in its own FFmpeg pass, never inside a mix graph (drops the last ~3 s).
+- Uploads are private + `containsSyntheticMedia`; topics are recorded only after a successful upload.
+- Never add paid providers to the default path; `config.assert_free_only()` enforces it.
+
+## How to Run (legacy renderer: `VIDEO_STYLE=legacy`)
 
 ```bash
 # Dry run (always test first)
@@ -106,8 +133,15 @@ Optional: `visual_queries` (8 cinematic search terms), `hook_title_text`
 ## Config Quick Reference
 
 ```python
+FREE_ONLY = true                 # refuse paid services (Claude API, Bedrock, Veo, GCS)
+VIDEO_STYLE = "explainer"        # or "legacy"
+CHANNEL_SUBNICHE / NICHE_KEYWORDS # new channel's focus + research filter
+EXPLAINER_TARGET_WORDS = 1150    # ~8+ min (mid-roll eligible); EXPLAINER_MIN_SECONDS = 480
+KOKORO_VOICE = "am_michael"      # KOKORO_SPEED = 1.05; WORD_TIMINGS = "whisper" (falls back)
+GEMINI_FREE_MODELS / GROQ_FREE_MODELS  # comma lists; change when a free model is retired
+VIDEO_PRIVACY = "private"        # human publishes after review
 CHANNEL_NICHE = "AI & Tech"      # LOCKED — random rotation killed the channel (0 views). Override with env var if needed.
-SCRIPT_WORD_COUNT = 1100         # ~8 min — mid-roll eligible
+SCRIPT_WORD_COUNT = 600          # legacy renderer only
 VIDEO_BACKGROUND_MODE            # "ai_images" (default) or "pexels"
 VIDEO_ANIMATION_MODE             # "ken_burns" (default, free) or "veo" (GCP, $0.80/video)
 MUSIC_ENABLED                    # "true" (default) — CC0 only
@@ -194,7 +228,7 @@ When `APPROVAL_REQUIRED=true`:
 
 - **Voice fallback chain:** edge-tts (retries up to 3 voices from niche pool) → pyttsx3 + FFmpeg WAV→MP3 conversion. Never rename WAV to .mp3 — always convert.
 - **Video resolution enforcement:** Final composite FFmpeg command includes explicit `-s {W}x{H}` flag. Shorts conversion uses single-pass FFmpeg with `scale+pad` filter (no MoviePy for resize).
-- **Niche rotation:** `CHANNEL_NICHE` randomly selected each run (env var override available). All downstream agents (voice, research, colors, thumbnails) auto-adapt.
+- **Niche:** fixed (random rotation was removed — it killed the old channel). Explainer research is filtered by `NICHE_KEYWORDS`.
 - **Disk cleanup:** Pre-flight check — if <2GB free, aggressively clears ALL outputs + cache before render. Normal cleanup: cache >500MB gets cleared, output dirs >6h old deleted.
 - **Dead code policy:** Kling/Pika/Seedance/Replicate methods are no-op stubs returning `{}`. Do NOT add real imports — the modules don't exist.
 

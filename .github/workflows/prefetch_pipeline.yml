@@ -1,8 +1,8 @@
-name: AutoTube Prefetch
+name: AutoTube Prefetch (legacy — schedule disabled)
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'   # every 3 hours — keeps queue full
+  # Schedule disabled 2026-09-29: it spent LLM calls every 6 h filling a queue that was
+  # never rendered. The explainer pipeline (.github/workflows/explainer.yml) replaces it.
   workflow_dispatch:
     inputs:
       count:
@@ -59,6 +59,7 @@ jobs:
           SCRIPT_MODEL_PROVIDER: ${{ secrets.SCRIPT_MODEL_PROVIDER || 'claude' }}
           VIDEO_BACKGROUND_MODE: ${{ secrets.VIDEO_BACKGROUND_MODE || 'ai_images' }}
           VIDEO_ANIMATION_MODE:  ${{ secrets.VIDEO_ANIMATION_MODE || 'ken_burns' }}
+          VIDEO_STYLE:           legacy
         run: |
           python orchestrator.py --mode prefetch --count ${{ github.event.inputs.count || 2 }}
 
