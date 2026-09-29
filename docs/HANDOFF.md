@@ -99,3 +99,17 @@ session. They can only paste things into GitHub or Google settings pages.
 3. Ask the owner to add a `GROQ_API_KEY` (free) and verify the current Groq free model names.
 4. Do one real private upload (`dry_run: false`) and check it in YouTube Studio.
 5. Then the RUNBOOK §5 staging loop, and only after that enable the daily schedule.
+
+## 7. Script-writer hardening (2026-09-29, Cowork session)
+Dry runs #2-#4 on `main` failed in step 2: gemini-2.5 → 404 (fixed by the model names above);
+then `gemini-3.8-flash` always 503 "high demand" (not retried) and `gemini-3.5-flash-lite`
+returned list-shaped / cut-off JSON and chapters at ~half the requested length
+("only 117 words, need about 260"). Changes:
+- `agents/llm.py`: 503/overload errors retried with backoff; Gemini thinking capped
+  (`GEMINI_THINKING_LEVEL`, default `low`, auto-dropped if a model rejects it); MAX_TOKENS logged.
+- `agents/explainer_script_agent.py`: bare-list JSON accepted; complete shots salvaged from cut-off
+  answers; explicit shot counts; up to 2 repairs; short chapters topped up with continuation calls
+  (`CONTINUE_USER`, CTA kept last); script rejected *before* render if it can't reach
+  `EXPLAINER_MIN_SECONDS` at `EXPLAINER_WPM` (160, measured on the fixture).
+- `config.py`: `EXPLAINER_TARGET_WORDS` 1150 → 1350 (1150 words ≈ 7.2 min < the 480 s QA minimum).
+- Budget: a lazy model that writes half the asked length now needs ~20 calls per video.
