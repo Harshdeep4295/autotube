@@ -48,7 +48,7 @@ class Config:
     # with comma-separated env vars instead of editing code.
     GEMINI_FREE_MODELS: List[str] = field(default_factory=lambda: [
         m.strip() for m in os.getenv(
-            "GEMINI_FREE_MODELS", "gemini-2.5-flash-lite,gemini-2.5-flash"
+            "GEMINI_FREE_MODELS", "gemini-3.5-flash-lite,gemini-3.8-flash"
         ).split(",") if m.strip()
     ])
     GROQ_FREE_MODELS: List[str] = field(default_factory=lambda: [

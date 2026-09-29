@@ -5,6 +5,8 @@ One call = `complete(system, user)` → raw text. Models are tried in the order 
 config.GEMINI_FREE_MODELS then config.GROQ_FREE_MODELS. A rate-limit (429) is
 retried with backoff on the same model; any other failure moves to the next model
 (free tiers retire models without notice — Groq dropped Llama in Aug 2026).
+A 404 that names a replacement ("use models/X") is followed automatically, and the
+model that worked is tried first on later calls in the same run.
 """
 
 import logging
@@ -31,10 +33,20 @@ def _retry_after(exc: Exception, default: float) -> float:
     return min(float(m.group(1)) + 1, 90) if m else default
 
 
+def _successor(exc: Exception) -> Optional[str]:
+    """Replacement model named in a 'model no longer available' error, if any."""
+    s = str(exc)
+    if "no longer available" not in s and "not found" not in s.lower():
+        return None
+    m = re.search(r"use (?:the )?models/([A-Za-z0-9][\w.\-]*[A-Za-z0-9])", s)
+    return m.group(1) if m else None
+
+
 class FreeLLM:
     def __init__(self, max_rate_limit_retries: int = 3):
         self.max_rl = max_rate_limit_retries
         self.last_model: Optional[str] = None
+        self._preferred: Optional[Tuple[str, str, Callable]] = None
 
     # Providers ---------------------------------------------------------------
 
@@ -92,14 +104,25 @@ class FreeLLM:
         chain = self.chain()
         if not chain:
             raise LLMError("No free LLM configured: set GEMINI_API_KEY and/or GROQ_API_KEY.")
+        # Start with the model that worked last time (saves dead-model calls on every chapter).
+        if self._preferred:
+            chain = [self._preferred] + [c for c in chain if c[:2] != self._preferred[:2]]
         errors = []
-        for provider, model, fn in chain:
+        tried = set()
+        i = 0
+        while i < len(chain):
+            provider, model, fn = chain[i]
+            i += 1
+            if (provider, model) in tried:
+                continue
+            tried.add((provider, model))
             for attempt in range(self.max_rl + 1):
                 try:
                     text = fn(model, system, user, max_tokens, temperature)
                     if not text.strip():
                         raise LLMError("empty response")
                     self.last_model = f"{provider}:{model}"
+                    self._preferred = (provider, model, fn)
                     logger.info(f"[LLM] {self.last_model} ok ({len(text)} chars)")
                     return text
                 except Exception as e:  # noqa: BLE001 — any provider error → next option
@@ -110,5 +133,10 @@ class FreeLLM:
                         continue
                     logger.warning(f"[LLM] {provider}:{model} failed: {str(e)[:200]}")
                     errors.append(f"{provider}:{model}: {str(e)[:120]}")
+                    # Retired model: the error names its replacement ("use models/gemini-3.5-flash-lite").
+                    successor = _successor(e)
+                    if successor and (provider, successor) not in tried:
+                        logger.info(f"[LLM] {provider}:{model} is retired — trying suggested {successor}")
+                        chain.insert(i, (provider, successor, fn))
                     break
         raise LLMError("All free LLM options failed — " + " | ".join(errors))
