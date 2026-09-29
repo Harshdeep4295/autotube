@@ -43,3 +43,6 @@ data/music/*
 
 # POC render outputs
 poc/*.mp4
+poc/explainer/node_modules/
+poc/explainer/out/
+poc/ai_video/out/

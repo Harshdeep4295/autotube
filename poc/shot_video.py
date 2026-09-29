@@ -80,8 +80,9 @@ def probe_duration(path: Path, stream: str = "v") -> float:
          "-show_entries", "stream=duration", "-of", "csv=p=0", str(path)],
         capture_output=True, timeout=30,
     )
-    out = res.stdout.decode().strip()
-    return float(out) if out and out != "N/A" else 0.0
+    # Some muxers add side-data fields, e.g. "7.000000," — take the first number.
+    m = re.search(r"\d+(?:\.\d+)?", res.stdout.decode())
+    return float(m.group()) if m else 0.0
 
 
 def font(size: int) -> ImageFont.FreeTypeFont:
@@ -250,7 +251,13 @@ class MediaFetcher:
 
     def resolve(self, visual: Dict, dur: float) -> Dict:
         kind = visual.get("type", "text")
-        if kind == "broll":
+        if kind == "file":
+            # Pre-made clip: AI-generated video, a Remotion scene, or your own footage.
+            p = Path(visual["path"])
+            if p.exists() and probe_duration(p) > 0.5:
+                return {"kind": "video", "path": p, "provider": "file"}
+            logger.warning(f"    file clip missing or unreadable: {p}")
+        elif kind == "broll":
             q = visual["query"]
             for provider, fn in (("pexels", lambda: self.pexels_video(q, dur)),
                                  ("pixabay", lambda: self.pixabay_video(q, dur))):
@@ -385,9 +392,12 @@ def build_segment(i: int, shot: Dict, media: Dict, n_frames: int, work: Path, do
         headline = (shot.get("emphasis") or [""])[0].upper()
         sub = ""
     label = ""
-    if label_placeholders and visual.get("type") in ("broll", "image") and media["kind"] == "card":
-        label = ("PLACEHOLDER · stock clip: " + visual.get("query", "")) if visual["type"] == "broll" \
-            else ("PLACEHOLDER · AI image: " + visual.get("prompt", "")[:60])
+    if label_placeholders and visual.get("type") in ("broll", "image", "file") and media["kind"] == "card":
+        label = {
+            "broll": "PLACEHOLDER · stock clip: " + visual.get("query", ""),
+            "image": "PLACEHOLDER · AI image: " + visual.get("prompt", "")[:60],
+            "file": "PLACEHOLDER · clip file: " + Path(visual.get("path", "")).name,
+        }[visual["type"]]
     card_png = work / f"card_{i:03d}.png"
     render_card_png(headline, sub, card_png, label)
     attempts.append(("card", lambda: seg_card(tmp, n_frames, card_png, dots, PALETTES[i % len(PALETTES)], timeout)))
