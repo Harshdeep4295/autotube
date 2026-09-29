@@ -122,7 +122,9 @@ class Config:
     # Change these to match your YouTube channel before the first run.
     # Options: AI & Tech | Finance | Business | Health | History | English Learning
     CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", "AI & Tech"))
-    CHANNEL_NAME: str = field(default_factory=lambda: os.getenv("CHANNEL_NAME", "AutoTube"))
+    CHANNEL_NAME: str = field(default_factory=lambda: os.getenv("CHANNEL_NAME", "Run It Local"))
+    CHANNEL_TAGLINE: str = field(default_factory=lambda: os.getenv(
+        "CHANNEL_TAGLINE", "Free & open-source AI you can run yourself"))
 
     # Sub-niche for the new channel (2026-09-29): practical, free / open-source AI
     # tools people can run and use themselves. Evergreen how-to + explainers, fits

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useLayoutEffect, useRef } from "react
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { C, FONT, H, SAFE, W } from "../theme";
 import { fitSize } from "../util";
+import { Mark } from "../brand/Mark";
 
 export const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
@@ -125,13 +126,11 @@ export const Progress: React.FC = () => {
 };
 
 export const Watermark: React.FC<{ channel: string }> = ({ channel }) => (
-  <div
-    style={{
-      position: "absolute", top: 26, right: 34, fontFamily: FONT, fontWeight: 600, fontSize: 26,
-      color: C.dim, opacity: 0.8, letterSpacing: 1,
-    }}
-  >
-    {channel}
+  <div style={{ position: "absolute", top: 22, right: 30, display: "flex", alignItems: "center", gap: 12, opacity: 0.85 }}>
+    <Mark size={40} />
+    <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.text, letterSpacing: 0.5, whiteSpace: "nowrap" }}>
+      {channel}
+    </div>
   </div>
 );
 

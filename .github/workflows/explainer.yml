@@ -39,7 +39,7 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
-      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'AutoTube' }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
       KOKORO_VOICE: ${{ vars.KOKORO_VOICE || 'am_michael' }}
       GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-2.5-flash-lite,gemini-2.5-flash' }}
       GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}

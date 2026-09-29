@@ -2,6 +2,7 @@ import React from "react";
 import { CalculateMetadataFunction, Composition } from "remotion";
 import { Explainer, SceneTest } from "./Explainer";
 import { Thumbnail } from "./Thumbnail";
+import { BrandBanner, BrandLogo, BrandProps, BrandWatermark } from "./brand/Brand";
 import { FPS, H, W } from "./theme";
 import { ExplainerProps, SceneTestProps, ThumbnailProps } from "./types";
 
@@ -22,10 +23,12 @@ const demo: ExplainerProps = {
   voice: null,
   music: null,
   musicVolume: 0.08,
-  channel: "AutoTube",
+  channel: "Run It Local",
   showCaptions: true,
   debugChecks: false,
 };
+
+const BRAND: BrandProps = { name: "Run It Local", tagline: "Free & open-source AI you can run yourself" };
 
 export const Root: React.FC = () => (
   <>
@@ -34,6 +37,12 @@ export const Root: React.FC = () => (
     <Composition id="SceneTest" component={SceneTest} fps={FPS} width={W} height={H} durationInFrames={150}
       defaultProps={{ type: "key_point", props: { text: "Hello", sub: "", icon: "lightbulb" }, debugChecks: true } as SceneTestProps} />
     <Composition id="Thumbnail" component={Thumbnail} fps={FPS} width={1280} height={720} durationInFrames={1}
-      defaultProps={{ text: "Run AI offline", subtext: "free", icon: "laptop" } as ThumbnailProps} />
+      defaultProps={{ text: "Run AI offline", subtext: "free", icon: "laptop", channel: "Run It Local" } as ThumbnailProps} />
+    <Composition id="BrandLogo" component={BrandLogo} fps={FPS} width={800} height={800} durationInFrames={1}
+      defaultProps={BRAND} />
+    <Composition id="BrandBanner" component={BrandBanner} fps={FPS} width={2560} height={1440} durationInFrames={1}
+      defaultProps={BRAND} />
+    <Composition id="BrandWatermark" component={BrandWatermark} fps={FPS} width={150} height={150} durationInFrames={1}
+      defaultProps={BRAND} />
   </>
 );

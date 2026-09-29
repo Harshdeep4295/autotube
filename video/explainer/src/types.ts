@@ -21,4 +21,4 @@ export type ExplainerProps = {
   debugChecks: boolean;
 };
 export type SceneTestProps = { type: string; props: Record<string, any>; debugChecks: boolean };
-export type ThumbnailProps = { text: string; subtext: string; icon: string };
+export type ThumbnailProps = { text: string; subtext: string; icon: string; channel?: string };
