@@ -6,7 +6,13 @@ config.GEMINI_FREE_MODELS then config.GROQ_FREE_MODELS. A rate-limit (429) is
 retried with backoff on the same model; any other failure moves to the next model
 (free tiers retire models without notice — Groq dropped Llama in Aug 2026).
 A 404 that names a replacement ("use models/X") is followed automatically, and the
-model that worked is tried first on later calls in the same run.
+model that worked is tried first on later calls in the same run. Transient overload
+errors (503 UNAVAILABLE / "high demand", 500) get a short backoff retry too.
+
+Gemini 3.x models "think" before answering and those tokens count against
+max_output_tokens, which truncated long JSON answers. Thinking is capped
+(GEMINI_THINKING_LEVEL, default "low"); a model that rejects the setting is retried
+without it, and a MAX_TOKENS finish is logged so cut-off JSON is easy to spot.
 """
 
 import logging
@@ -28,6 +34,12 @@ def _is_rate_limit(exc: Exception) -> bool:
     return "429" in s or "rate limit" in s or "resource_exhausted" in s or "quota" in s
 
 
+def _is_transient(exc: Exception) -> bool:
+    s = str(exc).lower()
+    return ("503" in s or "unavailable" in s or "high demand" in s or "overloaded" in s
+            or "500 internal" in s or "deadline" in s)
+
+
 def _retry_after(exc: Exception, default: float) -> float:
     m = re.search(r"retry[^0-9]{0,20}(\d+(?:\.\d+)?)\s*s", str(exc), re.I)
     return min(float(m.group(1)) + 1, 90) if m else default
@@ -47,6 +59,8 @@ class FreeLLM:
         self.max_rl = max_rate_limit_retries
         self.last_model: Optional[str] = None
         self._preferred: Optional[Tuple[str, str, Callable]] = None
+        self._no_thinking_cfg: set = set()   # models that rejected thinking_config
+        self.max_transient = 2
 
     # Providers ---------------------------------------------------------------
 
@@ -55,16 +69,32 @@ class FreeLLM:
         from google.genai import types
 
         client = genai.Client(api_key=config.GEMINI_API_KEY)
-        resp = client.models.generate_content(
-            model=model,
-            contents=user,
-            config=types.GenerateContentConfig(
-                system_instruction=system,
-                max_output_tokens=max_tokens,
-                temperature=temperature,
-                response_mime_type="application/json",
-            ),
-        )
+        level = (config.GEMINI_THINKING_LEVEL or "").strip().lower()
+
+        def call(with_thinking: bool):
+            kw = dict(system_instruction=system, max_output_tokens=max_tokens, temperature=temperature,
+                      response_mime_type="application/json")
+            if with_thinking:
+                kw["thinking_config"] = types.ThinkingConfig(thinking_level=level)
+            return client.models.generate_content(model=model, contents=user,
+                                                  config=types.GenerateContentConfig(**kw))
+
+        use_thinking = bool(level) and level != "default" and model not in self._no_thinking_cfg
+        try:
+            resp = call(use_thinking)
+        except Exception as e:  # noqa: BLE001
+            if use_thinking and "think" in str(e).lower() and ("400" in str(e) or "invalid" in str(e).lower()):
+                logger.info(f"[LLM] gemini:{model} rejected thinking_level={level} — retrying without it")
+                self._no_thinking_cfg.add(model)
+                resp = call(False)
+            else:
+                raise
+        try:
+            finish = str(resp.candidates[0].finish_reason or "")
+        except (AttributeError, IndexError, TypeError):
+            finish = ""
+        if "MAX_TOKENS" in finish:
+            logger.warning(f"[LLM] gemini:{model} hit max_output_tokens={max_tokens} — answer may be cut off")
         return resp.text or ""
 
     def _groq(self, model: str, system: str, user: str, max_tokens: int, temperature: float) -> str:
@@ -126,6 +156,11 @@ class FreeLLM:
                     logger.info(f"[LLM] {self.last_model} ok ({len(text)} chars)")
                     return text
                 except Exception as e:  # noqa: BLE001 — any provider error → next option
+                    if _is_transient(e) and not _is_rate_limit(e) and attempt < self.max_transient:
+                        wait = 8 * (attempt + 1)
+                        logger.warning(f"[LLM] {provider}:{model} overloaded — retry in {wait}s")
+                        time.sleep(wait)
+                        continue
                     if _is_rate_limit(e) and attempt < self.max_rl:
                         wait = _retry_after(e, 10 * (attempt + 1))
                         logger.warning(f"[LLM] {provider}:{model} rate-limited — retry in {wait:.0f}s")
