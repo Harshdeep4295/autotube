@@ -40,3 +40,6 @@ env/
 
 # code related or repo related
 data/music/*
+
+# POC render outputs
+poc/*.mp4
