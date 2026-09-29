@@ -113,13 +113,17 @@ class Orchestrator:
         self.run_id = uuid.uuid4().hex[:8]
         self.logger = setup_logging(self.run_id)
 
-        # Load secrets from GCP Secret Manager (Cloud Run only, skipped locally)
-        load_secrets_from_gcp(self.run_id, self.logger)
+        # Refuse to run with paid services configured (FREE_ONLY=true by default)
+        config.assert_free_only()
+
+        # Load secrets from GCP Secret Manager (Cloud Run only, skipped locally; never in free-only mode)
+        if not config.FREE_ONLY:
+            load_secrets_from_gcp(self.run_id, self.logger)
 
         # Initialize Cloud Storage client if in Cloud Run
         self.gcs_client = None
         self.gcs_bucket = None
-        if HAS_GCP and os.getenv("GCP_PROJECT_ID") and os.getenv("GCS_BUCKET_NAME"):
+        if HAS_GCP and not config.FREE_ONLY and os.getenv("GCP_PROJECT_ID") and os.getenv("GCS_BUCKET_NAME"):
             try:
                 self.gcs_client = storage.Client(project=os.getenv("GCP_PROJECT_ID"))
                 self.gcs_bucket = self.gcs_client.bucket(os.getenv("GCS_BUCKET_NAME", "autotube-veo-output"))
@@ -129,7 +133,7 @@ class Orchestrator:
 
         # Initialize Firestore client if in Cloud Run
         self.firestore_client = None
-        if HAS_GCP and os.getenv("GCP_PROJECT_ID"):
+        if HAS_GCP and not config.FREE_ONLY and os.getenv("GCP_PROJECT_ID"):
             try:
                 self.firestore_client = firestore.Client(project=os.getenv("GCP_PROJECT_ID"))
                 self.logger.info(f"Firestore initialized")
@@ -141,6 +145,7 @@ class Orchestrator:
         self.logger.info(f"Provider   : {config.SCRIPT_MODEL_PROVIDER}")
         self.logger.info(f"Mode       : {'DRY RUN (no upload)' if dry_run else 'LIVE'}")
         self.logger.info(f"Niche      : {config.CHANNEL_NICHE}")
+        self.logger.info(f"Style      : {config.VIDEO_STYLE} (free-only: {config.FREE_ONLY})")
 
         self.research   = ResearchAgent()
         self.scripter   = ScriptAgent()
@@ -241,8 +246,10 @@ class Orchestrator:
 
         return results
 
-    def run(self, count: int = 1, topic_override: Optional[str] = None) -> List[Dict]:
+    def run(self, count: int = 1, topic_override: Optional[str] = None, script_path: Optional[str] = None) -> List[Dict]:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
+        if config.VIDEO_STYLE == "explainer":
+            return self.run_explainer(count, topic_override, script_path)
 
         # Pre-flight: Ensure background music library is stocked
         try:
@@ -410,6 +417,94 @@ class Orchestrator:
             if not config.SKIP_ON_FAIL:
                 raise
 
+        return result
+
+    # ── Animated explainer (Phase A) ──────────────────────────────────────────
+
+    def run_explainer(self, count: int = 1, topic_override: Optional[str] = None,
+                      script_path: Optional[str] = None) -> List[Dict]:
+        """Research → grounded script → Remotion render → QA → private upload.
+        A topic is recorded in history only after its video uploads successfully."""
+        self._cleanup_old_outputs(max_age_days=1)
+        if script_path:
+            with open(script_path) as f:
+                fixed = json.load(f)
+            topics = [{"topic": fixed.get("topic") or fixed.get("title", "script"), "script": fixed}]
+        elif topic_override:
+            topics = [{"topic": topic_override, "source": "manual_override", "url": ""}]
+        else:
+            self.logger.info("Step 1/5: Researching topics…")
+            topics = self.research.get_topics(count, record=False)
+        if not topics:
+            self.logger.error("No topics found — aborting")
+            return []
+
+        results = []
+        for i, topic in enumerate(topics[:count]):
+            self.logger.info(f"\n{'─'*60}\nVideo {i+1}/{count}: {topic['topic'][:70]}")
+            result = self._process_explainer(topic, i)
+            results.append(result)
+            if result.get("success"):
+                self.logger.info(f"  ✓ Done: {result.get('url', result.get('video_path', ''))}")
+            else:
+                self.logger.error(f"  ✗ Failed: {result.get('error', 'unknown')[:200]}")
+        self._print_summary(results)
+        self._save_report(results)
+        return results
+
+    def _process_explainer(self, topic: Dict, slot_index: int = 0) -> Dict:
+        from agents.explainer_agent import ExplainerAgent, description_with_chapters
+        from agents.explainer_script_agent import ExplainerScriptAgent
+
+        job_id = f"{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:6]}"
+        out_dir = Path(config.OUTPUT_DIR) / job_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        result = {"job_id": job_id, "topic": topic["topic"], "style": "explainer", "success": False,
+                  "started": datetime.now().isoformat()}
+        try:
+            self.logger.info("Step 2/5: Writing grounded script (free LLM)…")
+            script = topic.get("script") or ExplainerScriptAgent().generate(topic)
+            (out_dir / "script.json").write_text(json.dumps(script, indent=2, ensure_ascii=False))
+            result["title"] = script.get("title", "")
+            result["fact_flags"] = script.get("fact_flags", [])
+            if result["fact_flags"]:
+                self.logger.warning(f"  {len(result['fact_flags'])} number(s) not found in the source — review before publishing")
+
+            self.logger.info("Step 3/5: Voice + animation render + QA…")
+            min_len = config.EXPLAINER_MIN_SECONDS if not topic.get("script") else None
+            rendered = ExplainerAgent().render(script, str(out_dir), min_duration=min_len)
+            result.update({"video_path": rendered["video_path"], "thumbnail_path": rendered["thumbnail_path"],
+                           "duration": rendered["duration"], "chapters": rendered["chapters"]})
+
+            upload_script = {
+                "title": script["title"],
+                "description": description_with_chapters(script.get("description", ""), rendered["chapters"],
+                                                          script.get("sources", [])),
+                "tags": script.get("tags", []),
+            }
+            if self.dry_run:
+                self.logger.info("Step 4/5: DRY RUN — skipping upload")
+                result["url"] = f"file://{rendered['video_path']}"
+            else:
+                self.logger.info(f"Step 4/5: Uploading to YouTube ({config.VIDEO_PRIVACY})…")
+                uploader = self._get_uploader()
+                if not uploader:
+                    raise RuntimeError("YouTube uploader unavailable (check credentials)")
+                up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script, slot_index)
+                result.update(up)
+                if up.get("success") is False:
+                    raise RuntimeError(f"upload failed: {up.get('error', '')}")
+                self.logger.info("Step 5/5: Recording topic as used")
+                if not topic.get("script"):
+                    self.research.mark_used([topic])
+            result["success"] = True
+        except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
+            result["error"] = str(e)
+            result["traceback"] = traceback.format_exc()
+            self.logger.error(f"Explainer pipeline error: {e}")
+        result["completed"] = datetime.now().isoformat()
+        (out_dir / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "traceback"},
+                                                         indent=2, default=str))
         return result
 
     def run_shorts_from_existing(self, pick_strategy: str = "recent_high_views", batch: int = 1) -> List[Dict]:
@@ -1010,6 +1105,8 @@ class Orchestrator:
 
                 # Skip research & generation — use script directly from queue
                 self.logger.info("(Using queued script — skipping research & generation)")
+                if row_id and not self.dry_run:
+                    self._update_pending_status(row_id, "rendering")
 
                 # Step 3: Voiceover
                 self.logger.info("Step 3/6: Synthesizing voiceover…")
@@ -1029,18 +1126,24 @@ class Orchestrator:
                 self.thumbnail.create(script, thumb_path)
                 result["thumbnail_path"] = thumb_path
 
-                # Step 6: Upload
-                self.logger.info("Step 6/6: Uploading to YouTube…")
-                uploader = self._get_uploader()
-                if uploader:
-                    upload_result = uploader.publish(video_path, thumb_path, script, i)
-                    result.update(upload_result)
+                # Step 6: Upload (never in dry-run)
+                if self.dry_run:
+                    self.logger.info("Step 6/6: DRY RUN — skipping upload")
+                    result["url"] = f"file://{video_path}"
+                else:
+                    self.logger.info("Step 6/6: Uploading to YouTube…")
+                    uploader = self._get_uploader()
+                    if uploader:
+                        upload_result = uploader.publish(video_path, thumb_path, script, i)
+                        result.update(upload_result)
+                        if upload_result.get("success") is False:
+                            raise RuntimeError(f"upload failed: {upload_result.get('error', '')}")
 
                 result["success"] = True
                 result["completed"] = datetime.now().isoformat()
 
-                # Mark as published in database
-                if row_id:
+                # Mark as published in database (a dry run leaves the queue untouched)
+                if row_id and not self.dry_run:
                     self._update_pending_status(row_id, "published")
 
                 # Log to Firestore
@@ -1054,6 +1157,8 @@ class Orchestrator:
 
             except Exception as e:
                 self.logger.error(f"Failed to process pending script '{row.get('topic')}': {e}")
+                if row.get("id") and not self.dry_run:
+                    self._update_pending_status(row["id"], "failed", error_text=str(e)[:500])
                 results.append({
                     "topic": row.get("topic", "Unknown"),
                     "success": False,
@@ -1417,13 +1522,20 @@ def main() -> None:
     parser.add_argument("--pick_strategy", type=str, default="recent_high_views",
                         choices=["recent_high_views", "all_time_best", "underutilized", "manual"],
                         help="How to pick videos for Shorts conversion (shorts_from_existing mode only)")
+    parser.add_argument("--style", choices=["explainer", "legacy"], default=None,
+                        help="Video style (default: VIDEO_STYLE env / config, 'explainer')")
+    parser.add_argument("--script", type=str, default=None,
+                        help="Explainer: render this script JSON (skips research + LLM), e.g. tests/fixtures/explainer_script.json")
     parser.add_argument("--batch", type=int, default=1,
                         help="Number of videos to convert in one run (shorts_from_existing mode)")
     args = parser.parse_args()
+    if args.style:
+        config.VIDEO_STYLE = args.style
 
-    # Show cost summary at start
-    cost_tracker = GCPCostTracker(initial_credits=300.0)
-    cost_tracker.print_summary()
+    # GCP credit summary only matters when paid services are allowed
+    cost_tracker = GCPCostTracker(initial_credits=300.0) if not config.FREE_ONLY else None
+    if cost_tracker:
+        cost_tracker.print_summary()
 
     # Secrets are loaded in Orchestrator.__init__() via load_secrets_from_gcp()
     # This happens before agents are created, so APIs are available in Cloud Run
@@ -1440,10 +1552,10 @@ def main() -> None:
             batch=args.batch
         )
     else:  # auto
-        results = orchestrator.run(count=args.count, topic_override=args.topic)
+        results = orchestrator.run(count=args.count, topic_override=args.topic, script_path=args.script)
 
-    # Show final cost summary
-    cost_tracker.print_summary()
+    if cost_tracker:
+        cost_tracker.print_summary()
 
     # Exit with error code if nothing succeeded
     if results and not any(r.get("success") for r in results):

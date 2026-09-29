@@ -1,6 +1,21 @@
 # Plan: Animated Explainer (Phase A) → AI Video Clips (Phase B)
 
-_Status: approved direction, not started · Written 2026-09-29 · Branch `claude/busy-planck-wuvyw9`_
+_Written 2026-09-29 · Branch `claude/busy-planck-wuvyw9`_
+
+## Status (2026-09-29)
+- **Phase A: implemented; staging (A8) not done yet.** A0 fixes, A1 scene schema (15 scenes), A2
+  Remotion library, A3 Kokoro voice + word timings, A4 render agent, A5 grounded prompts + script
+  agent, A6 automated QA, A7 workflows (`explainer.yml`, `tests.yml`). 44 unit tests, 30 scene fixtures
+  and an offline end-to-end render all pass. How to set up, run and test: [RUNBOOK_EXPLAINER.md](RUNBOOK_EXPLAINER.md).
+- **Not verified yet:** real Gemini/Groq calls and faster-whisper alignment (the authoring sandbox had no
+  API key and no Hugging Face access). CI's e2e job exercises whisper. The first live run is staging run 1.
+- **Decisions made:** free only (GitHub standard runner; making the repo public is optional and removes the 2,000 min/month cap), new channel, sub-niche _"Practical AI: free and
+  open-source AI tools you can run and use yourself"_, Kokoro voice `am_michael`, review step later
+  (uploads are private).
+- **Deviation from the plan:** A2's golden-image pixel diffs were replaced by in-browser overflow
+  checks plus a stills artifact for human review. Pixel goldens made on one machine break on another
+  (fonts and Chromium versions differ), which would make CI flaky.
+- **Phase B: not started.**
 
 **Goal.** Replace the "one AI image + Ken Burns per section" renderer with
 **animated explainer videos** (Phase A). Then add a few **AI-generated video clips** per video

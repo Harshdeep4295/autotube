@@ -1,0 +1,111 @@
+name: Explainer Video
+
+# Phase A pipeline: research → grounded script (free LLM) → Kokoro voice → Remotion
+# animation → QA → PRIVATE upload with AI disclosure. You publish after review.
+# Free only: standard GitHub runner, Gemini/Groq free tiers, open-source everything.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: render but do NOT upload (keep on until staging is done)"
+        type: boolean
+        default: true
+      topic:
+        description: "Force a topic (blank = automatic research)"
+        required: false
+        default: ""
+      script:
+        description: "Render a script JSON from the repo instead (skips research + LLM), e.g. tests/fixtures/explainer_script.json"
+        required: false
+        default: ""
+  # Enable after the staging runs in docs/PLAN_EXPLAINER_AND_AI_VIDEO.md (A8):
+  # schedule:
+  #   - cron: "17 3 * * *"   # once a day, 03:17 UTC
+
+concurrency:
+  group: explainer
+  cancel-in-progress: false
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write   # commit topic history back so topics aren't reused
+    env:
+      FREE_ONLY: "true"
+      VIDEO_STYLE: explainer
+      VIDEO_PRIVACY: private
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'AutoTube' }}
+      KOKORO_VOICE: ${{ vars.KOKORO_VOICE || 'am_michael' }}
+      GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-2.5-flash-lite,gemini-2.5-flash' }}
+      GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/explainer/package-lock.json
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-liberation --no-install-recommends
+      - name: Python packages
+        run: pip install -r requirements.txt
+      - name: Node packages + browser
+        working-directory: video/explainer
+        run: npm ci --no-audit --no-fund && npx remotion browser ensure
+      - name: Cache voice + whisper models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/autotube/kokoro
+            ~/.cache/huggingface
+          key: models-kokoro-v1-whisper-base-en
+
+      - name: Run pipeline
+        env:
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+          IN_TOPIC: ${{ inputs.topic }}
+          IN_SCRIPT: ${{ inputs.script }}
+        run: |
+          args=(--style explainer --count 1)
+          # Scheduled runs have no inputs: default to dry run until you enable uploads here.
+          if [ "${IN_DRY_RUN:-true}" != "false" ]; then args+=(--dry-run); fi
+          if [ -n "$IN_TOPIC" ]; then args+=(--topic "$IN_TOPIC"); fi
+          if [ -n "$IN_SCRIPT" ]; then args+=(--script "$IN_SCRIPT"); fi
+          echo "python orchestrator.py ${args[*]}"
+          python orchestrator.py "${args[@]}"
+
+      - name: Upload video + reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: explainer-${{ github.run_number }}
+          path: |
+            outputs/*/video.mp4
+            outputs/*/thumbnail.jpg
+            outputs/*/captions.srt
+            outputs/*/script.json
+            outputs/*/result.json
+            outputs/*/qa.json
+            outputs/*/render_report.json
+            logs/
+          retention-days: 7
+
+      - name: Commit topic history
+        if: success()
+        run: |
+          git config user.email "autotube-bot@users.noreply.github.com"
+          git config user.name "AutoTube Bot"
+          git add data/topics_history.json data/posted_videos.json 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update topic history [skip ci]"
+            git push
+          fi

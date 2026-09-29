@@ -68,6 +68,16 @@ class ScriptAgent:
         """4-way fallback: Claude → Gemini → Bedrock → Groq on quota exhaustion."""
         errors = {}
 
+        if config.FREE_ONLY:
+            # Paid providers (Claude, Bedrock) are never called in free-only mode.
+            for name, fn in (("gemini", self._call_gemini), ("groq", self._call_groq)):
+                try:
+                    return self._call_with_retry(fn, topic)
+                except Exception as exc:
+                    errors[name] = exc
+                    logger.warning(f"{name} failed in free-only mode: {exc}")
+            raise RuntimeError(f"Script generation failed (free-only): {errors}")
+
         # Try Claude first
         try:
             return self._call_with_retry(self._call_claude, topic)

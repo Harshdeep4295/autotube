@@ -1,0 +1,506 @@
+[
+ {
+  "id": "title_hook--example",
+  "type": "title_hook",
+  "props": {
+   "headline": "RUN AI OFFLINE",
+   "subline": "on the laptop you already own",
+   "icon": "laptop"
+  }
+ },
+ {
+  "id": "title_hook--max",
+  "type": "title_hook",
+  "props": {
+   "headline": "HEADLINE WWWW MMMM WWWW MMMM WWWW MMMM",
+   "subline": "SUBLINE WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MM",
+   "icon": "trending-down"
+  }
+ },
+ {
+  "id": "key_point--example",
+  "type": "key_point",
+  "props": {
+   "text": "Your data stays on your disk",
+   "sub": "nothing is uploaded",
+   "icon": "lock"
+  }
+ },
+ {
+  "id": "key_point--max",
+  "type": "key_point",
+  "props": {
+   "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM",
+   "sub": "SUB WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM",
+   "icon": "trending-down"
+  }
+ },
+ {
+  "id": "big_number--example",
+  "type": "big_number",
+  "props": {
+   "value": 5,
+   "prefix": "",
+   "unit": "GB",
+   "label": "memory for an 8B model at 4-bit",
+   "decimals": "0"
+  }
+ },
+ {
+  "id": "big_number--max",
+  "type": "big_number",
+  "props": {
+   "value": 88888.88,
+   "prefix": "PRE",
+   "unit": "UNIT WWW",
+   "label": "LABEL WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM",
+   "decimals": "2"
+  }
+ },
+ {
+  "id": "compare--example",
+  "type": "compare",
+  "props": {
+   "metric": "Monthly cost",
+   "left": {
+    "label": "Cloud AI",
+    "value": "$20"
+   },
+   "right": {
+    "label": "Local AI",
+    "value": "$0"
+   },
+   "winner": "right"
+  }
+ },
+ {
+  "id": "compare--max",
+  "type": "compare",
+  "props": {
+   "metric": "METRIC WWWW MMMM WWWW MMMM",
+   "left": {
+    "label": "LABEL WWWW MMMM W",
+    "value": "VALUE WWWW MMM"
+   },
+   "right": {
+    "label": "LABEL WWWW MMMM W",
+    "value": "VALUE WWWW MMM"
+   },
+   "winner": "right"
+  }
+ },
+ {
+  "id": "bar_chart--example",
+  "type": "bar_chart",
+  "props": {
+   "title": "Model size vs memory",
+   "unit": "GB",
+   "items": [
+    {
+     "label": "3B",
+     "value": 2
+    },
+    {
+     "label": "8B",
+     "value": 5
+    },
+    {
+     "label": "70B",
+     "value": 40
+    }
+   ]
+  }
+ },
+ {
+  "id": "bar_chart--max",
+  "type": "bar_chart",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "unit": "UNIT WWW",
+   "items": [
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    },
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    },
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    },
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    },
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    },
+    {
+     "label": "LABEL WWWW MMM",
+     "value": 88888.88
+    }
+   ]
+  }
+ },
+ {
+  "id": "line_trend--example",
+  "type": "line_trend",
+  "props": {
+   "title": "Open models keep getting smaller",
+   "unit": "B",
+   "points": [
+    {
+     "x": "2023",
+     "y": 70
+    },
+    {
+     "x": "2024",
+     "y": 34
+    },
+    {
+     "x": "2025",
+     "y": 14
+    },
+    {
+     "x": "2026",
+     "y": 8
+    }
+   ]
+  }
+ },
+ {
+  "id": "line_trend--max",
+  "type": "line_trend",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "unit": "UNIT WWW",
+   "points": [
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    },
+    {
+     "x": "X WWWW M",
+     "y": 88888.88
+    }
+   ]
+  }
+ },
+ {
+  "id": "steps--example",
+  "type": "steps",
+  "props": {
+   "title": "Get started in 3 steps",
+   "items": [
+    "Install Ollama",
+    "Pull a small model",
+    "Start chatting"
+   ]
+  }
+ },
+ {
+  "id": "steps--max",
+  "type": "steps",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "items": [
+    "ITEMS0 WWWW MMMM WWWW MMMM WWWW MMMM",
+    "ITEMS1 WWWW MMMM WWWW MMMM WWWW MMMM",
+    "ITEMS2 WWWW MMMM WWWW MMMM WWWW MMMM",
+    "ITEMS3 WWWW MMMM WWWW MMMM WWWW MMMM",
+    "ITEMS4 WWWW MMMM WWWW MMMM WWWW MMMM"
+   ]
+  }
+ },
+ {
+  "id": "checklist--example",
+  "type": "checklist",
+  "props": {
+   "title": "What you need",
+   "items": [
+    {
+     "text": "16 GB of RAM",
+     "ok": true
+    },
+    {
+     "text": "A graphics card",
+     "ok": false
+    }
+   ]
+  }
+ },
+ {
+  "id": "checklist--max",
+  "type": "checklist",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "items": [
+    {
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WW",
+     "ok": false
+    },
+    {
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WW",
+     "ok": false
+    },
+    {
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WW",
+     "ok": false
+    },
+    {
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WW",
+     "ok": false
+    },
+    {
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WW",
+     "ok": false
+    }
+   ]
+  }
+ },
+ {
+  "id": "icon_grid--example",
+  "type": "icon_grid",
+  "props": {
+   "title": "Three things you need",
+   "items": [
+    {
+     "icon": "gear",
+     "label": "The tool"
+    },
+    {
+     "icon": "brain",
+     "label": "A model"
+    },
+    {
+     "icon": "memory",
+     "label": "Memory"
+    }
+   ]
+  }
+ },
+ {
+  "id": "icon_grid--max",
+  "type": "icon_grid",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "items": [
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    },
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    },
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    },
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    },
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    },
+    {
+     "icon": "trending-down",
+     "label": "LABEL WWWW MMMM W"
+    }
+   ]
+  }
+ },
+ {
+  "id": "meter--example",
+  "type": "meter",
+  "props": {
+   "label": "8B model in 16 GB of RAM",
+   "value": 5,
+   "max": 16,
+   "unit": "GB",
+   "note": "fits comfortably"
+  }
+ },
+ {
+  "id": "meter--max",
+  "type": "meter",
+  "props": {
+   "label": "LABEL WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "value": 88888.88,
+   "max": 99999.99,
+   "unit": "UNIT WWW",
+   "note": "NOTE WWWW MMMM WWWW MMMM WWWW MMMM WW"
+  }
+ },
+ {
+  "id": "terminal--example",
+  "type": "terminal",
+  "props": {
+   "title": "Terminal",
+   "lines": [
+    "$ ollama run llama3.1",
+    "pulling model... done",
+    ">>> Send a message"
+   ]
+  }
+ },
+ {
+  "id": "terminal--max",
+  "type": "terminal",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MM",
+   "lines": [
+    "LINES0 WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMM",
+    "LINES1 WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMM",
+    "LINES2 WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMM",
+    "LINES3 WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMM",
+    "LINES4 WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMM"
+   ]
+  }
+ },
+ {
+  "id": "chat--example",
+  "type": "chat",
+  "props": {
+   "title": "LM Studio",
+   "messages": [
+    {
+     "sender": "user",
+     "text": "Summarize my meeting notes"
+    },
+    {
+     "sender": "ai",
+     "text": "Here are the 3 key decisions..."
+    }
+   ]
+  }
+ },
+ {
+  "id": "chat--max",
+  "type": "chat",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MM",
+   "messages": [
+    {
+     "sender": "ai",
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MM"
+    },
+    {
+     "sender": "ai",
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MM"
+    },
+    {
+     "sender": "ai",
+     "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MM"
+    }
+   ]
+  }
+ },
+ {
+  "id": "timeline--example",
+  "type": "timeline",
+  "props": {
+   "title": "How we got here",
+   "events": [
+    {
+     "date": "2023",
+     "label": "First open 7B models"
+    },
+    {
+     "date": "2026",
+     "label": "Laptop-class models"
+    }
+   ]
+  }
+ },
+ {
+  "id": "timeline--max",
+  "type": "timeline",
+  "props": {
+   "title": "TITLE WWWW MMMM WWWW MMMM WWWW MMMM W",
+   "events": [
+    {
+     "date": "DATE WWWW",
+     "label": "LABEL WWWW MMMM WWWW MMMM"
+    },
+    {
+     "date": "DATE WWWW",
+     "label": "LABEL WWWW MMMM WWWW MMMM"
+    },
+    {
+     "date": "DATE WWWW",
+     "label": "LABEL WWWW MMMM WWWW MMMM"
+    },
+    {
+     "date": "DATE WWWW",
+     "label": "LABEL WWWW MMMM WWWW MMMM"
+    },
+    {
+     "date": "DATE WWWW",
+     "label": "LABEL WWWW MMMM WWWW MMMM"
+    }
+   ]
+  }
+ },
+ {
+  "id": "quote--example",
+  "type": "quote",
+  "props": {
+   "text": "The best model is the one you can actually run.",
+   "attribution": "Project docs"
+  }
+ },
+ {
+  "id": "quote--max",
+  "type": "quote",
+  "props": {
+   "text": "TEXT WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW",
+   "attribution": "ATTRIBUTION WWWW MMMM WWWW MMMM WWWW M"
+  }
+ },
+ {
+  "id": "cta_end--example",
+  "type": "cta_end",
+  "props": {
+   "question": "Which model will you try first?",
+   "sub": "Subscribe for more practical AI"
+  }
+ },
+ {
+  "id": "cta_end--max",
+  "type": "cta_end",
+  "props": {
+   "question": "QUESTION WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MM",
+   "sub": "SUB WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM WWWW MMMM W"
+  }
+ }
+]

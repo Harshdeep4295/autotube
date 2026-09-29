@@ -118,8 +118,13 @@ class UploadAgent:
             "status": {
                 "privacyStatus": config.VIDEO_PRIVACY,
                 "madeForKids": config.VIDEO_MADE_FOR_KIDS,
+                # YouTube "altered or synthetic content" disclosure (AI voice / AI visuals).
+                "containsSyntheticMedia": config.VIDEO_SYNTHETIC_MEDIA,
             },
         }
+        # A scheduled publishAt requires the video to be private until then.
+        if publish_at:
+            body["status"]["privacyStatus"] = "private"
         # Only add publishAt if scheduling (not publishing immediately)
         if publish_at:
             body["status"]["publishAt"] = publish_at
@@ -165,8 +170,8 @@ class UploadAgent:
                 body={
                     "snippet": {
                         "videoId": video_id,
-                        "language": "en",
-                        "name": "English",
+                        "language": config.LANGUAGE,
+                        "name": {"en": "English", "hi": "Hindi", "es": "Spanish"}.get(config.LANGUAGE, config.LANGUAGE),
                         "isDraft": False,
                     }
                 },

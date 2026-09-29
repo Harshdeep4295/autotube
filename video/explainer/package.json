@@ -1,0 +1,26 @@
+{
+  "name": "autotube-explainer",
+  "private": true,
+  "description": "Animated explainer renderer for AutoTube (Remotion). Driven by props.json written by agents/explainer_agent.py.",
+  "scripts": {
+    "render": "remotion render src/index.ts Explainer",
+    "thumbnail": "remotion still src/index.ts Thumbnail",
+    "test:scenes": "node test/scenes.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource/inter": "5.1.0",
+    "@remotion/bundler": "4.0.290",
+    "@remotion/cli": "4.0.290",
+    "@remotion/layout-utils": "4.0.290",
+    "@remotion/renderer": "4.0.290",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}

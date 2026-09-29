@@ -1,0 +1,100 @@
+name: Tests
+
+# Runs on every push / PR. No secrets needed: no LLM calls, no uploads.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg --no-install-recommends
+      - name: Python packages
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: pytest
+        run: python -m pytest -q
+
+  scenes:
+    name: Scene tests (overflow checks) + typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: video/explainer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/explainer/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - run: npx remotion browser ensure
+      - run: npm run test:scenes
+      - name: Upload scene stills (for a human look)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scene-stills-${{ github.run_number }}
+          path: video/explainer/test-output/scenes/
+          retention-days: 7
+
+  e2e:
+    name: End-to-end render (fixture script → video → QA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [python, scenes]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: video/explainer/package-lock.json
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-liberation --no-install-recommends
+      - name: Python packages
+        run: pip install -r requirements.txt
+      - name: Node packages + browser
+        working-directory: video/explainer
+        run: npm ci --no-audit --no-fund && npx remotion browser ensure
+      - name: Cache voice + whisper models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/autotube/kokoro
+            ~/.cache/huggingface
+          key: models-kokoro-v1-whisper-base-en
+      - name: Render fixture script
+        run: python -m agents.explainer_agent tests/fixtures/explainer_script.json --out outputs/e2e
+      - name: Upload video + reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-video-${{ github.run_number }}
+          path: |
+            outputs/e2e/video.mp4
+            outputs/e2e/thumbnail.jpg
+            outputs/e2e/captions.srt
+            outputs/e2e/qa.json
+            outputs/e2e/render_report.json
+          retention-days: 7
