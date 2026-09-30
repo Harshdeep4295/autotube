@@ -66,10 +66,11 @@ class Config:
     VIDEO_STYLE: str = field(default_factory=lambda: os.getenv("VIDEO_STYLE", "explainer").lower())
     EXPLAINER_DIR: str = "video/explainer"
     EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "480")))
-    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1350")))
-    # Measured narration pace incl. pauses (fixture: 237 words → 89 s ≈ 160 wpm). Used to
-    # reject too-short scripts before the long render instead of failing QA after it.
-    EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "160")))
+    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1100")))
+    # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
+    # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
+    # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
+    EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
 
     # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
     VOICE_ENGINE: str = field(default_factory=lambda: os.getenv("VOICE_ENGINE", "kokoro").lower())

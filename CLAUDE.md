@@ -136,7 +136,7 @@ Optional: `visual_queries` (8 cinematic search terms), `hook_title_text`
 FREE_ONLY = true                 # refuse paid services (Claude API, Bedrock, Veo, GCS)
 VIDEO_STYLE = "explainer"        # or "legacy"
 CHANNEL_SUBNICHE / NICHE_KEYWORDS # new channel's focus + research filter
-EXPLAINER_TARGET_WORDS = 1150    # ~8+ min (mid-roll eligible); EXPLAINER_MIN_SECONDS = 480
+EXPLAINER_TARGET_WORDS = 1100    # ~8.5 min at EXPLAINER_WPM=125 (measured ~122); EXPLAINER_MIN_SECONDS = 480
 KOKORO_VOICE = "am_michael"      # KOKORO_SPEED = 1.05; WORD_TIMINGS = "whisper" (falls back)
 GEMINI_FREE_MODELS / GROQ_FREE_MODELS  # comma lists; change when a free model is retired
 VIDEO_PRIVACY = "private"        # human publishes after review
