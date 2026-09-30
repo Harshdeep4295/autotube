@@ -117,7 +117,10 @@ class UploadAgent:
             },
             "status": {
                 "privacyStatus": config.VIDEO_PRIVACY,
-                "madeForKids": config.VIDEO_MADE_FOR_KIDS,
+                # The writable field is selfDeclaredMadeForKids ("madeForKids" is read-only and was
+                # silently ignored, which left uploads marked "made for kids"). Default: all ages,
+                # not made for kids (channel audience = adults interested in local AI).
+                "selfDeclaredMadeForKids": config.VIDEO_MADE_FOR_KIDS,
                 # YouTube "altered or synthetic content" disclosure (AI voice / AI visuals).
                 "containsSyntheticMedia": config.VIDEO_SYNTHETIC_MEDIA,
             },
