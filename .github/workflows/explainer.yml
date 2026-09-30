@@ -18,9 +18,10 @@ on:
         description: "Render a script JSON from the repo instead (skips research + LLM), e.g. tests/fixtures/explainer_script.json"
         required: false
         default: ""
-  # Enable after the staging runs in docs/PLAN_EXPLAINER_AND_AI_VIDEO.md (A8):
-  # schedule:
-  #   - cron: "17 3 * * *"   # once a day, 03:17 UTC
+  # Daily at 03:17 UTC (08:47 IST): the video is ready by ~09:30 IST and, with the repo variable
+  # EXPLAINER_PUBLISH_AT_UTC=18:30, goes public at 2:30 pm US Eastern — a ~14 h review window.
+  schedule:
+    - cron: "17 3 * * *"
 
 concurrency:
   group: explainer
@@ -42,6 +43,7 @@ jobs:
       CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
       KOKORO_VOICE: ${{ vars.KOKORO_VOICE || 'am_michael' }}
       GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-3.5-flash-lite,gemini-3.8-flash' }}
+      EXPLAINER_PUBLISH_AT_UTC: ${{ vars.EXPLAINER_PUBLISH_AT_UTC || '' }}
       GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}
     steps:
       - uses: actions/checkout@v4
@@ -71,12 +73,13 @@ jobs:
 
       - name: Run pipeline
         env:
-          IN_DRY_RUN: ${{ inputs.dry_run }}
+          # Scheduled runs have no inputs: they upload (Private) unless the repo variable
+          # SCHEDULED_DRY_RUN is "true". Manual runs use the dry_run checkbox.
+          IN_DRY_RUN: ${{ github.event_name == 'schedule' && (vars.SCHEDULED_DRY_RUN || 'false') || inputs.dry_run }}
           IN_TOPIC: ${{ inputs.topic }}
           IN_SCRIPT: ${{ inputs.script }}
         run: |
           args=(--style explainer --count 1)
-          # Scheduled runs have no inputs: default to dry run until you enable uploads here.
           if [ "${IN_DRY_RUN:-true}" != "false" ]; then args+=(--dry-run); fi
           if [ -n "$IN_TOPIC" ]; then args+=(--topic "$IN_TOPIC"); fi
           if [ -n "$IN_SCRIPT" ]; then args+=(--script "$IN_SCRIPT"); fi
