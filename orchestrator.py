@@ -107,6 +107,17 @@ def load_secrets_from_gcp(run_id: str, logger: logging.Logger) -> None:
     logger.info(f"Loaded {loaded_count}/{len(secret_keys)} secrets from GCP")
 
 
+def next_utc_time(hhmm: str, now: Optional[datetime] = None, min_lead_minutes: int = 30) -> str:
+    """ISO-8601 UTC for the next "HH:MM" at least `min_lead_minutes` from now (YouTube needs a future time)."""
+    from datetime import timedelta
+    h, m = map(int, hhmm.split(":"))
+    now = now or datetime.now(timezone.utc)
+    t = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if t < now + timedelta(minutes=min_lead_minutes):
+        t += timedelta(days=1)
+    return t.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
 class Orchestrator:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
@@ -490,7 +501,11 @@ class Orchestrator:
                 uploader = self._get_uploader()
                 if not uploader:
                     raise RuntimeError("YouTube uploader unavailable (check credentials)")
-                up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script, slot_index)
+                publish_at = next_utc_time(config.EXPLAINER_PUBLISH_AT_UTC) if config.EXPLAINER_PUBLISH_AT_UTC else None
+                if publish_at:
+                    self.logger.info(f"  scheduled to go public at {publish_at} (private until then — review it in Studio)")
+                up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script, slot_index,
+                                      publish_at=publish_at)
                 result.update(up)
                 if up.get("success") is False:
                     raise RuntimeError(f"upload failed: {up.get('error', '')}")
