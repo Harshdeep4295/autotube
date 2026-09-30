@@ -70,6 +70,11 @@ class Config:
     # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
     # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
     # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
+    # Auto-publish: "HH:MM" (UTC). Uploads stay Private and YouTube publishes them at the next
+    # occurrence of this time — the gap is your review window (set the video back to Private in
+    # Studio to stop it). Empty = stay Private until you publish by hand.
+    # 18:30 UTC = 2:30 pm US Eastern / 12:00 am IST (weekday long-form sweet spot 2-5 pm local).
+    EXPLAINER_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("EXPLAINER_PUBLISH_AT_UTC", "").strip())
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
 
     # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
