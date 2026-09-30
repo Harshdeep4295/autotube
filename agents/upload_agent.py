@@ -31,6 +31,7 @@ class UploadAgent:
         slot_index: int = 0,
         publish_immediately: bool = True,
         gcs_path: Optional[str] = None,
+        publish_at: Optional[str] = None,
     ) -> Dict:
         """
         Args:
@@ -43,7 +44,10 @@ class UploadAgent:
         Returns:
             dict with video_id, url, publish_at, uploaded_at, or failure dict if upload fails
         """
-        publish_at = None if publish_immediately else self._get_publish_time(slot_index)
+        if publish_at is None:   # explicit ISO time (explainer auto-schedule) wins over slots
+            publish_at = None if publish_immediately else self._get_publish_time(slot_index)
+        if publish_at:
+            publish_immediately = False
         if publish_immediately:
             logger.info(f"Uploading: {script['title'][:60]} → publish immediately (NOW)")
         else:
