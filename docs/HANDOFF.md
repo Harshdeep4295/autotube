@@ -111,5 +111,9 @@ returned list-shaped / cut-off JSON and chapters at ~half the requested length
   answers; explicit shot counts; up to 2 repairs; short chapters topped up with continuation calls
   (`CONTINUE_USER`, CTA kept last); script rejected *before* render if it can't reach
   `EXPLAINER_MIN_SECONDS` at `EXPLAINER_WPM` (160, measured on the fixture).
-- `config.py`: `EXPLAINER_TARGET_WORDS` 1150 → 1350 (1150 words ≈ 7.2 min < the 480 s QA minimum).
+- `config.py`: length now set from a real run: dry run #6 (Groq `gpt-oss-120b`, Gemini key blocked with 403)
+  PASSED: 1426 words → 699 s narration ≈ **122 wpm**, 43 min total, 167 MB artifact. So
+  `EXPLAINER_WPM` = 125 and `EXPLAINER_TARGET_WORDS` = 1100 (≈ 8.5-9 min, ~30% shorter render).
+- `agents/explainer_agent.py`: Remotion output is streamed; a progress line is logged about once a
+  minute (the render used to be silent for ~30 min) and the tail is kept for error messages.
 - Budget: a lazy model that writes half the asked length now needs ~20 calls per video.
