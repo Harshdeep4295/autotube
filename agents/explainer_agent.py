@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+from collections import deque
 import time
 import zlib
 from pathlib import Path
@@ -25,6 +26,9 @@ from agents.word_timing import align, caption_pages, make_aligner, proportional,
 from config import config
 
 logger = logging.getLogger(__name__)
+
+PROGRESS_EVERY_S = 60
+_PROGRESS = re.compile(r"(Rendered|Encoded|Rendering|Stitch|frames?)\b.*?\d+\s*/\s*\d+|\d+%", re.I)
 
 FPS = 30
 REPO = Path(__file__).resolve().parent.parent
@@ -118,13 +122,36 @@ class ExplainerAgent:
         }
 
     def _remotion(self, args: List[str], timeout: float) -> None:
-        cmd = ["npx", "remotion", *args, "--log=error"]
+        """Run the Remotion CLI, streaming its output so long renders show progress in CI logs
+        (a throttled line about once a minute) instead of going silent for half an hour."""
+        cmd = ["npx", "remotion", *args, "--log=info"]
         exe = os.getenv("REMOTION_BROWSER_EXECUTABLE")
         if exe:
             cmd.append(f"--browser-executable={exe}")
-        res = subprocess.run(cmd, cwd=self.dir, capture_output=True, text=True, timeout=timeout)
-        if res.returncode != 0:
-            raise RuntimeError(f"remotion {args[0]} failed: {(res.stderr or res.stdout)[-1200:]}")
+        tail: deque = deque(maxlen=40)
+        start = last = time.time()
+        proc = subprocess.Popen(cmd, cwd=self.dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, bufsize=1)   # text mode: \r progress updates arrive as lines
+        try:
+            for raw in proc.stdout:
+                line = raw.strip()
+                if not line:
+                    continue
+                tail.append(line)
+                now = time.time()
+                if now - start > timeout:
+                    proc.kill()
+                    raise RuntimeError(f"remotion {args[0]} timed out after {timeout:.0f}s")
+                if _PROGRESS.search(line) and now - last >= PROGRESS_EVERY_S:
+                    last = now
+                    logger.info(f"[explainer] remotion {args[0]} ({(now - start) / 60:.1f} min): {line[:160]}")
+            rc = proc.wait(timeout=max(1, timeout - (time.time() - start)))
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            raise RuntimeError(f"remotion {args[0]} timed out after {timeout:.0f}s")
+        if rc != 0:
+            raise RuntimeError(f"remotion {args[0]} failed: {' | '.join(tail)[-1200:]}")
+        logger.info(f"[explainer] remotion {args[0]} done in {(time.time() - start) / 60:.1f} min")
 
     def ensure_deps(self) -> None:
         if not (self.dir / "node_modules" / "remotion").exists():

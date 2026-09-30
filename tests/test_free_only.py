@@ -55,3 +55,55 @@ def test_llm_falls_through_to_next_model(monkeypatch):
 
     assert Fake().complete("s", "u") == '{"ok": true}'
     assert calls == ["retired-model", "free-model"]
+
+
+def test_llm_follows_retired_model_successor_and_remembers_it():
+    from agents import llm as llm_mod
+
+    calls = []
+
+    def fake(model, *a):
+        calls.append(model)
+        if model == "gemini-2.5-flash-lite":
+            raise RuntimeError("404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model "
+                               "models/gemini-2.5-flash-lite is no longer available to new users. Please update "
+                               "your code to use models/gemini-3.5-flash-lite for the latest features.'}}")
+        if model == "gemini-3.5-flash-lite":
+            return '{"ok": 1}'
+        raise AssertionError(f"unexpected model {model}")
+
+    class Fake(llm_mod.FreeLLM):
+        def chain(self):
+            return [("gemini", "gemini-2.5-flash-lite", fake), ("gemini", "gemini-2.5-flash", fake)]
+
+    llm = Fake()
+    assert llm.complete("s", "u") == '{"ok": 1}'
+    assert calls == ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite"]
+    assert llm.last_model == "gemini:gemini-3.5-flash-lite"
+    calls.clear()
+    assert llm.complete("s", "u") == '{"ok": 1}'   # next chapter: straight to the working model
+    assert calls == ["gemini-3.5-flash-lite"]
+
+
+def test_default_gemini_models_are_current(monkeypatch):
+    monkeypatch.delenv("GEMINI_FREE_MODELS", raising=False)
+    assert Config().GEMINI_FREE_MODELS == ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+
+
+def test_llm_retries_overloaded_model_then_succeeds(monkeypatch):
+    from agents import llm as llm_mod
+    monkeypatch.setattr(llm_mod.time, "sleep", lambda s: None)
+    calls = []
+
+    def flaky(model, *a):
+        calls.append(model)
+        if len(calls) == 1:
+            raise RuntimeError("503 UNAVAILABLE. This model is currently experiencing high demand.")
+        return '{"ok": 1}'
+
+    class Fake(llm_mod.FreeLLM):
+        def chain(self):
+            return [("gemini", "gemini-3.8-flash", flaky), ("gemini", "gemini-3.5-flash-lite", flaky)]
+
+    assert Fake().complete("s", "u") == '{"ok": 1}'
+    assert calls == ["gemini-3.8-flash", "gemini-3.8-flash"]

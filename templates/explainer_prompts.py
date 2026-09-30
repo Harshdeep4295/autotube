@@ -52,7 +52,8 @@ ALL CHAPTERS: {chapter_titles}
 THIS CHAPTER: {chapter_title}
 GOAL: {goal}
 KEY POINTS: {key_points}
-TARGET: about {target_words} words of narration in {min_shots}-{max_shots} shots.
+LENGTH (important): write exactly {n_shots} shots, each 16-24 words (1-2 sentences), so the
+chapter has about {target_words} words of narration. Shorter answers are rejected.
 {position_rule}
 PREVIOUS LINES (for continuity, do not repeat): {previous}
 
@@ -67,6 +68,34 @@ SCENE CATALOGUE — every shot gets exactly one scene; props must match the narr
 Scene rules: vary scene types; never the same type twice in a row; use key_point for at
 most 1 in 3 shots; numbers shown in a scene must also be said in that shot's narration;
 use terminal only for real commands, chat only for example prompts/answers.
+
+Return JSON:
+{{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
+             "scene": {{"type": "scene_name", "props": {{...}}}}}}]}}"""
+
+CONTINUE_USER = """Continue chapter {index} of {count} for the video "{title}".
+
+THIS CHAPTER: {chapter_title}
+GOAL: {goal}
+KEY POINTS: {key_points}
+{position_rule}
+
+The chapter so far (do NOT repeat or rephrase any of it):
+<<<
+{so_far}
+>>>
+
+Add exactly {n_shots} NEW shots (about {missing_words} more words, 16-24 words per shot) that go
+deeper into the key points: concrete steps, examples, trade-offs, common mistakes. They must
+follow on naturally from the last line. Do not greet, recap the whole video or say goodbye.
+
+SOURCE (the only place specific facts may come from):
+<<<
+{source}
+>>>
+
+SCENE CATALOGUE — every shot gets exactly one scene; props must match the narration:
+{catalogue}
 
 Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],

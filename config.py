@@ -48,9 +48,12 @@ class Config:
     # with comma-separated env vars instead of editing code.
     GEMINI_FREE_MODELS: List[str] = field(default_factory=lambda: [
         m.strip() for m in os.getenv(
-            "GEMINI_FREE_MODELS", "gemini-2.5-flash-lite,gemini-2.5-flash"
+            "GEMINI_FREE_MODELS", "gemini-3.5-flash-lite,gemini-3.8-flash"
         ).split(",") if m.strip()
     ])
+    # Gemini 3.x thinking tokens count against max_output_tokens; "low" keeps long JSON
+    # answers from being cut off. "" or "default" = don't send a thinking setting.
+    GEMINI_THINKING_LEVEL: str = field(default_factory=lambda: os.getenv("GEMINI_THINKING_LEVEL", "low"))
     GROQ_FREE_MODELS: List[str] = field(default_factory=lambda: [
         m.strip() for m in os.getenv(
             "GROQ_FREE_MODELS", "openai/gpt-oss-120b,qwen/qwen3-32b"
@@ -63,7 +66,11 @@ class Config:
     VIDEO_STYLE: str = field(default_factory=lambda: os.getenv("VIDEO_STYLE", "explainer").lower())
     EXPLAINER_DIR: str = "video/explainer"
     EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "480")))
-    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1150")))
+    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1100")))
+    # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
+    # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
+    # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
+    EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
 
     # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
     VOICE_ENGINE: str = field(default_factory=lambda: os.getenv("VOICE_ENGINE", "kokoro").lower())
