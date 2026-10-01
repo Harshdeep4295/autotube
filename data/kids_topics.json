@@ -1,0 +1,365 @@
+{
+ "_note": "Evergreen kids topics. Add freely; used ones are skipped via data/kids_topics_history.json.",
+ "topics": [
+  {
+   "question": "How does the stock market work?",
+   "area": "finance"
+  },
+  {
+   "question": "What is money, really?",
+   "area": "finance"
+  },
+  {
+   "question": "Why do banks pay interest?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a loan?",
+   "area": "finance"
+  },
+  {
+   "question": "What is inflation?",
+   "area": "finance"
+  },
+  {
+   "question": "Why do prices go up?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a budget?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a tax?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a credit card?",
+   "area": "finance"
+  },
+  {
+   "question": "How does a bank keep money safe?",
+   "area": "finance"
+  },
+  {
+   "question": "What is saving?",
+   "area": "finance"
+  },
+  {
+   "question": "What is compound interest?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a company?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a share?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a salary?",
+   "area": "finance"
+  },
+  {
+   "question": "What is profit?",
+   "area": "finance"
+  },
+  {
+   "question": "What is debt?",
+   "area": "finance"
+  },
+  {
+   "question": "Why do countries have different money?",
+   "area": "finance"
+  },
+  {
+   "question": "What is an exchange rate?",
+   "area": "finance"
+  },
+  {
+   "question": "What is insurance?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a recession?",
+   "area": "finance"
+  },
+  {
+   "question": "What is supply and demand?",
+   "area": "finance"
+  },
+  {
+   "question": "Why do things go on sale?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a price?",
+   "area": "finance"
+  },
+  {
+   "question": "What is trade?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a mortgage?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a pension?",
+   "area": "finance"
+  },
+  {
+   "question": "What is an index fund?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a bond?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a startup?",
+   "area": "finance"
+  },
+  {
+   "question": "What does an entrepreneur do?",
+   "area": "finance"
+  },
+  {
+   "question": "What is advertising?",
+   "area": "finance"
+  },
+  {
+   "question": "Why do shops want your data?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a subscription?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a receipt?",
+   "area": "finance"
+  },
+  {
+   "question": "How does a cash machine know it's you?",
+   "area": "finance"
+  },
+  {
+   "question": "What is digital money?",
+   "area": "finance"
+  },
+  {
+   "question": "How do online payments work?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a scam?",
+   "area": "finance"
+  },
+  {
+   "question": "What is an interest rate?",
+   "area": "finance"
+  },
+  {
+   "question": "What does a central bank do?",
+   "area": "finance"
+  },
+  {
+   "question": "What is economy?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a market?",
+   "area": "finance"
+  },
+  {
+   "question": "What is a monopoly?",
+   "area": "finance"
+  },
+  {
+   "question": "Why is gold valuable?",
+   "area": "finance"
+  },
+  {
+   "question": "How does the internet work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is AI?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a computer think?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a computer chip?",
+   "area": "tech"
+  },
+  {
+   "question": "What is the cloud?",
+   "area": "tech"
+  },
+  {
+   "question": "How does Wi-Fi work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a password?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a message reach Grandma?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a robot?",
+   "area": "tech"
+  },
+  {
+   "question": "What is an app?",
+   "area": "tech"
+  },
+  {
+   "question": "What is code?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a search engine?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a phone call work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a battery?",
+   "area": "tech"
+  },
+  {
+   "question": "What is electricity?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a data center?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a website?",
+   "area": "tech"
+  },
+  {
+   "question": "What is an email?",
+   "area": "tech"
+  },
+  {
+   "question": "How does GPS know where you are?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a camera sensor?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a video game made of?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a pixel?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a touchscreen work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a virus on a computer?",
+   "area": "tech"
+  },
+  {
+   "question": "What is encryption?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a chatbot?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a computer remember things?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a server?",
+   "area": "tech"
+  },
+  {
+   "question": "What is open source?",
+   "area": "tech"
+  },
+  {
+   "question": "How do self-driving cars see?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a satellite?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a 3D printer work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a QR code?",
+   "area": "tech"
+  },
+  {
+   "question": "What is Bluetooth?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a smart speaker?",
+   "area": "tech"
+  },
+  {
+   "question": "How does streaming video work?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a download?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a hacker?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a keyboard shortcut?",
+   "area": "tech"
+  },
+  {
+   "question": "Why do computers need updates?",
+   "area": "tech"
+  },
+  {
+   "question": "What is machine learning?",
+   "area": "tech"
+  },
+  {
+   "question": "How does a computer see pictures?",
+   "area": "tech"
+  },
+  {
+   "question": "What is running AI on your own computer?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a gigabyte?",
+   "area": "tech"
+  },
+  {
+   "question": "What is a GPU?",
+   "area": "tech"
+  }
+ ]
+}

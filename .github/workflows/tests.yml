@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: System packages
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg --no-install-recommends
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fontconfig libcairo2-dev pkg-config --no-install-recommends
       - name: Python packages
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: pytest

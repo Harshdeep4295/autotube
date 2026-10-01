@@ -261,6 +261,8 @@ class Orchestrator:
         """Run the full pipeline for `count` videos. Returns list of result dicts."""
         if config.VIDEO_STYLE == "explainer":
             return self.run_explainer(count, topic_override, script_path)
+        if config.VIDEO_STYLE == "kids":
+            return self.run_kids(count, topic_override, script_path)
 
         # Pre-flight: Ensure background music library is stocked
         try:
@@ -517,6 +519,92 @@ class Orchestrator:
             result["error"] = str(e)
             result["traceback"] = traceback.format_exc()
             self.logger.error(f"Explainer pipeline error: {e}")
+        result["completed"] = datetime.now().isoformat()
+        (out_dir / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "traceback"},
+                                                         indent=2, default=str))
+        return result
+
+    # ── Kids track: "Explained Like You're 5" ─────────────────────────────────
+
+    def run_kids(self, count: int = 1, topic_override: Optional[str] = None,
+                 script_path: Optional[str] = None) -> List[Dict]:
+        """Headline→concept (or bank) topic → analogy script → story-kit render → QA → private upload.
+        A topic is recorded in data/kids_topics_history.json only after its video uploads."""
+        from agents.kids_topic_agent import KidsTopicAgent
+
+        self._cleanup_old_outputs(max_age_days=1)
+        topics_agent = KidsTopicAgent()
+        if script_path:
+            with open(script_path) as f:
+                fixed = json.load(f)
+            topics = [{"topic": fixed.get("topic") or fixed.get("title", "script"), "script": fixed}]
+        elif topic_override:
+            topics = [{"topic": topic_override, "source": "manual_override", "area": ""}]
+        else:
+            self.logger.info("Step 1/5: Picking a kids topic (headlines → big idea, bank fallback)…")
+            topics = topics_agent.get_topics(count)
+        if not topics:
+            self.logger.error("No kids topics found — aborting")
+            return []
+        results = []
+        for i, topic in enumerate(topics[:count]):
+            self.logger.info(f"\n{'─'*60}\nKids video {i+1}/{count}: {topic['topic'][:70]}")
+            result = self._process_kids(topic, topics_agent, i)
+            results.append(result)
+            if result.get("success"):
+                self.logger.info(f"  ✓ Done: {result.get('url', result.get('video_path', ''))}")
+            else:
+                self.logger.error(f"  ✗ Failed: {result.get('error', 'unknown')[:200]}")
+        self._print_summary(results)
+        self._save_report(results)
+        return results
+
+    def _process_kids(self, topic: Dict, topics_agent, slot_index: int = 0) -> Dict:
+        from agents.kids_agent import KidsAgent, description_for
+        from agents.kids_script_agent import KidsScriptAgent
+
+        job_id = f"{datetime.now().strftime('%Y%m%d')}_kids_{uuid.uuid4().hex[:6]}"
+        out_dir = Path(config.OUTPUT_DIR) / job_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        result = {"job_id": job_id, "topic": topic["topic"], "style": "kids", "success": False,
+                  "started": datetime.now().isoformat()}
+        try:
+            self.logger.info("Step 2/5: Writing the story script (free LLM: plan → script → check)…")
+            script = topic.get("script") or KidsScriptAgent().generate(topic)
+            (out_dir / "script.json").write_text(json.dumps(script, indent=2, ensure_ascii=False))
+            result["title"] = script.get("title", "")
+            result["review"] = script.get("review", {})
+
+            self.logger.info("Step 3/5: Voice + story animation + QA…")
+            rendered = KidsAgent().render(script, str(out_dir), enforce_length=not topic.get("script"))
+            result.update({"video_path": rendered["video_path"], "thumbnail_path": rendered["thumbnail_path"],
+                           "duration": rendered["duration"], "contact_sheet": rendered["contact_sheet"]})
+            upload_script = {"title": script["title"], "description": description_for(script),
+                             "tags": script.get("tags", [])}
+            if self.dry_run:
+                self.logger.info("Step 4/5: DRY RUN — skipping upload")
+                result["url"] = f"file://{rendered['video_path']}"
+            else:
+                self.logger.info(f"Step 4/5: Uploading to YouTube ({config.VIDEO_PRIVACY}, not made for kids)…")
+                uploader = self._get_uploader()
+                if not uploader:
+                    raise RuntimeError("YouTube uploader unavailable (check credentials)")
+                publish_at = next_utc_time(config.KIDS_PUBLISH_AT_UTC) if config.KIDS_PUBLISH_AT_UTC else None
+                if publish_at:
+                    self.logger.info(f"  scheduled to go public at {publish_at} (private until then — review it in Studio)")
+                up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script, slot_index,
+                                      publish_at=publish_at)
+                result.update(up)
+                if up.get("success") is False:
+                    raise RuntimeError(f"upload failed: {up.get('error', '')}")
+                self.logger.info("Step 5/5: Recording topic as used")
+                if not topic.get("script"):
+                    topics_agent.mark_used([topic])
+            result["success"] = True
+        except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
+            result["error"] = str(e)
+            result["traceback"] = traceback.format_exc()
+            self.logger.error(f"Kids pipeline error: {e}")
         result["completed"] = datetime.now().isoformat()
         (out_dir / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "traceback"},
                                                          indent=2, default=str))
@@ -1537,10 +1625,12 @@ def main() -> None:
     parser.add_argument("--pick_strategy", type=str, default="recent_high_views",
                         choices=["recent_high_views", "all_time_best", "underutilized", "manual"],
                         help="How to pick videos for Shorts conversion (shorts_from_existing mode only)")
-    parser.add_argument("--style", choices=["explainer", "legacy"], default=None,
-                        help="Video style (default: VIDEO_STYLE env / config, 'explainer')")
+    parser.add_argument("--style", choices=["explainer", "kids", "legacy"], default=None,
+                        help="Video style (default: VIDEO_STYLE env / config, 'explainer'); "
+                             "'kids' = Explained Like You're 5 (2-3 min story videos)")
     parser.add_argument("--script", type=str, default=None,
-                        help="Explainer: render this script JSON (skips research + LLM), e.g. tests/fixtures/explainer_script.json")
+                        help="Explainer/kids: render this script JSON (skips research + LLM), e.g. tests/fixtures/explainer_script.json "
+                             "or tests/fixtures/kids_stock_market.json")
     parser.add_argument("--batch", type=int, default=1,
                         help="Number of videos to convert in one run (shorts_from_existing mode)")
     args = parser.parse_args()

@@ -39,6 +39,23 @@ Rules for this pipeline:
 - Uploads are private + `containsSyntheticMedia`; topics are recorded only after a successful upload.
 - Never add paid providers to the default path; `config.assert_free_only()` enforces it.
 
+## Kids track — "Explained Like You're 5" (`--style kids`)
+
+2-3 min story videos (recurring cast + prop kit, pycairo renderer). Plan + runbook:
+`docs/PLAN_KIDS_EXPLAINER.md`.
+
+```bash
+python -m agents.kids_agent tests/fixtures/kids_stock_market.json --out outputs/kids_test   # offline render
+python orchestrator.py --style kids --dry-run [--topic "What is interest?"]                # full pipeline
+```
+
+Rules:
+- Scene catalogue lives in `agents/kids_scene_schema.py`; one draw function per scene in
+  `agents/kids/scenes.py`; props in `agents/kids/props.py`. `tests/test_kids.py` fails if they drift.
+- Line i of a scene fires beat i; `cue` moves it onto a word. Keep new scenes beat-driven.
+- Hard cap 180 s (QA). All ages, not made for kids; no advice, brands or real names in scripts.
+- Scheduled workflow is a dry run until the repo variable `KIDS_SCHEDULED_DRY_RUN=false`.
+
 ## How to Run (legacy renderer: `VIDEO_STYLE=legacy`)
 
 ```bash

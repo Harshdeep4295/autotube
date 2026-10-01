@@ -1,0 +1,111 @@
+name: Kids Explainer (Explained Like You're 5)
+
+# Daily 2-3 min story video: headline → big idea (or evergreen bank) → analogy script
+# (free LLM: plan → script → check) → Kokoro voice → story-kit animation (pycairo) → QA →
+# PRIVATE upload, "not made for kids", AI disclosure. Free only.
+#
+# SAFE BY DEFAULT: scheduled runs are DRY RUNS until you set the repo variable
+# KIDS_SCHEDULED_DRY_RUN=false. Review a few artifacts (video + contact sheet) first.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: render but do NOT upload"
+        type: boolean
+        default: true
+      topic:
+        description: "Force a question, e.g. 'What is interest?' (blank = automatic)"
+        required: false
+        default: ""
+      script:
+        description: "Render a script JSON from the repo (skips topic + LLM), e.g. tests/fixtures/kids_stock_market.json"
+        required: false
+        default: ""
+  # 03:47 UTC (09:17 IST) — 30 min after the explainer run, so the two never share a runner slot.
+  # With KIDS_PUBLISH_AT_UTC=19:30 it goes public an hour after the main video.
+  schedule:
+    - cron: "47 3 * * *"
+
+concurrency:
+  group: kids-explainer
+  cancel-in-progress: false
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write   # commit kids topic history so questions aren't reused
+    env:
+      FREE_ONLY: "true"
+      VIDEO_STYLE: kids
+      VIDEO_PRIVACY: private
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
+      KIDS_KOKORO_VOICE: ${{ vars.KIDS_KOKORO_VOICE || 'af_heart' }}
+      KIDS_PUBLISH_AT_UTC: ${{ vars.KIDS_PUBLISH_AT_UTC || '' }}
+      KIDS_TOPIC_MODE: ${{ vars.KIDS_TOPIC_MODE || 'mixed' }}
+      KIDS_PLAYLIST: ${{ vars.KIDS_PLAYLIST || 'Explained Like You''re 5' }}
+      GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-3.5-flash-lite,gemini-3.8-flash' }}
+      GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fontconfig libcairo2-dev pkg-config --no-install-recommends
+      - name: Python packages
+        run: pip install -r requirements.txt
+      - name: Cache voice + whisper models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/autotube/kokoro
+            ~/.cache/huggingface
+          key: models-kokoro-v1-whisper-base-en
+
+      - name: Run pipeline
+        env:
+          IN_DRY_RUN: ${{ github.event_name == 'schedule' && (vars.KIDS_SCHEDULED_DRY_RUN || 'true') || inputs.dry_run }}
+          IN_TOPIC: ${{ inputs.topic }}
+          IN_SCRIPT: ${{ inputs.script }}
+        run: |
+          args=(--style kids --count 1)
+          if [ "${IN_DRY_RUN:-true}" != "false" ]; then args+=(--dry-run); fi
+          if [ -n "$IN_TOPIC" ]; then args+=(--topic "$IN_TOPIC"); fi
+          if [ -n "$IN_SCRIPT" ]; then args+=(--script "$IN_SCRIPT"); fi
+          echo "python orchestrator.py ${args[*]}"
+          python orchestrator.py "${args[@]}"
+
+      - name: Upload video + reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kids-${{ github.run_number }}
+          path: |
+            outputs/*/video.mp4
+            outputs/*/thumbnail.jpg
+            outputs/*/contact_sheet.jpg
+            outputs/*/captions.srt
+            outputs/*/script.json
+            outputs/*/result.json
+            outputs/*/qa.json
+            outputs/*/render_report.json
+            logs/
+          retention-days: 7
+
+      - name: Commit kids topic history
+        if: success()
+        run: |
+          git config user.email "autotube-bot@users.noreply.github.com"
+          git config user.name "AutoTube Bot"
+          git add data/kids_topics_history.json 2>/dev/null || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update kids topic history [skip ci]"
+            git pull --rebase --autostash -q || true
+            git push
+          fi
