@@ -20,7 +20,6 @@ def test_get_topics_record_false_does_not_write_history():
              "reddit_mentions": 0, "url": "https://example.com/a", "summary": "How to run llm locally"}]
     with mock.patch.object(r, "_load_history", return_value=[]), \
          mock.patch.object(r, "_save_to_history") as save, \
-         mock.patch.object(r, "_fetch_google_trends", return_value=[]), \
          mock.patch.object(r, "_fetch_reddit", return_value=[]), \
          mock.patch.object(r, "_fetch_rss", return_value=[]), \
          mock.patch.object(r, "_fetch_hackernews", return_value=fake), \

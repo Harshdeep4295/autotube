@@ -211,9 +211,7 @@ KIDS_PUBLISH_AT_UTC = ""            # KIDS_PLAYLIST = "Explained Like You're 5"
 - The Gemini key returned `402 prepayment credits are depleted` on Oct 1, so scripts currently come from
   Groq only. The key appears to be on a prepaid billing account; replace it with a free-tier key.
 - The old renderer, Shorts reposting, approval queue, paid-provider integrations and their docs were
-  removed on 2026-10-01. `agents/research_agent.py` still carries a few dead optional paths (Google
-  Trends, Supabase history, YouTube-comment topics, per-niche RSS feeds) and the config fields they
-  read; trimming it is still to do.
+  removed on 2026-10-01. Only the explainer and kids paths remain.
 - Kids milestone M5 (vertical cut for Shorts, more scene types) and Phase B (AI clips) have not started.
 - The YouTube OAuth token was once shown in a chat session; `docs/HANDOFF.md` §4 has the revoke and
   regenerate steps. If the consent screen is in "Testing", refresh tokens expire after 7 days.

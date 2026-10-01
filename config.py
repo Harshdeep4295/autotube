@@ -113,15 +113,6 @@ class Config:
     ACTIVE_SUBREDDITS: List[str] = field(default_factory=lambda: [
         "LocalLLaMA", "ollama", "selfhosted", "ArtificialInteligence", "OpenAI", "StableDiffusion",
     ])
-    # Still read by research_agent.py, which keeps a few old optional paths (per-niche RSS
-    # feeds, YouTube-comment topics, Supabase history). All are off by default.
-    CHANNEL_NICHE: str = "AI & Tech"
-    COMMENTS_ENABLED: bool = False
-    COMMENTS_OWN_VIDEOS: int = 10
-    COMMENTS_COMPETITOR_VIDEOS: int = 5
-    COMMENTS_MAX_PER_VIDEO: int = 100
-    SUPABASE_URL: str = ""
-    SUPABASE_KEY: str = ""
 
     # ── YouTube upload ────────────────────────────────────────────────────────
     # YOUTUBE_TOKEN_JSON is either the token JSON itself or a path to it.

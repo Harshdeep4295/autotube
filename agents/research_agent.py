@@ -1,18 +1,16 @@
 """
 Research Agent
-Fetches trending topics from 6 free sources — no paid APIs required.
+Fetches trending topics from free sources (no paid APIs), keeps the ones that match the
+channel niche (config.NICHE_KEYWORDS), scores them and drops recently used ones.
 
-Sources:
-  1. Google Trends (pytrends)
-  2. Reddit hot posts (no-auth JSON API)
-  3. RSS feeds (TechCrunch, Wired, Reuters, NYT Tech)
-  4. Hacker News (Firebase API — no auth, no rate limits)
-  5. Dev.to (public API — no auth)
-  6. Lobste.rs (RSS — no auth)
+Sources (each is best-effort; a failing source is skipped):
+  1. Reddit hot posts (no-auth JSON API; often blocked from cloud IPs)
+  2. RSS feeds (TechCrunch, Wired, NYT Tech)
+  3. Hacker News (Firebase API — no auth, no rate limits)
+  4. Dev.to (public API — no auth)
+  5. Lobste.rs (RSS — no auth)
 
-Topic history:
-  - Primary: Supabase PostgreSQL (atomic writes — no race condition across 4 daily runs)
-  - Fallback: local data/topics_history.json (used if SUPABASE_URL not set)
+Topic history lives in data/topics_history.json.
 
 Deduplication:
   - Exact normalized match (lowercase + strip punctuation + 40 chars)
@@ -36,66 +34,11 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
-# Enhanced angle generation: extract numbers and context for richer summaries
-_DATA_EXTRACTION_KEYWORDS = {
-    "growth": [r"(\d+)%\s+(?:growth|increase|rise|jump)", r"grew?\s+(\d+)x"],
-    "revenue": [r"\$(\d+[KMB]?)\s+(?:revenue|sales|earnings)", r"(\d+)\s+billion"],
-    "release": [r"released?|launched?|announced?\s+.*?(?:today|yesterday|now)", r"new\s+(?:version|release|feature)"],
-    "competition": [r"vs\.?\s+\w+|competing?|rivalry|battle", r"threat|compete|challenger"],
-    "speed": [r"(\d+)%?\s+(?:faster|speedier|quicker)", r"performance\s+(\d+)x"],
-}
-
-RSS_FEEDS_BY_NICHE = {
-    "AI & Tech": [
-        "https://feeds.feedburner.com/TechCrunch",
-        "https://www.wired.com/feed/rss",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-    ],
-    "Finance": [
-        "https://www.cnbc.com/id/100003114/device/rss/rss.html",
-        "https://feeds.a.dj.com/rss/RSSMarketsMain.xml",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
-    ],
-    "Business": [
-        "https://feeds.feedburner.com/entrepreneur/latest",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
-        "https://feeds.inc.com/home/updates",
-    ],
-    "Health": [
-        "https://rss.medicalnewstoday.com/",
-        "https://www.healthline.com/rss/health-news",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
-    ],
-    "History": [
-        "https://feeds.feedburner.com/smithsonianmag/history-archaeology",
-        "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
-        "https://www.historydiscovery.com/feed/",
-    ],
-    "English Learning": [
-        "https://feeds.feedburner.com/TechCrunch",          # tech English topics
-        "https://rss.nytimes.com/services/xml/rss/nyt/Education.xml",
-        "https://www.bbc.co.uk/learningenglish/english/rss",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-    ],
-    "Legal & Tax": [
-        "https://www.irs.gov/newsroom/feed",
-        "https://taxfoundation.org/feed/",
-        "https://www.scotusblog.com/feed/",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml",
-    ],
-    "Senior Health": [
-        "https://www.nih.gov/news-events/news-releases/feed",
-        "https://rss.medicalnewstoday.com/",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
-    ],
-    "Soundscapes": [
-        "https://www.musicradar.com/rss",
-        "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml",
-    ],
-}
-
-# Default fallback (AI & Tech)
-RSS_FEEDS = RSS_FEEDS_BY_NICHE.get(config.CHANNEL_NICHE, RSS_FEEDS_BY_NICHE["AI & Tech"])
+RSS_FEEDS = [
+    "https://feeds.feedburner.com/TechCrunch",
+    "https://www.wired.com/feed/rss",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+]
 
 LOBSTERS_FEEDS = [
     "https://lobste.rs/t/ai.rss",
@@ -108,7 +51,7 @@ DEVTO_URL = "https://dev.to/api/articles"
 
 
 class ResearchAgent:
-    """Discovers trending topics from 6 free sources with composite scoring."""
+    """Discovers trending topics from free sources with composite scoring."""
 
     def _extract_key_data(self, text: str) -> Optional[str]:
         """Extract numbers, stats, or key phrases from text for angle enrichment."""
@@ -223,7 +166,6 @@ class ResearchAgent:
             "hackernews": 0.15,    # Tech enthusiasts
             "lobsters": 0.1,       # Niche tech
             "reddit": 0.08,        # General discussion
-            "google_trends": 0.05, # Just trending
         }
         score += source_weight.get(source, 0.05)
 
@@ -236,26 +178,14 @@ class ResearchAgent:
     def get_topics(self, count: int = config.TOPICS_PER_RUN, record: bool = True) -> List[Dict]:
         """
         Returns up to `count` scored, deduplicated topic dicts.
-        Each dict: {topic, angle, source, composite_score, quality_score, reddit_mentions}
-
-        ENHANCEMENTS (2026-04-30):
-        - Angle enrichment: generic angles replaced with context-rich summaries
-        - Quality scoring: topics filtered by high-RPM potential
-        - Data extraction: numbers and specific context pulled from summaries
-        Falls back gracefully if individual sources fail.
+        Each dict: {topic, angle, source, url, composite_score, quality_score, reddit_mentions}
+        `record=False` leaves history untouched; the caller records the topic with
+        mark_used() after a successful upload. A failing source is skipped.
         """
         history = self._load_history()
         raw_topics: List[Dict] = []
 
-        # Source 1: Google Trends
-        try:
-            gt = self._fetch_google_trends()
-            raw_topics.extend(gt)
-            logger.info(f"Google Trends: {len(gt)} topics")
-        except Exception as e:
-            logger.warning(f"Google Trends failed (skipping): {e}")
-
-        # Source 2: Reddit
+        # Source 1: Reddit
         try:
             rd = self._fetch_reddit()
             raw_topics.extend(rd)
@@ -263,7 +193,7 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"Reddit failed (skipping): {e}")
 
-        # Source 3: RSS feeds
+        # Source 2: RSS feeds
         try:
             rss = self._fetch_rss()
             raw_topics.extend(rss)
@@ -271,7 +201,7 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"RSS failed (skipping): {e}")
 
-        # Source 4: Hacker News
+        # Source 3: Hacker News
         try:
             hn = self._fetch_hackernews()
             raw_topics.extend(hn)
@@ -279,7 +209,7 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"Hacker News failed (skipping): {e}")
 
-        # Source 5: Dev.to
+        # Source 4: Dev.to
         try:
             dt = self._fetch_devto()
             raw_topics.extend(dt)
@@ -287,18 +217,13 @@ class ResearchAgent:
         except Exception as e:
             logger.warning(f"Dev.to failed (skipping): {e}")
 
-        # Source 6: Lobste.rs
+        # Source 5: Lobste.rs
         try:
             lb = self._fetch_lobsters()
             raw_topics.extend(lb)
             logger.info(f"Lobste.rs: {len(lb)} topics")
         except Exception as e:
             logger.warning(f"Lobste.rs failed (skipping): {e}")
-
-        # Feature 2 hook: YouTube Comments (audience-driven topics)
-        extra = self._extra_sources()
-        if extra:
-            raw_topics.extend(extra)
 
         if not raw_topics:
             logger.error("All research sources failed — no topics found")
@@ -309,15 +234,14 @@ class ResearchAgent:
             if t.get("summary"):
                 t["summary"] = self._clean(t["summary"])
 
-        if config.VIDEO_STYLE == "explainer":
-            before = len(raw_topics)
-            raw_topics = [t for t in raw_topics if self.matches_niche(t)]
-            logger.info(f"Niche filter ({config.CHANNEL_SUBNICHE[:40]}…): {before} → {len(raw_topics)} topics")
-            if not raw_topics:
-                logger.error("No research topic matches the channel niche")
-                return []
+        before = len(raw_topics)
+        raw_topics = [t for t in raw_topics if self.matches_niche(t)]
+        logger.info(f"Niche filter ({config.CHANNEL_SUBNICHE[:40]}…): {before} → {len(raw_topics)} topics")
+        if not raw_topics:
+            logger.error("No research topic matches the channel niche")
+            return []
 
-        # ENHANCEMENT: Enrich angles with context and data
+        # Enrich angles with context and data
         for topic in raw_topics:
             summary = topic.get("summary", topic.get("angle", ""))
             source = topic.get("source", "rss")
@@ -325,22 +249,9 @@ class ResearchAgent:
             topic["quality_score"] = self._score_topic_quality(topic)
 
         scored = self._score_topics(raw_topics)
-
-        # Analytics feedback: boost/penalize topics based on past video performance
-        try:
-            from agents.analytics_agent import AnalyticsAgent
-            analytics = AnalyticsAgent()
-            for topic in scored:
-                boost = analytics.get_topic_boost(topic.get("topic", ""))
-                if boost != 1.0:
-                    topic["composite_score"] = round(topic.get("composite_score", 0) * boost, 2)
-                    logger.info(f"  Analytics boost: {topic['topic'][:40]} x{boost:.2f}")
-        except Exception:
-            pass
-
         filtered = self._deduplicate(scored, history)
 
-        # ENHANCEMENT: Filter by quality score (keep only >0.35 quality for high-RPM content)
+        # Keep only topics with a quality score of 0.35 or more
         quality_filtered = [t for t in filtered if t.get("quality_score", 0) >= 0.35]
         if quality_filtered:
             logger.info(f"Quality filter: {len(filtered)} → {len(quality_filtered)} topics (threshold: 0.35)")
@@ -358,71 +269,7 @@ class ResearchAgent:
 
         return selected
 
-    # ── Source 1: Google Trends ───────────────────────────────────────────────
-
-    def _fetch_google_trends(self) -> List[Dict]:
-        """Fetch trending searches from Google Trends (graceful fallback if unavailable)."""
-        try:
-            import json
-            import time
-            import random
-
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "application/json",
-                "Accept-Language": "en-US,en;q=0.9",
-            }
-
-            # Try to fetch from Google Trends endpoint (may not work due to rate limits)
-            max_retries = 1
-            for attempt in range(max_retries):
-                try:
-                    time.sleep(random.uniform(0.5, 1.0))
-                    url_trending = "https://trends.google.com/trends/trendingsearches/daily/json"
-
-                    response = requests.get(
-                        url_trending,
-                        headers=headers,
-                        timeout=10,
-                        allow_redirects=True
-                    )
-
-                    if response.status_code == 200:
-                        data = response.json()
-                        topics = []
-                        if "default" in data and "trendingSearchesDays" in data["default"]:
-                            today_trends = data["default"]["trendingSearchesDays"][0]
-                            if "trendingSearches" in today_trends:
-                                for trend in today_trends["trendingSearches"][:15]:
-                                    if "title" in trend:
-                                        term = trend["title"]["query"].strip()
-                                        if len(term) > 3:
-                                            topics.append({
-                                                "topic": term,
-                                                "angle": f"Currently trending: {term}",
-                                                "source": "google_trends",
-                                                "trend_score": 75,
-                                                "reddit_mentions": 0,
-                                            })
-
-                        if topics:
-                            logger.info(f"Google Trends: fetched {len(topics)} topics")
-                            return topics
-                    else:
-                        logger.debug(f"Google Trends returned {response.status_code} — other sources will compensate")
-                        return []
-
-                except (requests.exceptions.Timeout, json.JSONDecodeError, KeyError, requests.exceptions.RequestException) as e:
-                    logger.debug(f"Google Trends skipped: {str(e)[:80]}... (other sources available)")
-                    return []
-
-            return []
-
-        except Exception as e:
-            logger.warning(f"Google Trends disabled: {str(e)[:100]} (OK — 5 other sources active)")
-            return []
-
-    # ── Source 2: Reddit ──────────────────────────────────────────────────────
+    # ── Source 1: Reddit ──────────────────────────────────────────────────────
 
     def _fetch_reddit(self) -> List[Dict]:
         topics = []
@@ -452,7 +299,7 @@ class ResearchAgent:
                 logger.debug(f"Reddit r/{sub} failed: {e}")
         return topics
 
-    # ── Source 3: RSS feeds ───────────────────────────────────────────────────
+    # ── Source 2: RSS feeds ───────────────────────────────────────────────────
 
     def _fetch_rss(self) -> List[Dict]:
         topics = []
@@ -476,7 +323,7 @@ class ResearchAgent:
                 logger.debug(f"RSS feed {feed_url} failed: {e}")
         return topics
 
-    # ── Source 4: Hacker News ─────────────────────────────────────────────────
+    # ── Source 3: Hacker News ─────────────────────────────────────────────────
 
     def _fetch_hackernews(self) -> List[Dict]:
         """Fetch top HN stories — no auth, no rate limit."""
@@ -506,20 +353,15 @@ class ResearchAgent:
 
         return topics
 
-    # ── Source 5: Dev.to ──────────────────────────────────────────────────────
+    # ── Source 4: Dev.to ──────────────────────────────────────────────────────
 
     def _fetch_devto(self) -> List[Dict]:
         """Fetch trending Dev.to articles — no auth required."""
-        if config.VIDEO_STYLE == "explainer":
-            articles = []
-            for tag in ("ai", "llm", "machinelearning"):
-                r = requests.get(DEVTO_URL, params={"top": 7, "per_page": 10, "tag": tag}, timeout=10)
-                if r.ok:
-                    articles += r.json()
-        else:
-            r = requests.get(DEVTO_URL, params={"top": 7, "per_page": 20}, timeout=10)
-            r.raise_for_status()
-            articles = r.json()
+        articles = []
+        for tag in ("ai", "llm", "machinelearning"):
+            r = requests.get(DEVTO_URL, params={"top": 7, "per_page": 10, "tag": tag}, timeout=10)
+            if r.ok:
+                articles += r.json()
 
         topics = []
         for art in articles:
@@ -539,7 +381,7 @@ class ResearchAgent:
                 })
         return topics[:15]
 
-    # ── Source 6: Lobste.rs ───────────────────────────────────────────────────
+    # ── Source 5: Lobste.rs ───────────────────────────────────────────────────
 
     def _fetch_lobsters(self) -> List[Dict]:
         """Fetch Lobste.rs AI and programming RSS — no auth."""
@@ -640,62 +482,16 @@ class ResearchAgent:
                 return True
         return False
 
-    # ── History: Supabase (primary) ───────────────────────────────────────────
+    # ── History (data/topics_history.json) ────────────────────────────────────
 
     def _load_history(self) -> List[Dict]:
-        if config.SUPABASE_URL and config.SUPABASE_KEY:
-            try:
-                return self._load_history_supabase()
-            except Exception as e:
-                logger.warning(f"Supabase load failed, falling back to JSON: {e}")
-        return self._load_history_json()
-
-    def _save_to_history(self, selected: List[Dict], existing: List[Dict]) -> None:
-        if config.SUPABASE_URL and config.SUPABASE_KEY:
-            try:
-                self._save_to_history_supabase(selected)
-                return
-            except Exception as e:
-                logger.warning(f"Supabase save failed, falling back to JSON: {e}")
-        self._save_to_history_json(selected, existing)
-
-    def _load_history_supabase(self) -> List[Dict]:
-        from supabase import create_client
-        client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
-        cutoff = (datetime.utcnow() - timedelta(days=90)).isoformat()
-        result = (
-            client.table("topic_history")
-            .select("topic,normalized_topic,used_at")
-            .gte("used_at", cutoff)
-            .execute()
-        )
-        return result.data
-
-    def _save_to_history_supabase(self, selected: List[Dict]) -> None:
-        from supabase import create_client
-        client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
-        rows = [
-            {
-                "topic": t["topic"],
-                "normalized_topic": self._normalize(t["topic"]),
-                "source": t.get("source", ""),
-                "used_at": datetime.utcnow().isoformat(),
-            }
-            for t in selected
-        ]
-        client.table("topic_history").insert(rows).execute()
-        logger.info(f"Saved {len(rows)} topics to Supabase")
-
-    # ── History: JSON fallback ────────────────────────────────────────────────
-
-    def _load_history_json(self) -> List[Dict]:
         try:
             with open(config.HISTORY_FILE) as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             return []
 
-    def _save_to_history_json(self, selected: List[Dict], existing: List[Dict]) -> None:
+    def _save_to_history(self, selected: List[Dict], existing: List[Dict]) -> None:
         os.makedirs(config.DATA_DIR, exist_ok=True)
         now = datetime.utcnow().isoformat()
         new_entries = [
@@ -717,39 +513,6 @@ class ResearchAgent:
         ]
         with open(config.HISTORY_FILE, "w") as f:
             json.dump(kept + new_entries, f, indent=2)
-
-    # ── Feature hooks (overridable by feature branches) ──────────────────────────
-
-    def _extra_sources(self) -> List[Dict]:
-        """
-        Feature 2 hook: Return additional topics from extra sources.
-        Implements YouTube Comments research if COMMENTS_ENABLED.
-        """
-        if not config.COMMENTS_ENABLED:
-            return []
-
-        try:
-            from agents.comment_research_agent import CommentResearchAgent
-            from agents.upload_agent import UploadAgent
-
-            uploader = UploadAgent()
-            comment_agent = CommentResearchAgent(uploader.youtube)
-            topics = comment_agent.get_comment_topics(
-                own_videos=config.COMMENTS_OWN_VIDEOS,
-                competitor_videos=config.COMMENTS_COMPETITOR_VIDEOS,
-                max_per_video=config.COMMENTS_MAX_PER_VIDEO,
-            )
-
-            if topics:
-                logger.info(f"YouTube Comments: {len(topics)} audience questions extracted")
-            else:
-                logger.info("YouTube Comments: No audience questions found")
-
-            return topics
-
-        except Exception as e:
-            logger.warning(f"YouTube Comments failed (skipping): {e}")
-            return []
 
     def mark_used(self, topics: List[Dict]) -> None:
         """Record topics in history. Call only after a video was successfully produced,
