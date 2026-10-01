@@ -13,8 +13,8 @@ In the notebook:
   !python wan_clips.py sample_script.json --out out --limit 4
 
 Each shot's visual prompt becomes one 5-second 832x480 clip (81 frames @ 16fps).
-Download the out/ folder, then reference the clips as {"type": "file", "path": ...}
-shots in a script for poc/shot_video.py (see poc/hybrid_script_example.json).
+Download the out/ folder. Using the clips in a video is Phase B work (an `ai_clip` scene in
+video/explainer); see docs/PLAN_EXPLAINER_AND_AI_VIDEO.md.
 
 Cost reality: a clip takes minutes on a free T4, so a whole 8-minute video (~80 shots)
 is not practical daily on free GPUs. Use AI clips for the hook and a few key moments.

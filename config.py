@@ -1,14 +1,11 @@
 """
 config.py — Central configuration for AutoTube.
 
-All tunables live here. Edit CHANNEL_NICHE and CHANNEL_NAME before first run.
-Model provider is controlled by the SCRIPT_MODEL_PROVIDER env var (default: "claude").
-Upload times are set in IST and auto-converted to UTC internally.
+All tunables live here and are read from environment variables (.env locally,
+GitHub Secrets / repo Variables in Actions).
 """
 
-import json
 import os
-import random
 from dataclasses import dataclass, field
 from typing import List
 from dotenv import load_dotenv
@@ -16,31 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()  # loads .env file if present (local dev); GitHub Actions uses Secrets
 
 
-def _ist_to_utc(ist_time: str) -> str:
-    """Convert IST time string (HH:MM) to UTC by subtracting 5h30m."""
-    h, m = map(int, ist_time.split(":"))
-    total_minutes = h * 60 + m - 330  # subtract 5h30m = 330 min
-    total_minutes = total_minutes % (24 * 60)  # wrap around midnight
-    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
-
-
 @dataclass
 class Config:
 
-    # ── Model switch ─────────────────────────────────────────────────────────
-    # SCRIPT_MODEL_PROVIDER controls script generation:
-    #   "auto"    — Hybrid (try Claude → fallback Gemini if quota exhausted) [DEFAULT]
-    #   "hybrid"  — Same as "auto" (explicit hybrid mode)
-    #   "claude"  — Claude only
-    #   "gemini"  — Gemini only
-    # Change via env var or GitHub Actions Variable (no code change needed).
-    SCRIPT_MODEL_PROVIDER: str = field(
-        default_factory=lambda: os.getenv("SCRIPT_MODEL_PROVIDER", "auto")
-    )
-
     # ── Free-only mode (default ON) ───────────────────────────────────────────
-    # Refuses to start if a paid service is configured (Claude API, Bedrock, Veo,
-    # GCS backup). The LLM chain becomes Gemini free tier → Groq free tier.
+    # The pipeline only has free providers (Gemini free tier → Groq free tier). With
+    # FREE_ONLY on it also refuses to start if the environment still asks for one of the
+    # old paid services (see paid_features_in_use).
     FREE_ONLY: bool = field(
         default_factory=lambda: os.getenv("FREE_ONLY", "true").lower() != "false"
     )
@@ -59,23 +38,28 @@ class Config:
             "GROQ_FREE_MODELS", "openai/gpt-oss-120b,qwen/qwen3-32b"
         ).split(",") if m.strip()
     ])
+    # Free keys: https://aistudio.google.com (Gemini), https://console.groq.com (Groq)
+    GEMINI_API_KEY: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
+    GROQ_API_KEY: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
 
     # ── Video style ───────────────────────────────────────────────────────────
     # "explainer" → Remotion animated explainer (default, see docs/PLAN_EXPLAINER_AND_AI_VIDEO.md)
-    # "legacy"    → old AI-image + Ken Burns renderer (agents/video_agent.py)
+    # "kids"      → "Explained Like You're 5" story video (see docs/PLAN_KIDS_EXPLAINER.md)
     VIDEO_STYLE: str = field(default_factory=lambda: os.getenv("VIDEO_STYLE", "explainer").lower())
     EXPLAINER_DIR: str = "video/explainer"
     EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "480")))
     EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1100")))
-    # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
-    # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
-    # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
     # Auto-publish: "HH:MM" (UTC). Uploads stay Private and YouTube publishes them at the next
     # occurrence of this time — the gap is your review window (set the video back to Private in
     # Studio to stop it). Empty = stay Private until you publish by hand.
     # 18:30 UTC = 2:30 pm US Eastern / 12:00 am IST (weekday long-form sweet spot 2-5 pm local).
     EXPLAINER_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("EXPLAINER_PUBLISH_AT_UTC", "").strip())
+    # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
+    # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
+    # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
+    # Playlist title every explainer upload is added to (created on first use). Empty = none.
+    EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
 
     # ── Kids track: "Explained Like You're 5" (VIDEO_STYLE=kids, see docs/PLAN_KIDS_EXPLAINER.md) ──
     # 2-3 minute story videos (recurring cast + prop kit, pycairo renderer). All ages, NOT made for kids.
@@ -89,6 +73,7 @@ class Config:
     KIDS_KOKORO_SPEED: float = field(default_factory=lambda: float(os.getenv("KIDS_KOKORO_SPEED", "0.92")))
     PIPER_MODEL: str = field(default_factory=lambda: os.getenv("PIPER_MODEL", ""))
     KIDS_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("KIDS_PUBLISH_AT_UTC", "").strip())
+    # Playlist title every kids upload is added to (created on first use); also the first tag.
     KIDS_PLAYLIST: str = field(default_factory=lambda: os.getenv("KIDS_PLAYLIST", "Explained Like You're 5"))
     # "mixed" = headline→concept first, evergreen bank as fallback; "bank" = bank only; "feed" = headlines only
     KIDS_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("KIDS_TOPIC_MODE", "mixed").lower())
@@ -96,69 +81,17 @@ class Config:
     KIDS_HISTORY_FILE: str = "data/kids_topics_history.json"
 
     # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
-    VOICE_ENGINE: str = field(default_factory=lambda: os.getenv("VOICE_ENGINE", "kokoro").lower())
     KOKORO_VOICE: str = field(default_factory=lambda: os.getenv("KOKORO_VOICE", "am_michael"))
     KOKORO_SPEED: float = field(default_factory=lambda: float(os.getenv("KOKORO_SPEED", "1.05")))
     # "whisper" = word timings from faster-whisper (falls back automatically), "proportional" = estimate
     WORD_TIMINGS: str = field(default_factory=lambda: os.getenv("WORD_TIMINGS", "whisper").lower())
 
-    # ── Claude settings ───────────────────────────────────────────────────────
-    ANTHROPIC_API_KEY: str = field(
-        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
-    )
-    CLAUDE_MODEL: str = "claude-sonnet-4-6"
-    CLAUDE_MAX_TOKENS: int = 4096
-    CLAUDE_RETRIES: int = 3
-    CLAUDE_BACKOFF: float = 2.0  # seconds; doubles each retry
-
-    # ── Gemini settings (required for hybrid/auto mode fallback) ──────────────
-    # Set GEMINI_API_KEY in .env or GitHub Secrets for hybrid fallback.
-    # Get free API key from https://ai.google.dev/ (free tier available).
-    GEMINI_API_KEY: str = field(
-        default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
-    )
-    GEMINI_MODEL: str = "gemini-2.0-flash-lite"
-
-    # ── AWS Bedrock settings (fallback — Claude → Gemini → Bedrock → Groq) ───
-    # Set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + AWS_REGION in .env
-    # Enable model access in Bedrock console first (one-time step).
-    AWS_ACCESS_KEY_ID: str = field(
-        default_factory=lambda: os.getenv("AWS_ACCESS_KEY_ID", "")
-    )
-    AWS_SECRET_ACCESS_KEY: str = field(
-        default_factory=lambda: os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    )
-    AWS_REGION: str = field(
-        default_factory=lambda: os.getenv("AWS_REGION", "us-east-1")
-    )
-    BEDROCK_MODEL: str = field(
-        default_factory=lambda: os.getenv("BEDROCK_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
-    )
-
-    # ── Groq settings (ultimate fallback — Claude → Gemini → Bedrock → Groq) ─
-    # Set GROQ_API_KEY in .env or GitHub Secrets for 4-way fallback resilience.
-    # Get free API key from https://console.groq.com/ (free tier available).
-    GROQ_API_KEY: str = field(
-        default_factory=lambda: os.getenv("GROQ_API_KEY", "")
-    )
-    GROQ_MODEL: str = field(
-        default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-    )
-    GROQ_MODEL_FALLBACK: str = field(
-        default_factory=lambda: os.getenv("GROQ_MODEL_FALLBACK", "llama-3.1-8b-instant")
-    )
-
-    # ── Channel settings ──────────────────────────────────────────────────────
-    # Change these to match your YouTube channel before the first run.
-    # Options: AI & Tech | Finance | Business | Health | History | English Learning
-    CHANNEL_NICHE: str = field(default_factory=lambda: os.getenv("CHANNEL_NICHE", "AI & Tech"))
+    # ── Channel ───────────────────────────────────────────────────────────────
     CHANNEL_NAME: str = field(default_factory=lambda: os.getenv("CHANNEL_NAME", "Run It Local"))
     CHANNEL_TAGLINE: str = field(default_factory=lambda: os.getenv(
         "CHANNEL_TAGLINE", "Free & open-source AI you can run yourself"))
-
-    # Sub-niche for the new channel (2026-09-29): practical, free / open-source AI
-    # tools people can run and use themselves. Evergreen how-to + explainers, fits
-    # the animated scene catalogue (terminal, chat, compare, charts).
+    # Sub-niche (2026-09-29): practical, free / open-source AI tools people can run and
+    # use themselves. Evergreen how-to + explainers, fits the animated scene catalogue.
     CHANNEL_SUBNICHE: str = field(default_factory=lambda: os.getenv(
         "CHANNEL_SUBNICHE",
         "Practical AI: free and open-source AI tools you can run and use yourself",
@@ -173,250 +106,33 @@ class Config:
         )).split(",") if k.strip()
     ])
 
-    # ── Research ──────────────────────────────────────────────────────────────
-    # Subreddits are auto-selected based on CHANNEL_NICHE if SUBREDDITS is left empty.
-    # Override by setting SUBREDDITS explicitly.
-    SUBREDDITS: List[str] = field(default_factory=lambda: [])
-    TRENDS_GEO: str = "US"
-    TRENDS_CATEGORY: int = 0       # 0 = all categories; 5 = Tech; 7 = Finance
+    # ── Research (agents/research_agent.py) ───────────────────────────────────
     TOPIC_HISTORY_DAYS: int = 30   # deduplication window (skip topics used recently)
     TOPICS_PER_RUN: int = 1        # 1 video/day — give each video room to breathe
-    # Subreddits used for the practical-AI sub-niche (reddit often blocks cloud IPs; best-effort)
-    SUBNICHE_SUBREDDITS: List[str] = field(default_factory=lambda: [
+    # Reddit often blocks cloud IPs; best-effort
+    ACTIVE_SUBREDDITS: List[str] = field(default_factory=lambda: [
         "LocalLLaMA", "ollama", "selfhosted", "ArtificialInteligence", "OpenAI", "StableDiffusion",
     ])
 
-    # Per-niche subreddit defaults — used when SUBREDDITS is empty
-    NICHE_SUBREDDITS: dict = field(default_factory=lambda: {
-        "AI & Tech": [
-            "technology", "singularity", "artificial", "MachineLearning",
-            "ChatGPT", "OpenAI", "programming", "science",
-        ],
-        "Finance": [
-            "personalfinance", "investing", "stocks", "financialindependence",
-            "dividends", "SecurityAnalysis", "wallstreetbets", "economy",
-        ],
-        "Business": [
-            "entrepreneur", "smallbusiness", "startups", "business",
-            "marketing", "SideProject", "passive_income", "ecommerce",
-        ],
-        "Health": [
-            "nutrition", "fitness", "longevity", "health", "medicine",
-            "weightloss", "mentalhealth", "sleep",
-        ],
-        "History": [
-            "history", "AskHistorians", "HistoryMemes", "todayilearned",
-            "worldhistory", "AncientHistory", "WW2", "AskHistory",
-        ],
-        "English Learning": [
-            "EnglishLearning", "grammar", "ENGLISH", "languagelearning",
-            "LearnEnglish", "linguistics", "teachers", "IELTS",
-        ],
-        "Legal & Tax": [
-            "legaladvice", "tax", "personalfinance", "taxpros",
-            "law", "LegalAdviceUK", "Accounting", "financialplanning",
-        ],
-        "Senior Health": [
-            "longevity", "nutrition", "HealthyLiving", "AskDocs",
-            "Supplements", "Biohackers", "aging", "FitnessOver50",
-        ],
-        "Soundscapes": [
-            "ambientmusic", "lofi", "asmr", "productivity",
-            "GetStudying", "focusmusic", "meditation", "DeepWork",
-        ],
-    })
-
-    @property
-    def ACTIVE_SUBREDDITS(self) -> List[str]:
-        """Returns explicit SUBREDDITS if set, otherwise uses niche defaults."""
-        if self.SUBREDDITS:
-            return self.SUBREDDITS
-        if self.VIDEO_STYLE == "explainer":
-            return self.SUBNICHE_SUBREDDITS
-        return self.NICHE_SUBREDDITS.get(self.CHANNEL_NICHE, self.NICHE_SUBREDDITS["AI & Tech"])
-
-    # ── Script / content ──────────────────────────────────────────────────────
-    SCRIPT_WORD_COUNT: int = 600  # ~4 min at ~100 effective wpm (edge-tts actual rate)
-    TARGET_VIDEO_SECONDS: int = 270  # 4.5 minutes
-
-    # ── Voice (edge-tts — 100% free) ──────────────────────────────────────────
-    TTS_VOICE: str = "en-US-JennyNeural"  # US female, warm and professional (legacy default)
-    TTS_RATE: str = "+8%"                # slightly faster = more engaging
-    TTS_PITCH: str = "+0Hz"
-
-    # Per-niche voice pools — voice_agent picks randomly from these per video
-    TTS_VOICES: dict = field(default_factory=lambda: {
-        "AI & Tech": ["en-US-DavisNeural", "en-US-GuyNeural", "en-US-JennyNeural"],
-        "Finance": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-JennyNeural"],
-        "Business": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-AriaNeural"],
-        "Health": ["en-US-AriaNeural", "en-US-JennyNeural", "en-US-GuyNeural"],
-        "History": ["en-GB-SoniaNeural", "en-US-DavisNeural", "en-US-GuyNeural"],
-        "English Learning": ["en-US-JennyNeural", "en-US-AriaNeural", "en-GB-SoniaNeural"],
-        "Legal & Tax": ["en-US-GuyNeural", "en-US-DavisNeural", "en-US-JennyNeural"],
-        "Senior Health": ["en-US-AriaNeural", "en-US-JennyNeural", "en-US-GuyNeural"],
-        "Soundscapes": ["en-US-AriaNeural", "en-GB-SoniaNeural", "en-US-JennyNeural"],
-    })
-
-    # ── Multi-language support ────────────────────────────────────────────────
-    LANGUAGE: str = field(default_factory=lambda: os.getenv("LANGUAGE", "en"))
-
-    TTS_VOICES_BY_LANGUAGE: dict = field(default_factory=lambda: {
-        "en": ["en-US-JennyNeural", "en-US-GuyNeural", "en-US-DavisNeural", "en-US-AriaNeural"],
-        "hi": ["hi-IN-MadhurNeural", "hi-IN-SwaraNeural"],
-        "es": ["es-US-PalomaNeural", "es-US-AlonsoNeural", "es-MX-DaliaNeural"],
-    })
-
-    SCRIPT_WORD_COUNT_BY_LANGUAGE: dict = field(default_factory=lambda: {
-        "en": 600,
-        "hi": 500,
-        "es": 550,
-    })
-
-    @property
-    def ACTIVE_WORD_COUNT(self) -> int:
-        return self.SCRIPT_WORD_COUNT_BY_LANGUAGE.get(self.LANGUAGE, 1100)
-
-    # ── Manual approval queue ─────────────────────────────────────────────────
-    APPROVAL_REQUIRED: bool = field(
-        default_factory=lambda: os.getenv("APPROVAL_REQUIRED", "false").lower() == "true"
-    )
-    APPROVAL_TIMEOUT_HOURS: int = field(
-        default_factory=lambda: int(os.getenv("APPROVAL_TIMEOUT_HOURS", "6"))
-    )
-
-    # ── WhatsApp Cloud API (approval notifications) ──────────────────────────
-    WHATSAPP_ENABLED: bool = field(
-        default_factory=lambda: os.getenv("WHATSAPP_ENABLED", "false").lower() == "true"
-    )
-    WHATSAPP_PHONE_NUMBER_ID: str = field(
-        default_factory=lambda: os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
-    )
-    WHATSAPP_ACCESS_TOKEN: str = field(
-        default_factory=lambda: os.getenv("WHATSAPP_ACCESS_TOKEN", "")
-    )
-    WHATSAPP_RECIPIENT: str = field(
-        default_factory=lambda: os.getenv("WHATSAPP_RECIPIENT", "")
-    )
-    WHATSAPP_VERIFY_TOKEN: str = field(
-        default_factory=lambda: os.getenv("WHATSAPP_VERIFY_TOKEN", "autotube_verify_2026")
-    )
-
-    # ── Video rendering ───────────────────────────────────────────────────────
-    VIDEO_WIDTH: int = field(default_factory=lambda: (
-        1080 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1920
-    ))
-    VIDEO_HEIGHT: int = field(default_factory=lambda: (
-        1920 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1080
-    ))
-    VIDEO_FPS: int = 24
-
-    # ── Thumbnail ─────────────────────────────────────────────────────────────
-    THUMB_WIDTH: int = field(default_factory=lambda: (
-        1080 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 1280
-    ))
-    THUMB_HEIGHT: int = field(default_factory=lambda: (
-        1920 if os.getenv("VIDEO_FORMAT", "landscape").lower() == "shorts" else 720
-    ))
-    PEXELS_API_KEY: str = field(
-        default_factory=lambda: os.getenv("PEXELS_API_KEY", "")
-    )
-    PIXABAY_API_KEY: str = field(
-        default_factory=lambda: os.getenv("PIXABAY_API_KEY", "")
-    )
-    VIDEO_PIPELINE_VERSION: str = field(
-        default_factory=lambda: os.getenv("VIDEO_PIPELINE_VERSION", "v1")
-    )
-
-    # ── Upload schedule (IST) ─────────────────────────────────────────────────
-    # Edit these IST times; UTC conversion is automatic.
-    UPLOAD_TIMES_IST: List[str] = field(default_factory=lambda: [
-        "18:00",  # single daily upload — evening IST (peak engagement)
-    ])
-
-    @property
-    def UPLOAD_TIMES_UTC(self) -> List[str]:
-        return [_ist_to_utc(t) for t in self.UPLOAD_TIMES_IST]
-
-    # ── YouTube API ───────────────────────────────────────────────────────────
-    YOUTUBE_CLIENT_SECRETS: str = "client_secrets.json"
+    # ── YouTube upload ────────────────────────────────────────────────────────
+    # YOUTUBE_TOKEN_JSON is either the token JSON itself or a path to it.
     YOUTUBE_TOKEN_FILE: str = field(
         default_factory=lambda: os.getenv("YOUTUBE_TOKEN_JSON", "data/youtube_token.json")
     )
     VIDEO_CATEGORY_ID: str = "28"   # 28 = Science & Technology
-    # Uploads are PRIVATE by default: a human publishes after review.
+    # Uploads are PRIVATE by default: a human publishes after review (or *_PUBLISH_AT_UTC does).
     VIDEO_PRIVACY: str = field(default_factory=lambda: os.getenv("VIDEO_PRIVACY", "private"))
     # Sets status.containsSyntheticMedia (YouTube "altered or synthetic content" disclosure).
     VIDEO_SYNTHETIC_MEDIA: bool = field(
         default_factory=lambda: os.getenv("VIDEO_SYNTHETIC_MEDIA", "true").lower() != "false"
     )
     VIDEO_MADE_FOR_KIDS: bool = False
-
-    # ── Feature 3: Auto-Playlist (Series detection) ─────────────────────────────
     PLAYLIST_ENABLED: bool = field(
         default_factory=lambda: os.getenv("PLAYLIST_ENABLED", "true").lower() != "false"
     )
-    PLAYLIST_MAP: dict = field(default_factory=lambda: (
-        json.loads(os.getenv("PLAYLIST_MAP_JSON", "{}"))
-        if os.getenv("PLAYLIST_MAP_JSON") else {}
-    ))
-    PLAYLIST_AUTO_CREATE: bool = field(
-        default_factory=lambda: os.getenv("PLAYLIST_AUTO_CREATE", "true").lower() == "true"
-    )
-
-    # ── Feature 2: Audience-Driven Topics (YouTube Comments) ────────────────────
-    COMMENTS_ENABLED: bool = field(
-        default_factory=lambda: os.getenv("COMMENTS_ENABLED", "false").lower() == "true"
-    )
-    COMMENTS_OWN_VIDEOS: int = field(
-        default_factory=lambda: int(os.getenv("COMMENTS_OWN_VIDEOS", "10"))
-    )
-    COMMENTS_COMPETITOR_VIDEOS: int = field(
-        default_factory=lambda: int(os.getenv("COMMENTS_COMPETITOR_VIDEOS", "5"))
-    )
-    COMMENTS_MAX_PER_VIDEO: int = field(
-        default_factory=lambda: int(os.getenv("COMMENTS_MAX_PER_VIDEO", "100"))
-    )
-
-    # ── Feature 1: Multi-Format Shorts (9:16) ──────────────────────────────────
-    VIDEO_FORMAT: str = field(
-        default_factory=lambda: os.getenv("VIDEO_FORMAT", "landscape")
-    )
-    SHORTS_WORD_COUNT: int = field(
-        default_factory=lambda: int(os.getenv("SHORTS_WORD_COUNT", "150"))
-    )
-
-    @property
-    def IS_SHORTS(self) -> bool:
-        return self.VIDEO_FORMAT.lower() == "shorts"
-
-    # ── Video background mode ─────────────────────────────────────────────────
-    # "ai_images" → Pollinations.ai AI-generated images + Ken Burns effect (V2, default)
-    # "pexels"    → Pexels stock B-roll clips (V1, legacy — reverts by setting env var)
-    # Switch without code change: set VIDEO_BACKGROUND_MODE in .env or GitHub Variable.
-    VIDEO_BACKGROUND_MODE: str = field(
-        default_factory=lambda: os.getenv("VIDEO_BACKGROUND_MODE", "ai_images")
-    )
-
-    # ── Video animation mode ──────────────────────────────────────────────────
-    # "veo"        → GCP Vertex AI Veo 3.1 native video (requires GCP credits — free $300 trial)
-    # "kling"      → Kling API video generation (requires API key)
-    # "pika"       → Pika video generation (requires API key)
-    # "ken_burns"  → Pollinations AI images + FFmpeg zoompan animation (COMPLETELY FREE ✓)
-    # Default: "ken_burns" (free). "veo" is paid and refused when FREE_ONLY=true.
-    VIDEO_ANIMATION_MODE: str = field(
-        default_factory=lambda: os.getenv("VIDEO_ANIMATION_MODE", "ken_burns")
-    )
-
-    # ── Video caption / B-roll settings ──────────────────────────────────────
-    VIDEO_CACHE_DIR: str = "outputs/video_cache"   # cached Pexels clips and AI images
-    PEXELS_CLIPS_PER_VIDEO: int = 6                # Dynamic per actual sections (5-7 based on script complexity)
-    CAPTION_FONT_SIZE: int = 52
-    CAPTION_WORDS_PER_LINE: int = 10               # wrap captions at this many words
-    DARK_OVERLAY_OPACITY: float = 0.52             # darkness over footage for text contrast
 
     # ── Background music ──────────────────────────────────────────────────────
-    # IMPORTANT: YouTube deducts 55% of earnings for licensed music.
-    # Only use CC0 / royalty-free music in data/music/.
+    # Only CC0 / royalty-free tracks in data/music/ (licensed music costs revenue share).
     # Set MUSIC_ENABLED=false to disable background music entirely.
     MUSIC_ENABLED: bool = field(
         default_factory=lambda: os.getenv("MUSIC_ENABLED", "true").lower() != "false"
@@ -430,34 +146,14 @@ class Config:
     HISTORY_FILE: str = "data/topics_history.json"
     POSTED_FILE: str = "data/posted_videos.json"
 
-    # ── Supabase (topic history database) ────────────────────────────────────
-    # Create free project at supabase.com → Settings → API → copy URL + anon key
-    # If not set, falls back to local data/topics_history.json
-    SUPABASE_URL: str = field(
-        default_factory=lambda: os.getenv("SUPABASE_URL", "")
-    )
-    SUPABASE_KEY: str = field(
-        default_factory=lambda: os.getenv("SUPABASE_ANON_KEY", "")
-    )
-
-    # ── GCP Configuration (for GCS backup & Veo video generation) ──────────────
-    GCP_PROJECT_ID: str = field(
-        default_factory=lambda: os.getenv("GCP_PROJECT_ID", "")
-    )
-    GCP_GCS_BUCKET: str = field(
-        default_factory=lambda: os.getenv("GCP_GCS_BUCKET", "autotube-veo-output")
-    )
-
-    # ── Failure handling ──────────────────────────────────────────────────────
-    SKIP_ON_FAIL: bool = True   # skip failed videos and continue pipeline
-
-
     def paid_features_in_use(self) -> List[str]:
-        """Paid services that are currently configured. Empty list = free-only safe."""
+        """Old paid-service switches still set in the environment. Empty list = free-only safe.
+        The code for these services is gone; this catches a leftover secret or variable."""
         paid = []
-        if self.SCRIPT_MODEL_PROVIDER.lower() in ("claude", "bedrock"):
-            paid.append(f"SCRIPT_MODEL_PROVIDER={self.SCRIPT_MODEL_PROVIDER} (paid API)")
-        if self.VIDEO_ANIMATION_MODE.lower() == "veo":
+        provider = os.getenv("SCRIPT_MODEL_PROVIDER", "").lower()
+        if provider in ("claude", "bedrock"):
+            paid.append(f"SCRIPT_MODEL_PROVIDER={provider} (paid API)")
+        if os.getenv("VIDEO_ANIMATION_MODE", "").lower() == "veo":
             paid.append("VIDEO_ANIMATION_MODE=veo (Vertex AI, paid)")
         if os.getenv("GCS_BUCKET_NAME"):
             paid.append("GCS_BUCKET_NAME set (Cloud Storage backup, paid)")

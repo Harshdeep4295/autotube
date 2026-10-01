@@ -1,14 +1,13 @@
 """
 Upload Agent
-Authenticates with YouTube via OAuth2, uploads the video as a resumable upload,
-sets the custom thumbnail, and schedules it at the correct IST publish slot.
-Token is auto-refreshed and saved back on every run.
+Authenticates with YouTube via OAuth2, uploads the video as a resumable upload, sets the
+custom thumbnail and captions, and optionally schedules it (publishAt) and adds it to a playlist.
 """
 
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -28,30 +27,24 @@ class UploadAgent:
         video_path: str,
         thumb_path: str,
         script: Dict,
-        slot_index: int = 0,
-        publish_immediately: bool = True,
-        gcs_path: Optional[str] = None,
         publish_at: Optional[str] = None,
+        playlist: str = "",
     ) -> Dict:
         """
         Args:
             video_path: Path to the rendered MP4
             thumb_path: Path to the JPEG thumbnail
             script: Script dict (title, description, tags)
-            slot_index: Which IST slot to schedule (ignored if publish_immediately=True)
-            publish_immediately: If True, publish now. If False, schedule for slot_index time.
-            gcs_path: If set, this is a retry from GCS backup (skip local file check)
+            publish_at: ISO 8601 UTC time. The video stays private and YouTube publishes it then.
+                        None = upload with config.VIDEO_PRIVACY and leave it.
+            playlist: Playlist title to add the video to (created on the channel if missing). "" = none.
         Returns:
-            dict with video_id, url, publish_at, uploaded_at, or failure dict if upload fails
+            dict with video_id, url, publish_at, uploaded_at, or a failure dict if the upload fails
         """
-        if publish_at is None:   # explicit ISO time (explainer auto-schedule) wins over slots
-            publish_at = None if publish_immediately else self._get_publish_time(slot_index)
         if publish_at:
-            publish_immediately = False
-        if publish_immediately:
-            logger.info(f"Uploading: {script['title'][:60]} → publish immediately (NOW)")
-        else:
             logger.info(f"Uploading: {script['title'][:60]} → schedule for {publish_at} UTC")
+        else:
+            logger.info(f"Uploading: {script['title'][:60]} → {config.VIDEO_PRIVACY}")
 
         try:
             video_id = self._upload_video(video_path, script, publish_at)
@@ -63,12 +56,7 @@ class UploadAgent:
                 self._upload_captions(video_id, srt_path)
 
             self._save_to_log(script, video_id, publish_at)
-
-            # Feature 1 hook: Format-specific tweaks (Shorts tagging, etc.)
-            self._format_title_description(script, video_id)
-
-            # Feature 3 hook: Post-upload operations (playlist insertion, etc.)
-            self._post_upload(video_id, script)
+            self._post_upload(video_id, playlist)
 
             result = {
                 "video_id": video_id,
@@ -78,18 +66,10 @@ class UploadAgent:
                 "success": True,
             }
             logger.info(f"Uploaded successfully: {result['url']}")
-
-            # If this was a GCS retry, clean up the backup
-            if gcs_path:
-                self._cleanup_gcs_backup(gcs_path)
-
             return result
 
         except Exception as e:
             logger.error(f"YouTube upload failed: {e}")
-            # Backup to GCS for later retry
-            if not gcs_path:  # Don't double-backup if already from GCS
-                self._backup_to_gcs(video_path, script)
             return {
                 "success": False,
                 "error": str(e),
@@ -104,13 +84,6 @@ class UploadAgent:
 
         title = script.get("title", "AutoTube Video")
         description = script.get("description", "")
-
-        # Add #Shorts tag for Shorts format
-        if config.IS_SHORTS:
-            if "#Shorts" not in title:
-                title = f"{title} #Shorts"
-            if "#Shorts" not in description:
-                description = f"{description}\n\n#Shorts"
 
         body = {
             "snippet": {
@@ -132,8 +105,6 @@ class UploadAgent:
         # A scheduled publishAt requires the video to be private until then.
         if publish_at:
             body["status"]["privacyStatus"] = "private"
-        # Only add publishAt if scheduling (not publishing immediately)
-        if publish_at:
             body["status"]["publishAt"] = publish_at
 
         media = MediaFileUpload(
@@ -177,8 +148,8 @@ class UploadAgent:
                 body={
                     "snippet": {
                         "videoId": video_id,
-                        "language": config.LANGUAGE,
-                        "name": {"en": "English", "hi": "Hindi", "es": "Spanish"}.get(config.LANGUAGE, config.LANGUAGE),
+                        "language": "en",
+                        "name": "English",
                         "isDraft": False,
                     }
                 },
@@ -187,26 +158,6 @@ class UploadAgent:
             logger.info(f"Captions uploaded for video {video_id}")
         except Exception as e:
             logger.warning(f"Caption upload failed (video still published): {e}")
-
-    # ── Scheduling ────────────────────────────────────────────────────────────
-
-    def _get_publish_time(self, slot_index: int) -> str:
-        """
-        Returns an ISO 8601 UTC datetime string for the next occurrence
-        of the given slot index (today if it hasn't passed, otherwise tomorrow).
-        """
-        utc_times = config.UPLOAD_TIMES_UTC
-        slot = utc_times[slot_index % len(utc_times)]
-        h, m = map(int, slot.split(":"))
-
-        now_utc = datetime.now(timezone.utc)
-        candidate = now_utc.replace(hour=h, minute=m, second=0, microsecond=0)
-
-        # If this slot already passed today, schedule for tomorrow
-        if candidate <= now_utc:
-            candidate += timedelta(days=1)
-
-        return candidate.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     # ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -239,7 +190,7 @@ class UploadAgent:
             raise FileNotFoundError(
                 f"YouTube token not found. "
                 f"Set YOUTUBE_TOKEN_JSON in .env as JSON content or file path, "
-                f"or run: python setup.py --auth"
+                f"or run: python generate_youtube_token.py"
             )
 
         creds = Credentials(
@@ -273,34 +224,6 @@ class UploadAgent:
 
         return build("youtube", "v3", credentials=creds)
 
-    # ── GCS Backup ────────────────────────────────────────────────────────────
-
-    def _backup_to_gcs(self, video_path: str, script: Dict) -> None:
-        """Backup failed video to GCS for later retry."""
-        try:
-            from agents.gcs_backup_agent import GCSBackupAgent
-            backup = GCSBackupAgent()
-            backup.upload_to_gcs(
-                video_path,
-                metadata={
-                    "title": script.get("title", ""),
-                    "description": script.get("description", ""),
-                    "tags": script.get("tags", []),
-                },
-                attempt=1,
-            )
-        except Exception as e:
-            logger.warning(f"Could not backup to GCS: {e}")
-
-    def _cleanup_gcs_backup(self, gcs_path: str) -> None:
-        """Delete backup from GCS after successful upload."""
-        try:
-            from agents.gcs_backup_agent import GCSBackupAgent
-            backup = GCSBackupAgent()
-            backup.delete_from_gcs(gcs_path)
-        except Exception as e:
-            logger.warning(f"Could not cleanup GCS backup: {e}")
-
     # ── Log ───────────────────────────────────────────────────────────────────
 
     def _save_to_log(self, script: Dict, video_id: str, publish_at: str) -> None:
@@ -322,174 +245,45 @@ class UploadAgent:
         with open(config.POSTED_FILE, "w") as f:
             json.dump(log, f, indent=2)
 
-    # ── Feature hooks (overridable by feature branches) ──────────────────────────
+    # ── Playlist ──────────────────────────────────────────────────────────────
 
-    def _format_title_description(self, script: Dict, video_id: str) -> None:
-        """
-        Feature 1 hook: Called after upload to apply format-specific tweaks.
-        For Shorts, #Shorts tagging is handled in _upload_video() before upload.
-        This hook is a no-op since metadata is already set during upload.
-        """
-        pass
-
-    def _post_upload(self, video_id: str, script: Dict) -> None:
-        """
-        Feature 3: Auto-playlist grouping.
-        Matches video title/tags against config.PLAYLIST_MAP and adds to playlist.
-        Auto-creates new playlists if enabled.
-        """
-        if not config.PLAYLIST_ENABLED:
+    def _post_upload(self, video_id: str, playlist: str) -> None:
+        """Add the video to the playlist with this exact title, creating it on first use."""
+        if not playlist or not config.PLAYLIST_ENABLED:
             return
-
         try:
-            playlist_id = self._resolve_playlist_id(script)
+            playlist_id = self._find_playlist(playlist) or self._create_playlist(playlist)
             if playlist_id:
                 self._add_to_playlist(video_id, playlist_id)
         except Exception as e:
             logger.warning(f"Playlist insertion failed (video still uploaded): {e}")
 
-    # ── Feature 3: Playlist management ────────────────────────────────────────
-
-    def _resolve_playlist_id(self, script: Dict) -> Optional[str]:
-        """
-        1. Check PLAYLIST_MAP for keyword match (env var overrides)
-        2. Check data/playlists.json for previously auto-created playlist
-        3. Query YouTube channel playlists
-        4. If no match and PLAYLIST_AUTO_CREATE: create new playlist
-        5. Return playlist ID or None
-        """
-        title = script.get("title", "").lower()
-        tags = [t.lower() for t in script.get("tags", [])]
-        combined = f"{title} {' '.join(tags)}"
-
-        # Step 1: Check static PLAYLIST_MAP
-        for keyword, playlist_id in config.PLAYLIST_MAP.items():
-            if keyword.lower() in combined:
-                logger.info(f"Playlist match from map: {keyword} → {playlist_id}")
-                return playlist_id
-
-        # Step 2: Check data/playlists.json (previously auto-created)
-        persisted = self._load_persisted_playlists()
-        for keyword, playlist_id in persisted.items():
-            if keyword.lower() in combined:
-                logger.info(f"Playlist match from history: {keyword} → {playlist_id}")
-                return playlist_id
-
-        # Step 3 & 4: Query YouTube + auto-create if enabled
-        if not config.PLAYLIST_AUTO_CREATE:
-            return None
-
-        # Derive keyword from first tag or niche
-        keyword = None
-        for tag in tags:
-            if tag.strip():
-                keyword = tag.strip()
-                break
-        if not keyword:
-            keyword = config.CHANNEL_NICHE
-
-        # Check if any existing YouTube playlist has this keyword
-        playlist_id = self._find_playlist_by_keyword(keyword)
-        if playlist_id:
-            logger.info(f"Found existing YouTube playlist for '{keyword}': {playlist_id}")
-            self._save_persisted_playlist(keyword, playlist_id)
-            return playlist_id
-
-        # Create new playlist
-        try:
-            new_id = self._create_playlist(keyword)
-            if new_id:
-                self._save_persisted_playlist(keyword, new_id)
-                logger.info(f"Created new playlist for '{keyword}': {new_id}")
-                return new_id
-        except Exception as e:
-            logger.warning(f"Could not create playlist: {e}")
-
+    def _find_playlist(self, title: str) -> Optional[str]:
+        res = self.youtube.playlists().list(part="snippet", mine=True, maxResults=50).execute()
+        for item in res.get("items", []):
+            if item["snippet"]["title"].strip().lower() == title.strip().lower():
+                return item["id"]
         return None
 
-    def _find_playlist_by_keyword(self, keyword: str) -> Optional[str]:
-        """
-        Query channel's playlists to find one matching the keyword.
-        """
-        try:
-            res = self.youtube.playlists().list(
-                part='snippet',
-                mine=True,
-                maxResults=50
-            ).execute()
-
-            keyword_lower = keyword.lower()
-            for item in res.get('items', []):
-                title = item['snippet']['title'].lower()
-                if keyword_lower in title or title.startswith(keyword_lower):
-                    return item['id']
-        except Exception as e:
-            logger.debug(f"Could not list playlists: {e}")
-
-        return None
-
-    def _create_playlist(self, keyword: str) -> Optional[str]:
-        """
-        Create a new YouTube playlist with the given keyword as title.
-        """
-        try:
-            body = {
-                "snippet": {
-                    "title": keyword,
-                    "description": f"Auto-generated playlist for {config.CHANNEL_NAME} videos about {keyword}",
-                },
-                "status": {
-                    "privacyStatus": "public",
-                },
-            }
-
-            res = self.youtube.playlists().insert(
-                part='snippet,status',
-                body=body
-            ).execute()
-
-            return res.get('id')
-        except Exception as e:
-            logger.warning(f"Playlist creation failed: {e}")
-            return None
+    def _create_playlist(self, title: str) -> Optional[str]:
+        res = self.youtube.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {"title": title, "description": f"{title} — from {config.CHANNEL_NAME}"},
+                "status": {"privacyStatus": "public"},
+            },
+        ).execute()
+        logger.info(f"Created playlist '{title}': {res.get('id')}")
+        return res.get("id")
 
     def _add_to_playlist(self, video_id: str, playlist_id: str) -> None:
-        """
-        Insert video into the given playlist.
-        """
-        try:
-            self.youtube.playlistItems().insert(
-                part='snippet',
-                body={
-                    "snippet": {
-                        "playlistId": playlist_id,
-                        "resourceId": {
-                            "kind": "youtube#video",
-                            "videoId": video_id,
-                        },
-                    }
-                },
-            ).execute()
-            logger.info(f"Video {video_id} added to playlist {playlist_id}")
-        except Exception as e:
-            logger.warning(f"Could not add video to playlist: {e}")
-
-    def _load_persisted_playlists(self) -> dict:
-        """Load auto-created playlist IDs from data/playlists.json"""
-        playlist_file = Path("data/playlists.json")
-        if not playlist_file.exists():
-            return {}
-        try:
-            with open(playlist_file) as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
-
-    def _save_persisted_playlist(self, keyword: str, playlist_id: str) -> None:
-        """Save auto-created playlist ID to data/playlists.json"""
-        playlists = self._load_persisted_playlists()
-        playlists[keyword] = playlist_id
-
-        Path("data").mkdir(exist_ok=True)
-        with open("data/playlists.json", "w") as f:
-            json.dump(playlists, f, indent=2)
+        self.youtube.playlistItems().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                }
+            },
+        ).execute()
+        logger.info(f"Video {video_id} added to playlist {playlist_id}")

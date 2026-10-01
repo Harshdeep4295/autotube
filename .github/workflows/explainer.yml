@@ -44,6 +44,7 @@ jobs:
       KOKORO_VOICE: ${{ vars.KOKORO_VOICE || 'am_michael' }}
       GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-3.5-flash-lite,gemini-3.8-flash' }}
       EXPLAINER_PUBLISH_AT_UTC: ${{ vars.EXPLAINER_PUBLISH_AT_UTC || '' }}
+      EXPLAINER_PLAYLIST: ${{ vars.EXPLAINER_PLAYLIST || '' }}
       GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}
     steps:
       - uses: actions/checkout@v4
