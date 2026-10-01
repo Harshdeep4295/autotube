@@ -116,17 +116,7 @@ class FreeLLM:
             out += [("gemini", m, self._gemini) for m in config.GEMINI_FREE_MODELS]
         if config.GROQ_API_KEY:
             out += [("groq", m, self._groq) for m in config.GROQ_FREE_MODELS]
-        if not config.FREE_ONLY and config.ANTHROPIC_API_KEY:
-            out.append(("claude", config.CLAUDE_MODEL, self._claude))
         return out
-
-    def _claude(self, model: str, system: str, user: str, max_tokens: int, temperature: float) -> str:
-        import anthropic  # only reachable with FREE_ONLY=false
-
-        client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-        msg = client.messages.create(model=model, max_tokens=max_tokens, system=system,
-                                     messages=[{"role": "user", "content": user}], temperature=temperature)
-        return msg.content[0].text
 
     # Public ------------------------------------------------------------------
 

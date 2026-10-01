@@ -26,10 +26,9 @@ software and free compute.
 15–30 minutes. Phase B only adds polish, because free GPU time only covers a few clips per video.
 Every Phase B step must fall back to Phase A scenes, so a failure never blocks a video.
 
-Proof-of-concept code (already on this branch):
-- `poc/explainer/`: Remotion project, 10 hand-built scenes (the demo video)
-- `poc/shot_video.py`: Kokoro voice, shot timing, FFmpeg crossfades, captions, A/V length check
-- `poc/ai_video/wan_clips.py`: Wan 2.1 clip generator for a free Kaggle/Colab GPU (untested)
+Proof-of-concept code: `poc/ai_video/wan_clips.py`, a Wan 2.1 clip generator for a free Kaggle/Colab
+GPU (untested). The Phase A proofs of concept (`poc/explainer/`, `poc/shot_video.py`) were removed on
+2026-10-01 after `video/explainer/` and `agents/explainer_agent.py` replaced them.
 
 ---
 

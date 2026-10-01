@@ -26,11 +26,10 @@ def test_paid_services_are_refused(monkeypatch, env):
         Config().assert_free_only()
 
 
-def test_free_llm_chain_never_includes_claude(monkeypatch):
+def test_llm_chain_has_only_free_providers(monkeypatch):
     from agents import llm as llm_mod
 
-    monkeypatch.setattr(llm_mod.config, "FREE_ONLY", True)
-    monkeypatch.setattr(llm_mod.config, "ANTHROPIC_API_KEY", "sk-test")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")   # a leftover paid key must not add a provider
     monkeypatch.setattr(llm_mod.config, "GEMINI_API_KEY", "g")
     monkeypatch.setattr(llm_mod.config, "GROQ_API_KEY", "q")
     providers = {p for p, _, _ in llm_mod.FreeLLM().chain()}

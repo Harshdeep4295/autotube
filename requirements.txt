@@ -1,33 +1,23 @@
-# AutoTube — Python requirements
-# Both AI providers installed; SCRIPT_MODEL_PROVIDER env var selects which is used at runtime
+# AutoTube — Python requirements (free-only pipeline: explainer + kids)
 
-# AI providers
-anthropic>=0.34.0
+# LLM providers (free tiers)
 google-genai>=1.0.0
-openai>=1.0.0  # For Groq API (uses OpenAI SDK)
-boto3>=1.34.0  # For AWS Bedrock fallback
+openai>=1.0.0  # Groq API (OpenAI-compatible)
 
 # Research
-pytrends>=4.9.2
 feedparser>=6.0.11
 requests>=2.31.0
 
-# TTS (voiceover) — Kokoro is the explainer voice (Apache-2.0, offline); edge-tts/pyttsx3 legacy
-kokoro-onnx>=0.4.0
+# Voice + captions
+kokoro-onnx>=0.4.0  # Kokoro TTS (Apache-2.0, offline)
 soundfile>=0.12.1
-pycairo>=1.25.0  # kids track renderer (agents/kids)
 faster-whisper>=1.0.0  # word timings for captions (falls back if unavailable)
-edge-tts>=6.1.9
-pyttsx3>=2.90
+av<19  # faster-whisper 1.2.1 passes a keyword that av 19 removed; every line then falls back to estimated timings
 
-# Video rendering
-moviepy>=2.2.1
+# Rendering
+pycairo>=1.25.0  # kids track renderer (agents/kids)
 Pillow>=10.0.0
 numpy>=1.24.0
-replicate>=0.20.0
-
-# YouTube download (for Shorts from existing videos)
-yt-dlp>=2024.0.0
 
 # YouTube upload
 google-api-python-client>=2.100.0
@@ -35,19 +25,5 @@ google-auth>=2.23.0
 google-auth-oauthlib>=1.1.0
 google-auth-httplib2>=0.1.1
 
-# Topic history database
-supabase>=2.0.0
-
-# WhatsApp webhook server
-fastapi>=0.115.0
-uvicorn>=0.30.0
-
 # Utilities
 python-dotenv>=1.0.0
-APScheduler>=3.10.0
-psutil>=5.9.0
-
-# Kling AI integration (Path A)
-httpx>=0.24.0
-pyjwt>=2.8.0
-google-cloud-storage>=2.0.0

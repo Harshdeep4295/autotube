@@ -75,8 +75,8 @@ Private: 2,000 free minutes/month, 2 vCPU. One video/day fits either way. Before
 repo public, check nothing personal is committed (secrets live in GitHub Secrets, not the repo).
 
 ### 2.5 Retire the old setup
-- VM: remove the AutoTube cron jobs (`crontab -e`; see the header of `crontab_ubuntu.txt`), then
-  stop/delete the VM if it bills you.
+- VM: remove any AutoTube cron jobs (`crontab -e`), then stop/delete the VM if it bills you. The old
+  renderer, its cron file and its workflows were removed from the repo on 2026-10-01.
 - The old channel's upload log stays in `data/posted_videos.json`. New uploads are appended to it.
 
 ## 3. Running it
@@ -103,8 +103,8 @@ Output: `outputs/<date>_<id>/` with `video.mp4`, `thumbnail.jpg`, `captions.srt`
 ### GitHub Actions
 - **Actions → Explainer Video → Run workflow.** `dry_run` is on by default. Download the result
   from the run's **Artifacts**.
-- The daily schedule is commented out in `.github/workflows/explainer.yml`. Enable it after staging (section 5).
-  Scheduled runs are dry runs until you change the default in the "Run pipeline" step.
+- The daily schedule is on (03:17 UTC). Scheduled runs upload as Private unless the repo variable
+  `SCHEDULED_DRY_RUN` is `true`; with `EXPLAINER_PUBLISH_AT_UTC` set, YouTube publishes the video at that time.
 
 ## 4. Tests
 
