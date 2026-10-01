@@ -77,6 +77,24 @@ class Config:
     EXPLAINER_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("EXPLAINER_PUBLISH_AT_UTC", "").strip())
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
 
+    # ── Kids track: "Explained Like You're 5" (VIDEO_STYLE=kids, see docs/PLAN_KIDS_EXPLAINER.md) ──
+    # 2-3 minute story videos (recurring cast + prop kit, pycairo renderer). All ages, NOT made for kids.
+    KIDS_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("KIDS_TARGET_WORDS", "300")))
+    KIDS_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("KIDS_MIN_SECONDS", "90")))
+    KIDS_MAX_SECONDS: int = field(default_factory=lambda: int(os.getenv("KIDS_MAX_SECONDS", "180")))
+    # Slow, friendly pace incl. pauses (the stock-market POC: 318 words → 119 s ≈ 160 wpm incl. gaps)
+    KIDS_WPM: int = field(default_factory=lambda: int(os.getenv("KIDS_WPM", "140")))
+    KIDS_TTS: str = field(default_factory=lambda: os.getenv("KIDS_TTS", "kokoro").lower())
+    KIDS_KOKORO_VOICE: str = field(default_factory=lambda: os.getenv("KIDS_KOKORO_VOICE", "af_heart"))
+    KIDS_KOKORO_SPEED: float = field(default_factory=lambda: float(os.getenv("KIDS_KOKORO_SPEED", "0.92")))
+    PIPER_MODEL: str = field(default_factory=lambda: os.getenv("PIPER_MODEL", ""))
+    KIDS_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("KIDS_PUBLISH_AT_UTC", "").strip())
+    KIDS_PLAYLIST: str = field(default_factory=lambda: os.getenv("KIDS_PLAYLIST", "Explained Like You're 5"))
+    # "mixed" = headline→concept first, evergreen bank as fallback; "bank" = bank only; "feed" = headlines only
+    KIDS_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("KIDS_TOPIC_MODE", "mixed").lower())
+    KIDS_TOPICS_FILE: str = "data/kids_topics.json"
+    KIDS_HISTORY_FILE: str = "data/kids_topics_history.json"
+
     # ── Voice (Kokoro, offline, Apache-2.0) ───────────────────────────────────
     VOICE_ENGINE: str = field(default_factory=lambda: os.getenv("VOICE_ENGINE", "kokoro").lower())
     KOKORO_VOICE: str = field(default_factory=lambda: os.getenv("KOKORO_VOICE", "am_michael"))
