@@ -103,9 +103,6 @@ jobs:
         run: |
           git config user.email "autotube-bot@users.noreply.github.com"
           git config user.name "AutoTube Bot"
-          git add data/kids_topics_history.json 2>/dev/null || true
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: update kids topic history [skip ci]"
-            git pull --rebase --autostash -q || true
-            git push
-          fi
+          # Merges onto the latest main and retries: the explainer workflow pushes around the same time.
+          python scripts/commit_state.py -m "chore: update kids topic history [skip ci]" \
+            data/kids_topics_history.json data/posted_videos.json

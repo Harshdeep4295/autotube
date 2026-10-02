@@ -12,5 +12,12 @@
     "timestamp": "2026-10-01T10:57:48.696057",
     "used_at": "2026-10-01T10:57:48.696057",
     "source": "hackernews"
+  },
+  {
+    "topic": "Combining Machine Learning and Homomorphic Encryption in the Apple Ecosystem",
+    "normalized_topic": "combining machine learning and homomorph",
+    "timestamp": "2026-10-02T10:26:27.314000",
+    "used_at": "2026-10-02T10:26:27.314000",
+    "source": "hackernews"
   }
 ]
