@@ -19,5 +19,12 @@
     "timestamp": "2026-10-02T10:26:27.314000",
     "used_at": "2026-10-02T10:26:27.314000",
     "source": "hackernews"
+  },
+  {
+    "topic": "AI ‘godfather’ Yann LeCun has ‘zero concerns’ about human extinction, says Anthropic CEO Dario Amodei is ‘deluded’",
+    "normalized_topic": "ai godfather yann lecun has zero concern",
+    "timestamp": "2026-10-03T09:51:06.896375",
+    "used_at": "2026-10-03T09:51:06.896375",
+    "source": "lobsters"
   }
 ]
