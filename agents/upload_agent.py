@@ -7,6 +7,7 @@ custom thumbnail and captions, and optionally schedules it (publishAt) and adds 
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
@@ -25,7 +26,7 @@ class UploadAgent:
     def publish(
         self,
         video_path: str,
-        thumb_path: str,
+        thumb_path: Optional[str],
         script: Dict,
         publish_at: Optional[str] = None,
         playlist: str = "",
@@ -33,7 +34,7 @@ class UploadAgent:
         """
         Args:
             video_path: Path to the rendered MP4
-            thumb_path: Path to the JPEG thumbnail
+            thumb_path: Path to the JPEG thumbnail (None = keep YouTube's own, e.g. for a Short)
             script: Script dict (title, description, tags)
             publish_at: ISO 8601 UTC time. The video stays private and YouTube publishes it then.
                         None = upload with config.VIDEO_PRIVACY and leave it.
@@ -48,7 +49,8 @@ class UploadAgent:
 
         try:
             video_id = self._upload_video(video_path, script, publish_at)
-            self._set_thumbnail(video_id, thumb_path)
+            if thumb_path:
+                self._set_thumbnail(video_id, thumb_path)
 
             # Upload SRT captions if generated alongside the video
             srt_path = str(Path(video_path).parent / "captions.srt")
@@ -276,14 +278,24 @@ class UploadAgent:
         logger.info(f"Created playlist '{title}': {res.get('id')}")
         return res.get("id")
 
-    def _add_to_playlist(self, video_id: str, playlist_id: str) -> None:
-        self.youtube.playlistItems().insert(
-            part="snippet",
-            body={
-                "snippet": {
-                    "playlistId": playlist_id,
-                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                }
-            },
-        ).execute()
-        logger.info(f"Video {video_id} added to playlist {playlist_id}")
+    def _add_to_playlist(self, video_id: str, playlist_id: str, attempts: int = 4) -> None:
+        """YouTube often answers 409 SERVICE_UNAVAILABLE for a few seconds after a playlist is
+        created or a video is uploaded (first kids upload, 2026-10-02), so retry with a pause."""
+        for attempt in range(attempts):
+            try:
+                self.youtube.playlistItems().insert(
+                    part="snippet",
+                    body={
+                        "snippet": {
+                            "playlistId": playlist_id,
+                            "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                        }
+                    },
+                ).execute()
+                logger.info(f"Video {video_id} added to playlist {playlist_id}")
+                return
+            except Exception as e:  # noqa: BLE001
+                if attempt == attempts - 1:
+                    raise
+                logger.info(f"Playlist insert attempt {attempt + 1} failed ({str(e)[:80]}) — retrying")
+                time.sleep(5 * (attempt + 1))

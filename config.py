@@ -75,6 +75,10 @@ class Config:
     KIDS_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("KIDS_PUBLISH_AT_UTC", "").strip())
     # Playlist title every kids upload is added to (created on first use); also the first tag.
     KIDS_PLAYLIST: str = field(default_factory=lambda: os.getenv("KIDS_PLAYLIST", "Explained Like You're 5"))
+    # Vertical 9:16 cut of every kids video, uploaded as a second video (a YouTube Short).
+    KIDS_SHORTS: bool = field(default_factory=lambda: os.getenv("KIDS_SHORTS", "true").lower() != "false")
+    # "HH:MM" UTC for the Short; empty = same time as the full video (KIDS_PUBLISH_AT_UTC).
+    KIDS_SHORT_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("KIDS_SHORT_PUBLISH_AT_UTC", "").strip())
     # "mixed" = headline→concept first, evergreen bank as fallback; "bank" = bank only; "feed" = headlines only
     KIDS_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("KIDS_TOPIC_MODE", "mixed").lower())
     KIDS_TOPICS_FILE: str = "data/kids_topics.json"

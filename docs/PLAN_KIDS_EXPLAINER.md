@@ -39,7 +39,8 @@ stays on Remotion; the two styles share voice, timing, QA, upload and history co
 | `agents/kids_agent.py` | Render agent; `python -m agents.kids_agent <script.json>` renders offline |
 | `agents/kids_script_agent.py` + `templates/kids_prompts.py` | Plan → script → length → checker |
 | `agents/kids_topic_agent.py` + `data/kids_topics.json` | Topics; history in `data/kids_topics_history.json` |
-| `.github/workflows/kids_explainer.yml` | Daily 03:47 UTC; **dry run until `KIDS_SCHEDULED_DRY_RUN=false`** |
+| `.github/workflows/kids_explainer.yml` | Daily 03:47 UTC; **dry run until `KIDS_SCHEDULED_DRY_RUN=false`** (set on 2026-10-01, so it uploads) |
+| `agents/kids/short.py` | Vertical 9:16 cut for Shorts: question on top, scene band, large captions below |
 | `tests/test_kids.py`, `tests/fixtures/kids_*.json` | Schema, timeline, every scene at every beat, agents with a fake LLM |
 
 ## Run
@@ -65,10 +66,10 @@ python orchestrator.py --style kids --dry-run [--topic "What is interest?"] [--s
   thumbnail, contact sheet, QA with a 3-minute cap. Two fixtures (stock market, internet) render and pass QA.
 - [x] **M2 — Script agent.** Analogy planner → scenes → length guard → checker/fix round (free LLM).
 - [x] **M3 — Topics + entry point + deploy.** Headline→idea + bank, `--style kids`, config, daily workflow (dry run by default).
-- [ ] **M4 — Go live.** Run the workflow manually 3–5 times, review the contact sheets, then set
-  `KIDS_SCHEDULED_DRY_RUN=false` and `KIDS_PUBLISH_AT_UTC`.
-- [ ] **M5 — Polish.** Vertical 9:16 cut from the same timeline (a Short ≤ 3 min), more scene types
-  (`timeline`, `balance`), per-topic colour themes, analytics feedback into topic choice.
+- [x] **M4 — Go live.** Live since 2026-10-02 (`KIDS_SCHEDULED_DRY_RUN=false`, `KIDS_PUBLISH_AT_UTC=14:30`),
+  after one manual dry run rather than the planned 3–5.
+- [ ] **M5 — Polish.** Done: vertical 9:16 cut from the same timeline, uploaded as a Short (2026-10-04).
+  Still open: more scene types (`timeline`, `balance`), per-topic colour themes, analytics feedback into topic choice.
 
 ## Guardrails
 

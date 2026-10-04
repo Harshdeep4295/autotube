@@ -217,3 +217,23 @@ def test_topic_agent_headline_ideas(tmp_path, monkeypatch):
     got = agent.get_topics(2, mode="mixed")
     assert got[0]["topic"] == "What is interest?" and got[0]["source"] == "feed"
     assert got[1]["source"] == "bank"          # blocked idea dropped, bank fills the gap
+
+
+# ── vertical Short ───────────────────────────────────────────────────────────
+def test_short_frame_draws_across_the_whole_timeline():
+    from agents.kids import draw as D
+    from agents.kids import short as S
+
+    D.ensure_fonts()
+    safe, _ = validate_and_repair(load("kids_internet.json"))
+    TL = TLB.build(safe, fake_voiced(safe))
+    surf = cairo.ImageSurface(cairo.FORMAT_RGB24, S.SW, S.SH)
+    c = cairo.Context(surf)
+    t = 0.0
+    while t < TL["duration"]:
+        c.save()
+        S.frame(c, TL, t, "How does the internet send a message?", "Run It Local")
+        c.restore()
+        t += 2.5
+    assert S.BAND_Y + S.BAND_H < S.CAPTION_Y < S.SH - 300      # captions sit below the scene, above the Shorts UI
+    assert S.card_title("What Is a Pension? (Explained Like You're 5)") == "What Is a Pension?"
