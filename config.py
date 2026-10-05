@@ -94,6 +94,9 @@ class Config:
     CHANNEL_NAME: str = field(default_factory=lambda: os.getenv("CHANNEL_NAME", "Run It Local"))
     CHANNEL_TAGLINE: str = field(default_factory=lambda: os.getenv(
         "CHANNEL_TAGLINE", "Free & open-source AI you can run yourself"))
+    # Public channel page, used for the subscribe link in descriptions. Empty = no link.
+    CHANNEL_URL: str = field(default_factory=lambda: os.getenv(
+        "CHANNEL_URL", "https://www.youtube.com/channel/UCvQ4krhheYmVibo3nfVdrJw").strip())
     # Sub-niche (2026-09-29): practical, free / open-source AI tools people can run and
     # use themselves. Evergreen how-to + explainers, fits the animated scene catalogue.
     CHANNEL_SUBNICHE: str = field(default_factory=lambda: os.getenv(

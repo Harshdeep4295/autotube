@@ -229,6 +229,16 @@ def _counts(items) -> Dict[str, int]:
     return out
 
 
+def earlier_videos(limit: int = 3) -> list:
+    """Newest full kids videos already uploaded (from the posted log), for description links."""
+    try:
+        log = json.loads(Path(config.POSTED_FILE).read_text())
+    except (OSError, json.JSONDecodeError):
+        return []
+    kids = [v for v in log if "(Explained Like You're 5)" in v.get("title", "") and v.get("url")]
+    return [{"title": v["title"].split(" (")[0], "url": v["url"]} for v in kids[-limit:][::-1]]
+
+
 def description_for(script: Dict) -> str:
     parts = [script.get("description", "").strip()]
     amap = (script.get("analogy") or {}).get("map") or []
@@ -236,6 +246,11 @@ def description_for(script: Dict) -> str:
         parts.append("Grown-up words in this video:\n" + "\n".join(
             f"- {m.get('real', '')} = {m.get('kid', '')}" for m in amap if isinstance(m, dict)))
     parts.append("Explained Like You're 5 — big ideas, told simply, for curious people of all ages.")
+    more = earlier_videos()
+    if more:
+        parts.append("More Explained Like You're 5:\n" + "\n".join(f"- {v['title']}: {v['url']}" for v in more))
+    if config.CHANNEL_URL:
+        parts.append(f"A new one every day. Subscribe: {config.CHANNEL_URL}?sub_confirmation=1")
     parts.append("Narration voice is AI-generated. Animation is made with code. This is not financial advice.")
     return "\n\n".join(p for p in parts if p)[:4900].replace("<", "").replace(">", "")
 
