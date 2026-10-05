@@ -6,8 +6,8 @@ Runs as a step of the kids workflow after the YouTube upload; free Meta Graph AP
     python scripts/post_reels.py --dir outputs/20261005_kids_ab12cd --dry-run
 
 Environment: META_ACCESS_TOKEN (long-lived user token, ~60 days), INSTAGRAM_ACCOUNT_ID,
-FACEBOOK_PAGE_ID. A missing value skips that platform. Facebook goes first: if Instagram refuses
-the direct file upload, the Facebook copy's public URL is used instead. One platform failing does
+FACEBOOK_PAGE_ID. A missing value skips that platform. Instagram fetches the file from a
+temporary public copy (a release asset of this repo, removed afterwards). One platform failing does
 not stop the other; the exit code is 1 if anything that was attempted failed.
 """
 
@@ -64,41 +64,51 @@ def _publish_container(cid: str, ig_id: str, token: str, wait: int) -> str:
                                 data={"creation_id": cid, "access_token": token}))["id"]
 
 
-def instagram_copy(video: Path) -> Path:
-    """Same picture with stereo 48 kHz AAC sound (the Short's sound is mono). Falls back to the original."""
-    out = video.with_name("short_instagram.mp4")
+RELEASE_TAG = "reels-tmp"
+
+
+def public_copy(video: Path, name: str) -> str:
+    """Put the file at a public URL (an asset on a prerelease of this public repo) for Instagram to
+    fetch. Needs the gh CLI with GH_TOKEN, as in GitHub Actions; returns "" anywhere else."""
+    repo = os.getenv("GITHUB_REPOSITORY", "")
+    if not repo or not os.getenv("GH_TOKEN"):
+        return ""
+    gh = ["gh", "release", "--repo", repo]
     try:
-        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-c:v", "copy", "-c:a", "aac",
-                        "-ac", "2", "-ar", "48000", "-b:a", "128k", "-movflags", "+faststart", str(out)],
-                       check=True, timeout=300)
-        return out
+        if subprocess.run(gh[:2] + ["view", RELEASE_TAG, "--repo", repo], capture_output=True).returncode != 0:
+            subprocess.run(gh[:2] + ["create", RELEASE_TAG, "--repo", repo, "--prerelease", "--title",
+                                     "Temporary files for Reel posting",
+                                     "--notes", "Holds a Short for a few minutes while Instagram fetches it."],
+                           check=True, capture_output=True, timeout=120)
+        asset = video.with_name(name)
+        asset.write_bytes(video.read_bytes())
+        subprocess.run(gh[:2] + ["upload", RELEASE_TAG, str(asset), "--repo", repo, "--clobber"],
+                       check=True, capture_output=True, timeout=600)
+        return f"https://github.com/{repo}/releases/download/{RELEASE_TAG}/{name}"
     except Exception as e:  # noqa: BLE001
-        print(f"Instagram: could not make the stereo copy ({e}) — using the original file")
-        return video
+        print(f"Instagram: could not publish a temporary copy ({str(e)[:200]})")
+        return ""
+
+
+def remove_public_copy(name: str) -> None:
+    subprocess.run(["gh", "release", "delete-asset", RELEASE_TAG, name, "--repo", os.getenv("GITHUB_REPOSITORY", ""), "-y"],
+                   capture_output=True, timeout=120)
 
 
 def post_instagram(video: Path, caption: str, ig_id: str, token: str, video_url: str = "", wait: int = 600) -> str:
-    """Reel from a direct file upload; if Meta rejects that and a public `video_url` is known,
-    from that URL instead. Returns the media id."""
+    """Reel from a public `video_url` (two tries: Meta's fetch fails now and then); without one,
+    or if both fail, a direct file upload. Returns the media id."""
     base = {"media_type": "REELS", "caption": caption, "access_token": token}
-    video = instagram_copy(video)
-    try:
-        c = _check(requests.post(f"{GRAPH}/{ig_id}/media", timeout=60, data={**base, "upload_type": "resumable"}))
-        up = requests.post(c["uri"], data=video.read_bytes(), timeout=600, headers={
-            "Authorization": f"OAuth {token}", "offset": "0", "file_size": str(video.stat().st_size),
-            "Content-Type": "application/octet-stream"})
+    for attempt in range(2 if video_url else 0):
         try:
-            _check(up)
+            c = _check(requests.post(f"{GRAPH}/{ig_id}/media", timeout=60, data={**base, "video_url": video_url}))
+            return _publish_container(c["id"], ig_id, token, wait)
         except RuntimeError as e:
-            why = requests.get(f"{GRAPH}/{c['id']}", timeout=60,
-                               params={"fields": "status_code,status", "access_token": token}).text[:300]
-            raise RuntimeError(f"{e} | container: {why}")
-        return _publish_container(c["id"], ig_id, token, wait)
-    except RuntimeError as e:
-        if not video_url:
-            raise
-        print(f"Instagram: direct upload failed ({e}) — trying the public video URL")
-    c = _check(requests.post(f"{GRAPH}/{ig_id}/media", timeout=60, data={**base, "video_url": video_url}))
+            print(f"Instagram: posting from the public URL failed, try {attempt + 1} ({e})")
+            time.sleep(60)
+    c = _check(requests.post(f"{GRAPH}/{ig_id}/media", timeout=60, data={**base, "upload_type": "resumable"}))
+    _check(requests.post(c["uri"], data=video.read_bytes(), timeout=600, headers={
+        "Authorization": f"OAuth {token}", "offset": "0", "file_size": str(video.stat().st_size)}))
     return _publish_container(c["id"], ig_id, token, wait)
 
 
@@ -117,18 +127,6 @@ def post_facebook(video: Path, title: str, caption: str, page_id: str, token: st
     return done["id"]
 
 
-def facebook_source_url(video_id: str, page_id: str, token: str, wait: int = 300) -> str:
-    """Public file URL of a Page video once Facebook has processed it ("" if it never appears)."""
-    page_token = page_token_for(page_id, token)
-    deadline = time.time() + wait
-    while time.time() < deadline:
-        r = requests.get(f"{GRAPH}/{video_id}", timeout=60, params={"fields": "source", "access_token": page_token})
-        if r.ok and r.json().get("source"):
-            return r.json()["source"]
-        time.sleep(15)
-    return ""
-
-
 def newest_short(root: Path) -> Optional[Path]:
     shorts = sorted(root.glob("*/short.mp4"), key=lambda p: p.stat().st_mtime)
     return shorts[-1].parent if shorts else None
@@ -139,8 +137,6 @@ def main() -> None:
     ap.add_argument("--dir", default="", help="job folder with short.mp4 + script.json (default: newest)")
     ap.add_argument("--dry-run", action="store_true", help="print the caption, post nothing")
     ap.add_argument("--only", default="", choices=["", "instagram", "facebook"], help="post to one platform only")
-    ap.add_argument("--fb-video", default="", help="id of the Facebook video already posted for this Short "
-                                                   "(its file URL is Instagram's fallback)")
     a = ap.parse_args()
 
     job = Path(a.dir) if a.dir else newest_short(Path(config.OUTPUT_DIR))
@@ -168,14 +164,13 @@ def main() -> None:
     if not token:
         print("META_ACCESS_TOKEN not set — skipping Instagram and Facebook")
         return
-    failed, fb_video = False, a.fb_video
+    failed = False
     if a.only in ("", "facebook"):
         if not page_id:
             print("Facebook: no page id set — skipped")
         else:
             try:
-                fb_video = post_facebook(job / "short.mp4", title, caption, page_id, token)
-                print(f"Facebook: posted, id {fb_video}")
+                print(f"Facebook: posted, id {post_facebook(job / 'short.mp4', title, caption, page_id, token)}")
             except Exception as e:  # noqa: BLE001 — Instagram still gets its turn
                 failed = True
                 print(f"Facebook: FAILED — {e}")
@@ -183,12 +178,16 @@ def main() -> None:
         if not ig_id:
             print("Instagram: no account id set — skipped")
         else:
+            name = f"short_{job.name}.mp4"
+            url = public_copy(job / "short.mp4", name)
             try:
-                url = facebook_source_url(fb_video, page_id, token) if fb_video and page_id else ""
                 print(f"Instagram: posted, id {post_instagram(job / 'short.mp4', caption, ig_id, token, video_url=url)}")
             except Exception as e:  # noqa: BLE001
                 failed = True
                 print(f"Instagram: FAILED — {e}")
+            finally:
+                if url:
+                    remove_public_copy(name)
     if failed:
         sys.exit(1)
 

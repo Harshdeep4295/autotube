@@ -90,6 +90,8 @@ jobs:
       - name: Post the Short to Instagram + Facebook
         if: success() && env.META_ACCESS_TOKEN != ''
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python scripts/post_reels.py
 
       - name: Upload video + reports
