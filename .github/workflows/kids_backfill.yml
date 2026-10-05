@@ -22,7 +22,7 @@ on:
         default: true
 
 concurrency:
-  group: kids-explainer
+  group: kids-backfill-${{ inputs.video }}
   cancel-in-progress: false
 
 jobs:
