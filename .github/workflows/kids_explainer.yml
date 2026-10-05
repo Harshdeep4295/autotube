@@ -43,6 +43,9 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ vars.INSTAGRAM_ACCOUNT_ID || '' }}
+      FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID || '' }}
       CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
       KIDS_KOKORO_VOICE: ${{ vars.KIDS_KOKORO_VOICE || 'af_heart' }}
       KIDS_PUBLISH_AT_UTC: ${{ vars.KIDS_PUBLISH_AT_UTC || '' }}
@@ -82,6 +85,12 @@ jobs:
           if [ -n "$IN_SCRIPT" ]; then args+=(--script "$IN_SCRIPT"); fi
           echo "python orchestrator.py ${args[*]}"
           python orchestrator.py "${args[@]}"
+
+      # Free Meta Graph API. Skipped on dry runs and when the token secret is not set; never fails the run.
+      - name: Post the Short to Instagram + Facebook
+        if: success() && env.META_ACCESS_TOKEN != ''
+        continue-on-error: true
+        run: python scripts/post_reels.py
 
       - name: Upload video + reports
         if: always()
