@@ -1,0 +1,57 @@
+name: Post Reels
+
+# Post the Short of an earlier Kids Explainer run to Instagram and/or Facebook
+# (see scripts/post_reels.py). Uses that run's artifact (kept for 7 days).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "ID of the Kids Explainer run whose Short to post"
+        required: true
+      only:
+        description: "Post to one platform only"
+        type: choice
+        options: [both, instagram, facebook]
+        default: both
+      fb_video:
+        description: "Facebook video id already posted for this Short (Instagram fallback URL)"
+        required: false
+        default: ""
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ vars.INSTAGRAM_ACCOUNT_ID || '' }}
+      FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID || '' }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python packages
+        run: pip install -q requests python-dotenv
+      - name: Fetch the run's Short
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IN_RUN: ${{ inputs.run_id }}
+        run: |
+          gh run download "$IN_RUN" --repo "$GITHUB_REPOSITORY" --dir prev
+          short=$(find prev -name short.mp4 | head -1)
+          test -n "$short" || { echo "No short.mp4 in the artifact of run $IN_RUN"; exit 1; }
+          echo "JOB_DIR=$(dirname "$short")" >> "$GITHUB_ENV"
+      - name: Post
+        env:
+          IN_ONLY: ${{ inputs.only }}
+          IN_FB_VIDEO: ${{ inputs.fb_video }}
+        run: |
+          args=(--dir "$JOB_DIR")
+          if [ "$IN_ONLY" != "both" ]; then args+=(--only "$IN_ONLY"); fi
+          if [ -n "$IN_FB_VIDEO" ]; then args+=(--fb-video "$IN_FB_VIDEO"); fi
+          python scripts/post_reels.py "${args[@]}"

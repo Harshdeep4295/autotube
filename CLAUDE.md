@@ -141,6 +141,7 @@ Rules:
 | `explainer.yml` | daily 03:17 UTC + manual | Scheduled runs **upload** unless repo variable `SCHEDULED_DRY_RUN=true`. Manual `dry_run` defaults to true. 90 min timeout |
 | `kids_explainer.yml` | daily 03:47 UTC + manual | Scheduled runs **upload** because repo variable `KIDS_SCHEDULED_DRY_RUN=false` is set (the workflow default is dry). 45 min timeout |
 | `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `home-section` on the YouTube channel |
+| `post_reels.yml` | manual | Posts the Short of an earlier kids run (by run ID) to Instagram and/or Facebook |
 | `kids_backfill.yml` | manual | Gives a published kids video a Short and the current description; needs the video ID and the ID of the run that made it (script from its artifact, kept 7 days). `dry_run` defaults to true |
 
 - Secrets in use: `GEMINI_API_KEY`, `GROQ_API_KEY`, `YOUTUBE_TOKEN_JSON`. Older secrets for paid services
