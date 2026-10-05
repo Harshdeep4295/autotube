@@ -61,6 +61,11 @@ class Config:
     # Playlist title every explainer upload is added to (created on first use). Empty = none.
     EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
 
+    # "bank" = evergreen tool topics from data/explainer_topics.json, news feeds only when the
+    # bank is used up; "feed" = news feeds only (research_agent scoring).
+    EXPLAINER_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("EXPLAINER_TOPIC_MODE", "bank").lower())
+    EXPLAINER_TOPICS_FILE: str = "data/explainer_topics.json"
+
     # ── Kids track: "Explained Like You're 5" (VIDEO_STYLE=kids, see docs/PLAN_KIDS_EXPLAINER.md) ──
     # 2-3 minute story videos (recurring cast + prop kit, pycairo renderer). All ages, NOT made for kids.
     KIDS_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("KIDS_TARGET_WORDS", "300")))

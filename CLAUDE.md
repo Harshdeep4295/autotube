@@ -5,7 +5,7 @@ run yourself). One entry point, `orchestrator.py`, with two video styles:
 
 | Style | What it makes | Renderer | State (2026-10-01) |
 |---|---|---|---|
-| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Paused since 2026-10-04**: scheduled runs render but don't upload (`SCHEDULED_DRY_RUN=true`) until the topic bank exists |
+| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Paused since 2026-10-04**: scheduled runs render but don't upload (`SCHEDULED_DRY_RUN=true`) . The topic bank exists since 2026-10-05; un-pause after a dry run has been reviewed |
 | `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea), plus a vertical cut uploaded as a Short | pycairo (`agents/kids/`) | **Live** since 2026-10-02: daily upload, public at 14:30 UTC |
 
 **Hard constraint: $0.** Gemini and Groq free tiers, standard GitHub Actions runner, open-source
@@ -73,7 +73,8 @@ for kids. `outputs/` and `logs/` are gitignored.
 ## Explainer pipeline (default)
 
 ```
-research_agent          HN / Dev.to / Lobsters / Reddit / RSS, filtered by NICHE_KEYWORDS
+research_agent          topic bank (data/explainer_topics.json: one open-source tool each, README as source);
+                        news feeds (HN / Dev.to / Lobsters / Reddit / RSS, NICHE_KEYWORDS) once the bank is used up
 source_fetcher          text of the source article (grounding)
 explainer_script_agent  outline + one LLM call per chapter; repairs, salvage, top-up of short chapters
 scene_schema            validate / repair every scene (unknown or broken → key_point)
@@ -140,6 +141,7 @@ Rules:
 | `explainer.yml` | daily 03:17 UTC + manual | Scheduled runs **upload** unless repo variable `SCHEDULED_DRY_RUN=true`. Manual `dry_run` defaults to true. 90 min timeout |
 | `kids_explainer.yml` | daily 03:47 UTC + manual | Scheduled runs **upload** because repo variable `KIDS_SCHEDULED_DRY_RUN=false` is set (the workflow default is dry). 45 min timeout |
 | `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `home-section` on the YouTube channel |
+| `kids_backfill.yml` | manual | Gives a published kids video a Short and the current description; needs the video ID and the ID of the run that made it (script from its artifact, kept 7 days). `dry_run` defaults to true |
 
 - Secrets in use: `GEMINI_API_KEY`, `GROQ_API_KEY`, `YOUTUBE_TOKEN_JSON`. Older secrets for paid services
   (Anthropic, Kling, Pika, Replicate, GCP, Supabase, Pexels) are still stored but no workflow reads them.
@@ -168,11 +170,13 @@ Rules:
 | `agents/kokoro_voice.py`, `agents/word_timing.py` | Voice and caption timing (shared) |
 | `agents/kids_agent.py`, `agents/kids_script_agent.py`, `agents/kids_topic_agent.py`, `templates/kids_prompts.py` | Kids render, script, topics, prompts |
 | `agents/kids_scene_schema.py`, `agents/kids/` | Kids catalogue and pycairo renderer (draw, cast, props, scenes, timeline, render, voice, music) |
-| `agents/research_agent.py` | Explainer topic research and history |
+| `agents/research_agent.py` | Explainer topics: bank first (`EXPLAINER_TOPIC_MODE=bank`), news feeds as fallback; history |
+| `data/explainer_topics.json` | Evergreen explainer topic bank (topic + GitHub repo); add entries freely |
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |
 | `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |
 | `scripts/channel_admin.py` | Channel housekeeping (status, add a video to a playlist, home page section), run via `channel_admin.yml` |
+| `scripts/backfill_kids.py` | Short + current description for an already-published kids video, run via `kids_backfill.yml` |
 | `generate_youtube_token.py` | One-time OAuth token generator for the channel |
 | `video/explainer/` | Remotion 4 project: `src/scenes/`, `src/brand/`, `Thumbnail.tsx`, `test/scenes.test.mjs` |
 | `branding/` | Logo, banner, watermark (rendered from `video/explainer/src/brand/`) |
@@ -198,6 +202,7 @@ EXPLAINER_TARGET_WORDS = 1100       # ≈ 8.5–9 min at EXPLAINER_WPM = 125 (me
 EXPLAINER_MIN_SECONDS = 480
 EXPLAINER_PUBLISH_AT_UTC = ""       # e.g. "18:30"
 EXPLAINER_PLAYLIST = ""             # playlist title; empty = none
+EXPLAINER_TOPIC_MODE = "bank"       # bank = data/explainer_topics.json, feeds when used up; feed = news feeds only
 KOKORO_VOICE = "am_michael"         # KOKORO_SPEED = 1.05; WORD_TIMINGS = "whisper" (falls back)
 
 # Kids
@@ -219,8 +224,8 @@ KIDS_SHORTS = true                  # vertical cut uploaded as a Short; KIDS_SHO
   Groq only. The key appears to be on a prepaid billing account; replace it with a free-tier key.
 - The old renderer, Shorts reposting, approval queue, paid-provider integrations and their docs were
   removed on 2026-10-01. Only the explainer and kids paths remain.
-- Explainer uploads are paused (2026-10-04) because research keeps picking off-niche news; un-pause by
-  deleting the repo variable `SCHEDULED_DRY_RUN` once the topic bank from the growth plan is built.
+- Explainer uploads are paused (2026-10-04) because research kept picking off-niche news. The topic bank
+  (2026-10-05) fixes the topics; un-pause by deleting the repo variable `SCHEDULED_DRY_RUN`.
 - More kids scene types (rest of milestone M5) and Phase B (AI clips) have not started.
 - The YouTube OAuth token was once shown in a chat session; `docs/HANDOFF.md` §4 has the revoke and
   regenerate steps. If the consent screen is in "Testing", refresh tokens expire after 7 days.

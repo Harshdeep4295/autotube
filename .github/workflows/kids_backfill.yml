@@ -1,0 +1,97 @@
+name: Kids Backfill
+
+# Give an already-published kids video a Short and the current description
+# (see scripts/backfill_kids.py). The script.json comes from the artifact of the
+# Kids Explainer run that made the video (kept for 7 days).
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: "Video ID of the published full video"
+        required: true
+      run_id:
+        description: "ID of the Kids Explainer run that made it (its artifact holds script.json)"
+        required: true
+      publish_at:
+        description: "HH:MM UTC for the Short to go public (blank = stays private)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run: render the Short, print the description, change nothing on YouTube"
+        type: boolean
+        default: true
+
+concurrency:
+  group: kids-explainer
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write   # record the Short in data/posted_videos.json
+      actions: read     # download the earlier run's artifact
+    env:
+      FREE_ONLY: "true"
+      VIDEO_STYLE: kids
+      VIDEO_PRIVACY: private
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
+      KIDS_KOKORO_VOICE: ${{ vars.KIDS_KOKORO_VOICE || 'af_heart' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fontconfig libcairo2-dev pkg-config --no-install-recommends
+      - name: Python packages
+        run: pip install -r requirements.txt
+      - name: Cache voice + whisper models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/autotube/kokoro
+            ~/.cache/huggingface
+          key: models-kokoro-v1-whisper-base-en
+
+      - name: Fetch the video's script
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IN_RUN: ${{ inputs.run_id }}
+        run: |
+          gh run download "$IN_RUN" --repo "$GITHUB_REPOSITORY" --dir prev
+          script=$(find prev -name script.json | head -1)
+          test -n "$script" || { echo "No script.json in the artifact of run $IN_RUN"; exit 1; }
+          echo "SCRIPT=$script" >> "$GITHUB_ENV"
+
+      - name: Backfill
+        env:
+          IN_VIDEO: ${{ inputs.video }}
+          IN_PUBLISH_AT: ${{ inputs.publish_at }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--video "$IN_VIDEO" --script "$SCRIPT")
+          if [ -n "$IN_PUBLISH_AT" ]; then args+=(--publish-at "$IN_PUBLISH_AT"); fi
+          if [ "${IN_DRY_RUN:-true}" != "false" ]; then args+=(--dry-run); fi
+          python scripts/backfill_kids.py "${args[@]}"
+
+      - name: Upload the Short
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kids-backfill-${{ inputs.video }}
+          path: |
+            outputs/*/short.mp4
+            outputs/*/short_still.png
+            outputs/*/short_qa.json
+          retention-days: 7
+
+      - name: Commit posted log
+        if: success() && inputs.dry_run == false
+        run: |
+          git config user.email "autotube-bot@users.noreply.github.com"
+          git config user.name "AutoTube Bot"
+          python scripts/commit_state.py -m "chore: record backfilled Short [skip ci]" data/posted_videos.json

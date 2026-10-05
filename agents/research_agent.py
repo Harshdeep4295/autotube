@@ -183,6 +183,13 @@ class ResearchAgent:
         mark_used() after a successful upload. A failing source is skipped.
         """
         history = self._load_history()
+        if config.EXPLAINER_TOPIC_MODE == "bank":
+            banked = self._from_bank(count, history)
+            if banked:
+                if record:
+                    self._save_to_history(banked, history)
+                return banked
+            logger.warning("Topic bank is used up (or missing) — falling back to the news feeds")
         raw_topics: List[Dict] = []
 
         # Source 1: Reddit
@@ -268,6 +275,33 @@ class ResearchAgent:
             logger.info(f"  ✓ {s['topic'][:50]:<50} (quality: {s.get('quality_score', 0):.2f}, composite: {s['composite_score']:.2f})")
 
         return selected
+
+    # ── Topic bank (data/explainer_topics.json) ───────────────────────────────
+
+    def _from_bank(self, count: int, history: List[Dict]) -> List[Dict]:
+        """Next unused evergreen topics. Each is one open-source tool; its README is the source."""
+        try:
+            with open(config.EXPLAINER_TOPICS_FILE) as f:
+                bank = json.load(f).get("topics", [])
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.warning(f"Topic bank unreadable: {e}")
+            return []
+        used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}
+        picks = []
+        for b in bank:
+            if self._normalize(b["topic"]) in used:
+                continue
+            repo = b.get("repo", "")
+            picks.append({
+                "topic": b["topic"], "source": "bank", "summary": b.get("summary", ""),
+                "url": f"https://github.com/{repo}" if repo else b.get("url", ""),
+                "source_url": f"https://raw.githubusercontent.com/{repo}/{b.get('branch', 'main')}/README.md" if repo else "",
+            })
+            if len(picks) == count:
+                break
+        for p in picks:
+            logger.info(f"  ✓ {p['topic'][:70]} (from the topic bank)")
+        return picks
 
     # ── Source 1: Reddit ──────────────────────────────────────────────────────
 

@@ -140,7 +140,7 @@ class ExplainerScriptAgent:
         raise ValueError("unreachable")
 
     def source_for(self, topic: Dict) -> str:
-        text = fetch_text(topic.get("url", ""))
+        text = fetch_text(topic.get("source_url") or topic.get("url", ""))
         if len(text) < 400:
             text = "\n".join(x for x in (topic.get("topic", ""), topic.get("summary", ""), text) if x)
         return text[:6000]

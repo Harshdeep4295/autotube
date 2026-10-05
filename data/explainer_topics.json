@@ -1,0 +1,215 @@
+{
+ "_note": "Evergreen explainer topics: one free / open-source AI tool each. 'repo' is the GitHub project; its README is the source text the script is grounded in. Add freely; used ones are skipped via data/topics_history.json.",
+ "topics": [
+  {
+   "topic": "Ollama explained: run AI models on your own computer for free",
+   "repo": "ollama/ollama",
+   "branch": "main"
+  },
+  {
+   "topic": "Open WebUI: a free ChatGPT-style interface for your own local AI",
+   "repo": "open-webui/open-webui",
+   "branch": "main"
+  },
+  {
+   "topic": "llama.cpp explained: the engine behind most local AI apps",
+   "repo": "ggml-org/llama.cpp",
+   "branch": "master"
+  },
+  {
+   "topic": "Whisper: free speech-to-text you can run on your own computer",
+   "repo": "openai/whisper",
+   "branch": "main"
+  },
+  {
+   "topic": "ComfyUI explained: make AI images locally with a node graph",
+   "repo": "comfyanonymous/ComfyUI",
+   "branch": "master"
+  },
+  {
+   "topic": "AnythingLLM: chat with your own documents using a private local AI",
+   "repo": "Mintplex-Labs/anything-llm",
+   "branch": "master"
+  },
+  {
+   "topic": "Jan: an open-source ChatGPT alternative that runs fully offline",
+   "repo": "janhq/jan",
+   "branch": "main"
+  },
+  {
+   "topic": "GPT4All: run a private AI chatbot on an ordinary laptop",
+   "repo": "nomic-ai/gpt4all",
+   "branch": "main"
+  },
+  {
+   "topic": "Wan2GP: free AI video generation on a low-VRAM graphics card",
+   "repo": "deepbeepmeep/Wan2GP",
+   "branch": "main"
+  },
+  {
+   "topic": "Aider: free AI pair programming in your terminal",
+   "repo": "Aider-AI/aider",
+   "branch": "main"
+  },
+  {
+   "topic": "LocalAI: a free, self-hosted replacement for the OpenAI API",
+   "repo": "mudler/LocalAI",
+   "branch": "master"
+  },
+  {
+   "topic": "Kokoro: a tiny open-source AI voice model that sounds human",
+   "repo": "hexgrad/kokoro",
+   "branch": "main"
+  },
+  {
+   "topic": "whisper.cpp: fast offline transcription on any computer",
+   "repo": "ggml-org/whisper.cpp",
+   "branch": "master"
+  },
+  {
+   "topic": "Text Generation WebUI: the all-in-one app for running local AI language models",
+   "repo": "oobabooga/text-generation-webui",
+   "branch": "main"
+  },
+  {
+   "topic": "Stable Diffusion WebUI: generate AI images on your own PC",
+   "repo": "AUTOMATIC1111/stable-diffusion-webui",
+   "branch": "master"
+  },
+  {
+   "topic": "n8n: build AI automations yourself with an open-source workflow tool",
+   "repo": "n8n-io/n8n",
+   "branch": "master"
+  },
+  {
+   "topic": "PrivateGPT: ask an AI about your files without sending them anywhere",
+   "repo": "zylon-ai/private-gpt",
+   "branch": "main"
+  },
+  {
+   "topic": "Tabby: a self-hosted AI coding assistant, an open alternative to Copilot",
+   "repo": "TabbyML/tabby",
+   "branch": "main"
+  },
+  {
+   "topic": "Perplexica: an open-source AI search engine you host yourself",
+   "repo": "ItzCrazyKns/Perplexica",
+   "branch": "master"
+  },
+  {
+   "topic": "Continue: an open-source AI coding assistant for your editor",
+   "repo": "continuedev/continue",
+   "branch": "main"
+  },
+  {
+   "topic": "Unsloth: fine-tune your own AI model for free",
+   "repo": "unslothai/unsloth",
+   "branch": "main"
+  },
+  {
+   "topic": "Docling: turn PDFs and documents into data an AI can read",
+   "repo": "docling-project/docling",
+   "branch": "main"
+  },
+  {
+   "topic": "MarkItDown: convert any file to Markdown for AI tools",
+   "repo": "microsoft/markitdown",
+   "branch": "main"
+  },
+  {
+   "topic": "faster-whisper: transcribe audio up to four times faster for free",
+   "repo": "SYSTRAN/faster-whisper",
+   "branch": "master"
+  },
+  {
+   "topic": "InvokeAI: a free creative studio for AI images on your own machine",
+   "repo": "invoke-ai/InvokeAI",
+   "branch": "main"
+  },
+  {
+   "topic": "LiteLLM: one interface for every AI model, local or cloud",
+   "repo": "BerriAI/litellm",
+   "branch": "main"
+  },
+  {
+   "topic": "vLLM explained: how to serve an open AI model fast",
+   "repo": "vllm-project/vllm",
+   "branch": "main"
+  },
+  {
+   "topic": "MLX: run AI models natively on Apple silicon Macs",
+   "repo": "ml-explore/mlx",
+   "branch": "main"
+  },
+  {
+   "topic": "llamafile: a whole AI model in one file that runs anywhere",
+   "repo": "Mozilla-Ocho/llamafile",
+   "branch": "main"
+  },
+  {
+   "topic": "Open Interpreter: let a local AI run code on your computer",
+   "repo": "OpenInterpreter/open-interpreter",
+   "branch": "main"
+  },
+  {
+   "topic": "OpenHands: an open-source AI software engineer you can run yourself",
+   "repo": "All-Hands-AI/OpenHands",
+   "branch": "main"
+  },
+  {
+   "topic": "Dify: build AI apps and agents without code, self-hosted",
+   "repo": "langgenius/dify",
+   "branch": "main"
+  },
+  {
+   "topic": "Flowise: drag-and-drop AI agents you host yourself",
+   "repo": "FlowiseAI/Flowise",
+   "branch": "main"
+  },
+  {
+   "topic": "Chroma: the open-source database that gives AI a memory",
+   "repo": "chroma-core/chroma",
+   "branch": "main"
+  },
+  {
+   "topic": "Qdrant explained: what a vector database does for AI search",
+   "repo": "qdrant/qdrant",
+   "branch": "main"
+  },
+  {
+   "topic": "Crawl4AI: turn any website into clean data for your AI",
+   "repo": "unclecode/crawl4ai",
+   "branch": "main"
+  },
+  {
+   "topic": "exo: combine your everyday devices into one AI cluster",
+   "repo": "exo-explore/exo",
+   "branch": "main"
+  },
+  {
+   "topic": "Hugging Face Transformers: the library behind open AI models",
+   "repo": "huggingface/transformers",
+   "branch": "main"
+  },
+  {
+   "topic": "LobeChat: an open-source AI chat app for many models",
+   "repo": "lobehub/lobe-chat",
+   "branch": "main"
+  },
+  {
+   "topic": "LibreChat: a free ChatGPT-style app you host yourself",
+   "repo": "danny-avila/LibreChat",
+   "branch": "main"
+  },
+  {
+   "topic": "Khoj: an open-source AI second brain for your notes",
+   "repo": "khoj-ai/khoj",
+   "branch": "master"
+  },
+  {
+   "topic": "RAGFlow: answer questions from your documents with open-source RAG",
+   "repo": "infiniflow/ragflow",
+   "branch": "main"
+  }
+ ]
+}

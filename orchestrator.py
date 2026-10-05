@@ -263,14 +263,11 @@ class Orchestrator:
         """Upload the vertical cut as a second video (a YouTube Short). The full video is already
         up, so a failure here is logged and reported but never fails the run."""
         try:
-            base = full["title"].split(" (")[0].strip()
+            from agents.kids_agent import short_meta
+
             when = config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC
             publish_at = next_utc_time(when) if when else None
-            short = {
-                "title": f"{base[:70]} | Explained Like You're 5 #Shorts",
-                "description": f"Watch the full video: {full_url}\n\n{full.get('description', '')}\n\n#Shorts"[:4900],
-                "tags": full.get("tags", []),
-            }
+            short = short_meta(full, full_url)
             self.logger.info(f"Uploading the Short ({'public at ' + publish_at if publish_at else config.VIDEO_PRIVACY})…")
             up = uploader.publish(short_path, None, short, publish_at=publish_at)
             if up.get("success") is False:

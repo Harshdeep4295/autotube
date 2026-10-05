@@ -229,24 +229,32 @@ def _counts(items) -> Dict[str, int]:
     return out
 
 
-def earlier_videos(limit: int = 3) -> list:
+def short_meta(full: Dict, full_url: str) -> Dict:
+    """Title, description and tags for the Short of a full kids video."""
+    base = full["title"].split(" (")[0].strip()
+    return {"title": f"{base[:70]} | Explained Like You're 5 #Shorts",
+            "description": f"Watch the full video: {full_url}\n\n{full.get('description', '')}\n\n#Shorts"[:4900],
+            "tags": full.get("tags", [])}
+
+
+def earlier_videos(limit: int = 3, skip_url: str = "") -> list:
     """Newest full kids videos already uploaded (from the posted log), for description links."""
     try:
         log = json.loads(Path(config.POSTED_FILE).read_text())
     except (OSError, json.JSONDecodeError):
         return []
-    kids = [v for v in log if "(Explained Like You're 5)" in v.get("title", "") and v.get("url")]
+    kids = [v for v in log if "(Explained Like You're 5)" in v.get("title", "") and v.get("url") and v["url"] != skip_url]
     return [{"title": v["title"].split(" (")[0], "url": v["url"]} for v in kids[-limit:][::-1]]
 
 
-def description_for(script: Dict) -> str:
+def description_for(script: Dict, skip_url: str = "") -> str:
     parts = [script.get("description", "").strip()]
     amap = (script.get("analogy") or {}).get("map") or []
     if amap:
         parts.append("Grown-up words in this video:\n" + "\n".join(
             f"- {m.get('real', '')} = {m.get('kid', '')}" for m in amap if isinstance(m, dict)))
     parts.append("Explained Like You're 5 — big ideas, told simply, for curious people of all ages.")
-    more = earlier_videos()
+    more = earlier_videos(skip_url=skip_url)
     if more:
         parts.append("More Explained Like You're 5:\n" + "\n".join(f"- {v['title']}: {v['url']}" for v in more))
     if config.CHANNEL_URL:

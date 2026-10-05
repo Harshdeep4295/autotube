@@ -64,6 +64,17 @@ def html_to_text(page: str, limit: int = 6000) -> str:
     return html.unescape("\n".join(out))[:limit]
 
 
+def markdown_to_text(md: str, limit: int = 6000) -> str:
+    """A README without its badges, images, HTML and link targets, so the limit is spent on prose."""
+    t = re.sub(r"<!--.*?-->", "", md, flags=re.S)
+    t = re.sub(r"<[^>]+>", "", t)
+    t = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", t)
+    t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
+    t = re.sub(r"[ \t]+", " ", t)
+    t = re.sub(r"\n\s*\n+", "\n\n", t)
+    return html.unescape(t).strip()[:limit]
+
+
 def fetch_text(url: str, limit: int = 6000, timeout: float = 15) -> str:
     if not url or not url.startswith(("http://", "https://")):
         return ""
@@ -74,7 +85,7 @@ def fetch_text(url: str, limit: int = 6000, timeout: float = 15) -> str:
         if "html" in ctype:
             return html_to_text(r.text, limit)
         if "text/plain" in ctype or "markdown" in ctype:
-            return r.text[:limit]
+            return markdown_to_text(r.text, limit)
         return ""
     except Exception as e:  # noqa: BLE001
         logger.info(f"source fetch failed for {url[:80]}: {str(e)[:120]}")
