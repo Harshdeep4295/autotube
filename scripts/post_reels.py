@@ -14,6 +14,7 @@ not stop the other; the exit code is 1 if anything that was attempted failed.
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -63,10 +64,24 @@ def _publish_container(cid: str, ig_id: str, token: str, wait: int) -> str:
                                 data={"creation_id": cid, "access_token": token}))["id"]
 
 
+def instagram_copy(video: Path) -> Path:
+    """Same picture with stereo 48 kHz AAC sound (the Short's sound is mono). Falls back to the original."""
+    out = video.with_name("short_instagram.mp4")
+    try:
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-c:v", "copy", "-c:a", "aac",
+                        "-ac", "2", "-ar", "48000", "-b:a", "128k", "-movflags", "+faststart", str(out)],
+                       check=True, timeout=300)
+        return out
+    except Exception as e:  # noqa: BLE001
+        print(f"Instagram: could not make the stereo copy ({e}) — using the original file")
+        return video
+
+
 def post_instagram(video: Path, caption: str, ig_id: str, token: str, video_url: str = "", wait: int = 600) -> str:
     """Reel from a direct file upload; if Meta rejects that and a public `video_url` is known,
     from that URL instead. Returns the media id."""
     base = {"media_type": "REELS", "caption": caption, "access_token": token}
+    video = instagram_copy(video)
     try:
         c = _check(requests.post(f"{GRAPH}/{ig_id}/media", timeout=60, data={**base, "upload_type": "resumable"}))
         up = requests.post(c["uri"], data=video.read_bytes(), timeout=600, headers={
