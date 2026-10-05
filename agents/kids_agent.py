@@ -161,14 +161,44 @@ class KidsAgent:
                                for sc in TL["scenes"] for ln in sc["lines"]])
         (out / "captions.srt").write_text(srt(pages), encoding="utf-8")
         contact = self.contact_sheet(TL, out)
+        short = self.make_short(TL, safe, video, out) if config.KIDS_SHORTS else None
         report = {"duration_s": round(total, 2), "scenes": len(TL["scenes"]), "words": word_count(safe),
                   "render_seconds": round(time.time() - t0, 1), "repairs": repairs, "voice": self.voice().name,
-                  "scene_counts": _counts(s["type"] for s in TL["scenes"]), "qa": qa}
+                  "scene_counts": _counts(s["type"] for s in TL["scenes"]), "qa": qa, "short": bool(short)}
         (out / "render_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
         shutil.rmtree(out / "lines", ignore_errors=True)
         logger.info(f"[kids] ✓ {video} ({total:.0f}s) in {report['render_seconds']}s")
         return {"video_path": str(video), "thumbnail_path": str(thumb), "captions_path": str(out / "captions.srt"),
-                "contact_sheet": contact, "duration": total, "report": report, "script": safe}
+                "contact_sheet": contact, "short_path": short, "duration": total, "report": report, "script": safe}
+
+    @staticmethod
+    def make_short(TL: Dict, script: Dict, video: Path, out: Path) -> Optional[str]:
+        """Vertical 9:16 cut for YouTube Shorts. Returns its path, or None if it can't be made —
+        a failed Short must never block the main video."""
+        from agents.kids import short as S
+        from scripts.qa_video import run_qa
+
+        total = TL["duration"]
+        if total > S.MAX_SECONDS:
+            logger.info(f"[kids-short] skipped: {total:.0f}s is over the {S.MAX_SECONDS}s Shorts limit")
+            return None
+        path = out / "short.mp4"
+        try:
+            logger.info("[kids-short] rendering vertical frames…")
+            title = S.card_title(script.get("title", ""))
+            S.video(TL, str(video), str(path), title, channel=config.CHANNEL_NAME)
+            qa = run_qa(str(path), expected=total, resolution=(S.SW, S.SH))
+            (out / "short_qa.json").write_text(json.dumps(qa, indent=2))
+            if not qa["passed"]:
+                raise RuntimeError("failed QA: " + ", ".join(c["name"] for c in qa["checks"] if not c["ok"]))
+            S.still(TL, TL["scenes"][min(2, len(TL["scenes"]) - 1)]["end"] - 0.5, str(out / "short_still.png"),
+                    title, config.CHANNEL_NAME)
+            logger.info(f"[kids-short] ✓ {path}")
+            return str(path)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[kids-short] not made: {e}")
+            path.unlink(missing_ok=True)
+            return None
 
     @staticmethod
     def contact_sheet(TL: Dict, out: Path) -> str:

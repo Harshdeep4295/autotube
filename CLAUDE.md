@@ -5,8 +5,8 @@ run yourself). One entry point, `orchestrator.py`, with two video styles:
 
 | Style | What it makes | Renderer | State (2026-10-01) |
 |---|---|---|---|
-| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Live**: daily upload, public at 18:30 UTC |
-| `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea) | pycairo (`agents/kids/`) | **Live** from 2026-10-02: daily upload, public at 14:30 UTC |
+| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Paused since 2026-10-04**: scheduled runs render but don't upload (`SCHEDULED_DRY_RUN=true`) until the topic bank exists |
+| `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea), plus a vertical cut uploaded as a Short | pycairo (`agents/kids/`) | **Live** since 2026-10-02: daily upload, public at 14:30 UTC |
 
 **Hard constraint: $0.** Gemini and Groq free tiers, standard GitHub Actions runner, open-source
 everything else. Never add a paid provider.
@@ -121,6 +121,9 @@ Rules:
   `selfDeclaredMadeForKids=false`.
 - `EXPLAINER_PUBLISH_AT_UTC` / `KIDS_PUBLISH_AT_UTC` (`HH:MM`) make YouTube publish at the next such
   time; the gap is the owner's review window. Empty means private until published by hand.
+- Each kids video also gets a vertical 9:16 cut (`short.mp4`, `agents/kids/short.py`) uploaded as a second
+  video with `#Shorts`, a link to the full video, no custom thumbnail and no playlist. A failed Short never
+  fails the run. `KIDS_SHORTS=false` turns it off.
 - Playlists are matched by exact title and created on first use: `KIDS_PLAYLIST` for kids,
   `EXPLAINER_PLAYLIST` for explainers (empty = no playlist).
 - Topic history (`data/topics_history.json`, `data/kids_topics_history.json`) and
@@ -136,6 +139,7 @@ Rules:
 | `tests.yml` | every push / PR | pytest, scene overflow tests + `tsc`, end-to-end fixture render + QA |
 | `explainer.yml` | daily 03:17 UTC + manual | Scheduled runs **upload** unless repo variable `SCHEDULED_DRY_RUN=true`. Manual `dry_run` defaults to true. 90 min timeout |
 | `kids_explainer.yml` | daily 03:47 UTC + manual | Scheduled runs **upload** because repo variable `KIDS_SCHEDULED_DRY_RUN=false` is set (the workflow default is dry). 45 min timeout |
+| `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `home-section` on the YouTube channel |
 
 - Secrets in use: `GEMINI_API_KEY`, `GROQ_API_KEY`, `YOUTUBE_TOKEN_JSON`. Older secrets for paid services
   (Anthropic, Kling, Pika, Replicate, GCP, Supabase, Pexels) are still stored but no workflow reads them.
@@ -167,6 +171,8 @@ Rules:
 | `agents/research_agent.py` | Explainer topic research and history |
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |
+| `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |
+| `scripts/channel_admin.py` | Channel housekeeping (status, add a video to a playlist, home page section), run via `channel_admin.yml` |
 | `generate_youtube_token.py` | One-time OAuth token generator for the channel |
 | `video/explainer/` | Remotion 4 project: `src/scenes/`, `src/brand/`, `Thumbnail.tsx`, `test/scenes.test.mjs` |
 | `branding/` | Logo, banner, watermark (rendered from `video/explainer/src/brand/`) |
@@ -199,6 +205,7 @@ KIDS_TARGET_WORDS = 300             # KIDS_MIN_SECONDS = 90, KIDS_MAX_SECONDS = 
 KIDS_KOKORO_VOICE = "af_heart"      # KIDS_KOKORO_SPEED = 0.92; KIDS_TTS = "kokoro" | "piper" (+ PIPER_MODEL)
 KIDS_TOPIC_MODE = "mixed"           # "mixed" | "feed" | "bank"; KIDS_FEEDS = comma list of RSS URLs
 KIDS_PUBLISH_AT_UTC = ""            # KIDS_PLAYLIST = "Explained Like You're 5"
+KIDS_SHORTS = true                  # vertical cut uploaded as a Short; KIDS_SHORT_PUBLISH_AT_UTC = "" (same time as the full video)
 ```
 
 ---
@@ -212,7 +219,9 @@ KIDS_PUBLISH_AT_UTC = ""            # KIDS_PLAYLIST = "Explained Like You're 5"
   Groq only. The key appears to be on a prepaid billing account; replace it with a free-tier key.
 - The old renderer, Shorts reposting, approval queue, paid-provider integrations and their docs were
   removed on 2026-10-01. Only the explainer and kids paths remain.
-- Kids milestone M5 (vertical cut for Shorts, more scene types) and Phase B (AI clips) have not started.
+- Explainer uploads are paused (2026-10-04) because research keeps picking off-niche news; un-pause by
+  deleting the repo variable `SCHEDULED_DRY_RUN` once the topic bank from the growth plan is built.
+- More kids scene types (rest of milestone M5) and Phase B (AI clips) have not started.
 - The YouTube OAuth token was once shown in a chat session; `docs/HANDOFF.md` §4 has the revoke and
   regenerate steps. If the consent screen is in "Testing", refresh tokens expire after 7 days.
 

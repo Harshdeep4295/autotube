@@ -1,0 +1,45 @@
+name: Channel Admin
+
+# Manual housekeeping on the YouTube channel (see scripts/channel_admin.py).
+# "status" only reads; the other actions change the channel.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        type: choice
+        options: [status, playlist-add, home-section]
+        default: status
+      video:
+        description: "Video ID (playlist-add)"
+        required: false
+        default: ""
+      playlist:
+        description: "Playlist title (playlist-add, home-section)"
+        required: false
+        default: "Explained Like You're 5"
+
+jobs:
+  admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python packages
+        run: pip install -q python-dotenv google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+      - name: Run
+        env:
+          IN_ACTION: ${{ inputs.action }}
+          IN_VIDEO: ${{ inputs.video }}
+          IN_PLAYLIST: ${{ inputs.playlist }}
+        run: |
+          args=("$IN_ACTION")
+          if [ -n "$IN_VIDEO" ]; then args+=(--video "$IN_VIDEO"); fi
+          if [ -n "$IN_PLAYLIST" ]; then args+=(--playlist "$IN_PLAYLIST"); fi
+          python scripts/channel_admin.py "${args[@]}"

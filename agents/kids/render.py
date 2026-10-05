@@ -61,7 +61,7 @@ def caption(c, TL: Dict, t: float) -> None:
             return
 
 
-def frame(c, TL: Dict, t: float, channel: str = "") -> None:
+def frame(c, TL: Dict, t: float, channel: str = "", captions: bool = True) -> None:
     sc = scene_at(TL, t)
     lt = t - sc["start"]
     S = {"props": sc["props"], "beats": sc["beats"], "dur": sc["end"] - sc["start"], "weather": sc["weather"]}
@@ -70,7 +70,8 @@ def frame(c, TL: Dict, t: float, channel: str = "") -> None:
         SCENES[sc["type"]](c, lt, S)
     except Exception as e:  # noqa: BLE001 — a broken scene must not kill a 2-minute render
         logger.debug(f"scene {sc['type']} failed at {lt:.2f}s: {e}")
-    caption(c, TL, t)
+    if captions:
+        caption(c, TL, t)
     for nxt in TL["scenes"][1:]:
         d = t - nxt["start"]
         if -0.25 < d < 0.3:

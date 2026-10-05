@@ -46,6 +46,8 @@ jobs:
       CHANNEL_NAME: ${{ vars.CHANNEL_NAME || 'Run It Local' }}
       KIDS_KOKORO_VOICE: ${{ vars.KIDS_KOKORO_VOICE || 'af_heart' }}
       KIDS_PUBLISH_AT_UTC: ${{ vars.KIDS_PUBLISH_AT_UTC || '' }}
+      KIDS_SHORTS: ${{ vars.KIDS_SHORTS || 'true' }}
+      KIDS_SHORT_PUBLISH_AT_UTC: ${{ vars.KIDS_SHORT_PUBLISH_AT_UTC || '' }}
       KIDS_TOPIC_MODE: ${{ vars.KIDS_TOPIC_MODE || 'mixed' }}
       KIDS_PLAYLIST: ${{ vars.KIDS_PLAYLIST || 'Explained Like You''re 5' }}
       GEMINI_FREE_MODELS: ${{ vars.GEMINI_FREE_MODELS || 'gemini-3.5-flash-lite,gemini-3.8-flash' }}
@@ -88,6 +90,8 @@ jobs:
           name: kids-${{ github.run_number }}
           path: |
             outputs/*/video.mp4
+            outputs/*/short.mp4
+            outputs/*/short_still.png
             outputs/*/thumbnail.jpg
             outputs/*/contact_sheet.jpg
             outputs/*/captions.srt

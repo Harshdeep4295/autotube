@@ -12,7 +12,7 @@ import json
 import re
 import subprocess
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 SPEC = {"width": 1920, "height": 1080, "fps": 30.0, "vcodec": "h264", "acodec": "aac"}
 LUFS_TARGET, LUFS_TOL, TRUE_PEAK_MAX = -16.0, 2.0, -0.5
@@ -55,8 +55,11 @@ def analyze(path: str) -> Dict:
     }
 
 
-def run_qa(path: str, expected: Optional[float] = None, min_duration: Optional[float] = None) -> Dict:
+def run_qa(path: str, expected: Optional[float] = None, min_duration: Optional[float] = None,
+           resolution: Optional[Tuple[int, int]] = None) -> Dict:
+    """`resolution` overrides the default 1920x1080 (e.g. (1080, 1920) for a vertical Short)."""
     checks = []
+    want = resolution or (SPEC["width"], SPEC["height"])
 
     def check(name: str, ok: bool, detail: str) -> None:
         checks.append({"name": name, "ok": bool(ok), "detail": detail})
@@ -70,7 +73,7 @@ def run_qa(path: str, expected: Optional[float] = None, min_duration: Optional[f
         return {"passed": False, "checks": checks}
 
     vd, ad = float(v.get("duration", 0)), float(a.get("duration", 0))
-    check("resolution", (v["width"], v["height"]) == (SPEC["width"], SPEC["height"]), f"{v['width']}x{v['height']}")
+    check("resolution", (v["width"], v["height"]) == want, f"{v['width']}x{v['height']}")
     fps = _fps(v.get("r_frame_rate", "0/1"))
     check("fps", abs(fps - SPEC["fps"]) < 0.01, f"{fps:.2f} fps")
     check("codecs", v["codec_name"] == SPEC["vcodec"] and a["codec_name"] == SPEC["acodec"],

@@ -246,6 +246,9 @@ class Orchestrator:
                 self.logger.info("Step 5/5: Recording topic as used")
                 if not topic.get("script"):
                     topics_agent.mark_used([topic])
+                if rendered.get("short_path"):
+                    result["short"] = self._upload_kids_short(uploader, rendered["short_path"], upload_script,
+                                                              up.get("url", ""))
             result["success"] = True
         except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
             result["error"] = str(e)
@@ -255,6 +258,29 @@ class Orchestrator:
         (out_dir / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "traceback"},
                                                          indent=2, default=str))
         return result
+
+    def _upload_kids_short(self, uploader, short_path: str, full: Dict, full_url: str) -> Dict:
+        """Upload the vertical cut as a second video (a YouTube Short). The full video is already
+        up, so a failure here is logged and reported but never fails the run."""
+        try:
+            base = full["title"].split(" (")[0].strip()
+            when = config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC
+            publish_at = next_utc_time(when) if when else None
+            short = {
+                "title": f"{base[:70]} | Explained Like You're 5 #Shorts",
+                "description": f"Watch the full video: {full_url}\n\n{full.get('description', '')}\n\n#Shorts"[:4900],
+                "tags": full.get("tags", []),
+            }
+            self.logger.info(f"Uploading the Short ({'public at ' + publish_at if publish_at else config.VIDEO_PRIVACY})…")
+            up = uploader.publish(short_path, None, short, publish_at=publish_at)
+            if up.get("success") is False:
+                self.logger.warning(f"  Short upload failed: {up.get('error', '')}")
+            else:
+                self.logger.info(f"  ✓ Short: {up.get('url', '')}")
+            return up
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"  Short upload failed: {e}")
+            return {"success": False, "error": str(e)}
 
     def _cleanup_old_outputs(self, max_age_days: float = 1) -> None:
         """Delete output directories older than max_age_days (all of them if the disk is nearly full)."""

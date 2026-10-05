@@ -36,3 +36,26 @@ def test_playlist_is_found_by_exact_title_or_created(monkeypatch):
     agent.youtube.playlistItems().insert.reset_mock()
     agent._post_upload("vid3", "")                      # no playlist configured → nothing happens
     agent.youtube.playlistItems().insert.assert_not_called()
+
+
+def test_playlist_insert_retries_a_temporary_409(monkeypatch):
+    monkeypatch.setattr(ua.time, "sleep", lambda s: None)
+    agent = ua.UploadAgent.__new__(ua.UploadAgent)
+    agent.youtube = mock.MagicMock()
+    agent.youtube.playlistItems().insert().execute.side_effect = [RuntimeError("409 SERVICE_UNAVAILABLE"), {}]
+    agent._add_to_playlist("vid", "PL1")
+    assert agent.youtube.playlistItems().insert().execute.call_count == 2
+
+
+def test_short_upload_skips_the_thumbnail(tmp_path):
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"\0" * 16)
+    agent = ua.UploadAgent.__new__(ua.UploadAgent)
+    agent.youtube = mock.MagicMock()
+    agent.youtube.videos().insert().next_chunk.return_value = (None, {"id": "abc"})
+    agent._set_thumbnail = mock.MagicMock()
+    agent._save_to_log = mock.MagicMock()
+    with mock.patch("googleapiclient.http.MediaFileUpload"):
+        res = agent.publish(str(video), None, {"title": "t", "description": "d", "tags": []})
+    assert res["success"]
+    agent._set_thumbnail.assert_not_called()
