@@ -2,8 +2,13 @@
 """
 Generate YouTube Token JSON for GitHub Secrets
 
-Run this script to authorize YouTube upload access and generate YOUTUBE_TOKEN_JSON
-Uses YOUTUBE_CLIENT_SECRETS from .env file
+Run this script to authorize YouTube upload access and generate YOUTUBE_TOKEN_JSON.
+
+    python generate_youtube_token.py ~/Downloads/client_secret_XXXX.json
+
+The argument is the OAuth client file downloaded from Google Cloud Console. Without it,
+YOUTUBE_CLIENT_SECRETS from the .env file is used. If the GitHub CLI (gh) is logged in,
+the new token is saved straight to the YOUTUBE_TOKEN_JSON secret of this repo.
 """
 
 import json
@@ -35,14 +40,16 @@ def main():
 
     # Load .env file
     load_dotenv()
-    client_secrets_json = os.getenv("YOUTUBE_CLIENT_SECRETS")
+    if len(sys.argv) > 1:
+        client_secrets_json = Path(sys.argv[1]).expanduser().read_text()
+    else:
+        client_secrets_json = os.getenv("YOUTUBE_CLIENT_SECRETS")
 
     if not client_secrets_json:
-        print("❌ YOUTUBE_CLIENT_SECRETS not found in .env file")
-        print("   Make sure your .env has: YOUTUBE_CLIENT_SECRETS={...json...}")
+        print("❌ No client file given and YOUTUBE_CLIENT_SECRETS not found in .env")
+        print("   Run: python generate_youtube_token.py path/to/client_secret.json")
         sys.exit(1)
 
-    print("\n✅ Using YOUTUBE_CLIENT_SECRETS from .env")
     print("\n🌐 Opening browser for authorization...")
     print("   (If browser doesn't open, copy the URL shown below)\n")
 
@@ -80,6 +87,16 @@ def main():
         print("\n" + "=" * 50)
         print("✅ Authorization successful!")
         print("=" * 50)
+
+        # Easiest path: let the GitHub CLI store it, so the token is never shown or copied.
+        import subprocess
+        try:
+            subprocess.run(["gh", "secret", "set", "YOUTUBE_TOKEN_JSON"], input=json_output, text=True,
+                           check=True, capture_output=True)
+            print("\n✅ Saved to the GitHub secret YOUTUBE_TOKEN_JSON. Nothing else to do.")
+            return
+        except Exception:
+            print("\n(GitHub CLI not available or not logged in, so add the secret by hand.)")
         print("\n📋 Copy this entire token and add to GitHub Secrets:\n")
         print(json_output)
         print("\n" + "=" * 50)
