@@ -1,0 +1,24 @@
+name: Social Stats
+
+# Read-only: followers and per-post numbers for Instagram and the Facebook Page,
+# printed in the run log (see scripts/social_stats.py).
+on:
+  workflow_dispatch:
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ vars.INSTAGRAM_ACCOUNT_ID || '' }}
+      FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python packages
+        run: pip install -q requests python-dotenv
+      - name: Stats
+        run: python scripts/social_stats.py
