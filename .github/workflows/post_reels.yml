@@ -13,6 +13,10 @@ on:
         type: choice
         options: [both, instagram, facebook]
         default: both
+      force:
+        description: "Post even if that run did not upload to YouTube (caption has no YouTube link)"
+        type: boolean
+        default: false
 
 jobs:
   post:
@@ -46,7 +50,9 @@ jobs:
         env:
           IN_ONLY: ${{ inputs.only }}
           GH_TOKEN: ${{ github.token }}
+          IN_FORCE: ${{ inputs.force }}
         run: |
           args=(--dir "$JOB_DIR")
+          if [ "$IN_FORCE" = "true" ]; then args+=(--force); fi
           if [ "$IN_ONLY" != "both" ]; then args+=(--only "$IN_ONLY"); fi
           python scripts/post_reels.py "${args[@]}"

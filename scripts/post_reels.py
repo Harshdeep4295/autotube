@@ -136,6 +136,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="", help="job folder with short.mp4 + script.json (default: newest)")
     ap.add_argument("--dry-run", action="store_true", help="print the caption, post nothing")
+    ap.add_argument("--force", action="store_true", help="post even if the job has no YouTube upload")
     ap.add_argument("--only", default="", choices=["", "instagram", "facebook"], help="post to one platform only")
     a = ap.parse_args()
 
@@ -154,7 +155,7 @@ def main() -> None:
     print(f"Short: {job / 'short.mp4'}\n--- caption ---\n{caption}\n---")
     if a.dry_run:
         return
-    if not full_url:
+    if not full_url and not a.force:
         print("This job was not uploaded to YouTube (dry run) — not posting")
         return
 
