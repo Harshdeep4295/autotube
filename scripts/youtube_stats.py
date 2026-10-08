@@ -26,7 +26,7 @@ def query(ya, start: str, end: str, metrics: str, dimensions: str, sort: str = "
                                dimensions=dimensions, sort=sort, maxResults=limit).execute()
         return [h["name"] for h in r.get("columnHeaders", [])], r.get("rows", [])
     except Exception as e:  # noqa: BLE001 — one refused report must not hide the others
-        print(f"  (report '{dimensions}' not available: {str(e)[:200]})")
+        print(f"  (report '{dimensions}' not available: {str(e)[-260:]})")
         return [], []
 
 
