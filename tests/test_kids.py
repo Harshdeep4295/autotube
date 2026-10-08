@@ -251,3 +251,14 @@ def test_story_worlds_rotate_and_only_use_drawable_props():
         seen.append(w["key"])
         hist.append({"topic": f"t{i}", "world": w["key"]})
     assert len(set(seen)) == 6 and "lemonade stand" not in seen
+
+
+def test_swap_stand_redraws_the_stall_but_keeps_text():
+    from agents.kids_script_agent import swap_stand
+
+    s = {"scenes": [{"type": "meet", "props": {"place": "stand", "label": "stand", "flow": "coin"}},
+                    {"type": "many", "props": {"items": [{"prop": "stand", "label": "X"}, {"prop": "shop"}]}}]}
+    assert swap_stand(s, "house") == 2
+    assert s["scenes"][0]["props"] == {"place": "house", "label": "stand", "flow": "coin"}
+    assert s["scenes"][1]["props"]["items"][0]["prop"] == "house"
+    assert swap_stand(s, "stand") == 0

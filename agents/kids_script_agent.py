@@ -42,7 +42,7 @@ def word_bounds():
 # two videos in a row never share a setting. "areas" = where the world fits best.
 WORLDS = (
     {"key": "toy shop", "world": "Leo's toy shop", "place": "shop", "label": "TOYS", "items": "toy, coin, box, gift", "areas": ("finance",)},
-    {"key": "robot workshop", "world": "Zoe's robot workshop", "place": "robot", "label": "ROBOTS", "items": "robot, chip, battery, bulb", "areas": ("tech",)},
+    {"key": "robot workshop", "world": "Zoe's robot workshop", "place": "house", "label": "WORKSHOP", "items": "robot, chip, battery, bulb", "areas": ("tech",)},
     {"key": "cookie bakery", "world": "Mia's cookie bakery", "place": "shop", "label": "COOKIES", "items": "cookie, coin, jar, box", "areas": ("finance",)},
     {"key": "letters to grandma", "world": "sending letters to Grandma's house", "place": "house", "label": "GRANDMA", "items": "letter, truck, key, lock", "areas": ("tech",)},
     {"key": "apple tree", "world": "the apple tree in Zoe's garden", "place": "tree", "label": "APPLES", "items": "apple, seed, water, jar", "areas": ("finance", "tech")},
@@ -67,6 +67,30 @@ def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
     last = {w["key"]: max((i for i, u in enumerate(used) if u == w["key"]), default=-1) for w in WORLDS}
     fits = [w for w in WORLDS if area in w["areas"]] or list(WORLDS)
     return min(fits, key=lambda w: last[w["key"]])
+
+
+def swap_stand(script: Dict, place: str) -> int:
+    """Models keep reaching for the lemonade stall ("stand") whatever the world is. In a world
+    with another main place, redraw every stand as that place. Returns how many were changed."""
+    if place == "stand":
+        return 0
+    n = 0
+
+    def fix(v):
+        nonlocal n
+        if v == "stand":
+            n += 1
+            return place
+        if isinstance(v, list):
+            return [fix(x) for x in v]
+        if isinstance(v, dict):
+            return {k: fix(x) for k, x in v.items()}
+        return v
+
+    for sc in script.get("scenes", []):
+        if isinstance(sc, dict) and isinstance(sc.get("props"), dict):
+            sc["props"] = {k: (v if k in ("label", "greeting", "question") else fix(v)) for k, v in sc["props"].items()}
+    return n
 
 
 class KidsScriptAgent:
@@ -99,6 +123,7 @@ class KidsScriptAgent:
 
         ctx = "\n".join(x for x in (topic.get("from_headline", ""), topic.get("summary", ""), topic.get("hint", "")) if x)
         w = pick_world(topic.get("area", ""))
+        self.world = w
         topic["world"] = w["key"]   # recorded in the history by mark_used after a successful upload
         logger.info(f"[kids-script] story world: {w['world']}")
         return self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
@@ -168,6 +193,9 @@ class KidsScriptAgent:
         script = self.fit_length(script)
         reviewed = self.review(script)
         script = reviewed["script"]
+        swapped = swap_stand(script, getattr(self, "world", {}).get("place", "stand"))
+        if swapped:
+            logger.info(f"[kids-script] redrew {swapped} lemonade stall(s) as '{self.world['place']}'")
         script, repairs = validate_and_repair(script)
         words = word_count(script)
         est = estimated_seconds(words)
