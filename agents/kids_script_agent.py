@@ -7,13 +7,16 @@ fixed by agents.kids_scene_schema.validate_and_repair, never fatal.
 
 import json
 import logging
-from typing import Dict, Optional
+from pathlib import Path
+from typing import Dict, List, Optional
 
 from agents.explainer_script_agent import parse_json_obj
 from agents.kids_scene_schema import PROPS, catalogue_for_prompt, validate_and_repair, word_count
 from agents.llm import FreeLLM
 from config import config
 from templates import kids_prompts as P
+
+REPO = Path(__file__).resolve().parent.parent
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,37 @@ def word_bounds():
     lo = max(round(target * 0.8), round(config.KIDS_MIN_SECONDS / 60 * config.KIDS_WPM))
     hi = min(round(target * 1.2), round((config.KIDS_MAX_SECONDS - 15) / 60 * config.KIDS_WPM))
     return lo, max(lo + 20, hi)
+
+
+# Story worlds the prop kit can draw. One is picked per video, least recently used first, so
+# two videos in a row never share a setting. "areas" = where the world fits best.
+WORLDS = (
+    {"key": "toy shop", "world": "Leo's toy shop", "place": "shop", "label": "TOYS", "items": "toy, coin, box, gift", "areas": ("finance",)},
+    {"key": "robot workshop", "world": "Zoe's robot workshop", "place": "robot", "label": "ROBOTS", "items": "robot, chip, battery, bulb", "areas": ("tech",)},
+    {"key": "cookie bakery", "world": "Mia's cookie bakery", "place": "shop", "label": "COOKIES", "items": "cookie, coin, jar, box", "areas": ("finance",)},
+    {"key": "letters to grandma", "world": "sending letters to Grandma's house", "place": "house", "label": "GRANDMA", "items": "letter, truck, key, lock", "areas": ("tech",)},
+    {"key": "apple tree", "world": "the apple tree in Zoe's garden", "place": "tree", "label": "APPLES", "items": "apple, seed, water, jar", "areas": ("finance", "tech")},
+    {"key": "delivery truck", "world": "Leo's delivery truck", "place": "truck", "label": "DELIVERY", "items": "box, gift, letter, key", "areas": ("tech", "finance")},
+    {"key": "pizza shop", "world": "Mia's pizza shop", "place": "shop", "label": "PIZZA", "items": "pizza, slice, coin", "areas": ("finance",)},
+    {"key": "rocket club", "world": "the kids' rocket club", "place": "rocket", "label": "ROCKET", "items": "star, battery, chip, bulb", "areas": ("tech",)},
+    {"key": "piggy bank", "world": "the piggy bank in Leo's house", "place": "house", "label": "HOME", "items": "piggy, coin, jar, gift", "areas": ("finance",)},
+    {"key": "book swap", "world": "the book swap at Zoe's house", "place": "house", "label": "BOOKS", "items": "book, box, star, key", "areas": ("tech", "finance")},
+    {"key": "lemonade stand", "world": "Mia's lemonade stand", "place": "stand", "label": "LEMONADE", "items": "lemon, cup, coin, jar", "areas": ("finance",)},
+)
+
+
+def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
+    """The world used longest ago (never-used first), preferring ones that fit the topic's area.
+    History rows from before worlds were recorded count as the lemonade stand."""
+    if history is None:
+        try:
+            history = json.loads((REPO / config.KIDS_HISTORY_FILE).read_text())
+        except Exception:  # noqa: BLE001
+            history = []
+    used = [h.get("world") or "lemonade stand" for h in history]
+    last = {w["key"]: max((i for i, u in enumerate(used) if u == w["key"]), default=-1) for w in WORLDS}
+    fits = [w for w in WORLDS if area in w["areas"]] or list(WORLDS)
+    return min(fits, key=lambda w: last[w["key"]])
 
 
 class KidsScriptAgent:
@@ -64,7 +98,11 @@ class KidsScriptAgent:
                 raise ValueError("story needs 4+ beats")
 
         ctx = "\n".join(x for x in (topic.get("from_headline", ""), topic.get("summary", ""), topic.get("hint", "")) if x)
-        return self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS)),
+        w = pick_world(topic.get("area", ""))
+        topic["world"] = w["key"]   # recorded in the history by mark_used after a successful upload
+        logger.info(f"[kids-script] story world: {w['world']}")
+        return self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
+                                            world=w["world"], place=w["place"], label=w["label"], items=w["items"]),
                          check, max_tokens=3000)
 
     def write(self, plan: Dict) -> Dict:

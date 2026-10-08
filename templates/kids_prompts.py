@@ -13,8 +13,8 @@ using ONE simple story with a small recurring cast (Mia, Leo, Zoe and their frie
 The audience is everyone (parents, kids, adults new to the topic). NOT made for kids.
 
 HARD RULES
-1. One analogy for the whole video, from a child's world (lemonade stand, pizza, cookies,
-   piggy bank, toys, a playground, letters to grandma). It must be TRUE to the real idea:
+1. One analogy for the whole video, from a child's world. The request names the world to
+   use; stay in it for the whole story. It must be TRUE to the real idea:
    simplified, never wrong. Name the grown-up word only after the kid version is clear.
 2. Words a 5-year-old knows. Sentences of 4-14 words. One idea per line. Warm, playful,
    a little funny. Repetition is good ("up and down, up and down").
@@ -29,6 +29,11 @@ Context (may be a news headline; use only to understand the idea, never mention 
 <<<
 {context}
 >>>
+
+STORY WORLD (use exactly this one; every video has a different world, so do NOT fall back
+to a lemonade stand unless that is the world named here):
+  {world}
+  Main place to show: prop "{place}" with the sign "{label}". Things that fit this world: {items}.
 
 Things the animation can show (use only these): {props}
 Cast: mia, leo, zoe (main), sam, ava, raj, kim (friends).
@@ -62,6 +67,8 @@ STRUCTURE
 - Second to last: "recap" with one card per grown-up word (term = grown-up word, means = kid meaning).
 - Use a "reveal" or "many"(with reveal) scene when the grown-up word is said for the first time.
 - Vary scene types; never the same type twice in a row; "talk" at most twice.
+- Stay in the plan's world: every place, sign label and prop must fit it. The catalogue
+  examples below show a lemonade stand only to illustrate the format; do not copy them.
 - "weather": "rainy" is allowed for a bad-day moment, "night" for night; default "sunny".
 
 Return JSON:

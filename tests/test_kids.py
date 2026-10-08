@@ -237,3 +237,17 @@ def test_short_frame_draws_across_the_whole_timeline():
         t += 2.5
     assert S.BAND_Y + S.BAND_H < S.CAPTION_Y < S.SH - 300      # captions sit below the scene, above the Shorts UI
     assert S.card_title("What Is a Pension? (Explained Like You're 5)") == "What Is a Pension?"
+
+
+def test_story_worlds_rotate_and_only_use_drawable_props():
+    from agents.kids_scene_schema import PROPS
+    from agents.kids_script_agent import WORLDS, pick_world
+
+    for w in WORLDS:
+        assert w["place"] in PROPS and all(i.strip() in PROPS for i in w["items"].split(","))
+    hist, seen = [{"topic": "old video without a world"}], []
+    for i in range(6):
+        w = pick_world("finance" if i % 2 else "tech", hist)
+        seen.append(w["key"])
+        hist.append({"topic": f"t{i}", "world": w["key"]})
+    assert len(set(seen)) == 6 and "lemonade stand" not in seen
