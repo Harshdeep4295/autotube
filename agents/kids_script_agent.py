@@ -193,10 +193,11 @@ class KidsScriptAgent:
         script = self.fit_length(script)
         reviewed = self.review(script)
         script = reviewed["script"]
+        script, repairs = validate_and_repair(script)
+        # After the repair, not before: an unknown place ("workshop") is repaired to the default stall.
         swapped = swap_stand(script, getattr(self, "world", {}).get("place", "stand"))
         if swapped:
             logger.info(f"[kids-script] redrew {swapped} lemonade stall(s) as '{self.world['place']}'")
-        script, repairs = validate_and_repair(script)
         words = word_count(script)
         est = estimated_seconds(words)
         if est > config.KIDS_MAX_SECONDS - 5:
