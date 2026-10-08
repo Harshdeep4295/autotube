@@ -41,17 +41,17 @@ def word_bounds():
 # Story worlds the prop kit can draw. One is picked per video, least recently used first, so
 # two videos in a row never share a setting. "areas" = where the world fits best.
 WORLDS = (
-    {"key": "toy shop", "world": "Leo's toy shop", "place": "shop", "label": "TOYS", "items": "toy, coin, box, gift", "areas": ("finance",)},
-    {"key": "robot workshop", "world": "Zoe's robot workshop", "place": "house", "label": "WORKSHOP", "items": "robot, chip, battery, bulb", "areas": ("tech",)},
-    {"key": "cookie bakery", "world": "Mia's cookie bakery", "place": "shop", "label": "COOKIES", "items": "cookie, coin, jar, box", "areas": ("finance",)},
-    {"key": "letters to grandma", "world": "sending letters to Grandma's house", "place": "house", "label": "GRANDMA", "items": "letter, truck, key, lock", "areas": ("tech",)},
-    {"key": "apple tree", "world": "the apple tree in Zoe's garden", "place": "tree", "label": "APPLES", "items": "apple, seed, water, jar", "areas": ("finance", "tech")},
-    {"key": "delivery truck", "world": "Leo's delivery truck", "place": "truck", "label": "DELIVERY", "items": "box, gift, letter, key", "areas": ("tech", "finance")},
-    {"key": "pizza shop", "world": "Mia's pizza shop", "place": "shop", "label": "PIZZA", "items": "pizza, slice, coin", "areas": ("finance",)},
-    {"key": "rocket club", "world": "the kids' rocket club", "place": "rocket", "label": "ROCKET", "items": "star, battery, chip, bulb", "areas": ("tech",)},
-    {"key": "piggy bank", "world": "the piggy bank in Leo's house", "place": "house", "label": "HOME", "items": "piggy, coin, jar, gift", "areas": ("finance",)},
-    {"key": "book swap", "world": "the book swap at Zoe's house", "place": "house", "label": "BOOKS", "items": "book, box, star, key", "areas": ("tech", "finance")},
-    {"key": "lemonade stand", "world": "Mia's lemonade stand", "place": "stand", "label": "LEMONADE", "items": "lemon, cup, coin, jar", "areas": ("finance",)},
+    {"key": "toy shop", "backdrop": "town", "world": "Leo's toy shop", "place": "shop", "label": "TOYS", "items": "toy, coin, box, gift", "areas": ("finance",)},
+    {"key": "robot workshop", "backdrop": "workshop", "world": "Zoe's robot workshop", "place": "robot", "label": "ROBOTS", "items": "robot, chip, battery, bulb", "areas": ("tech",)},
+    {"key": "cookie bakery", "backdrop": "kitchen", "world": "Mia's cookie bakery", "place": "jar", "label": "COOKIES", "items": "cookie, coin, jar, box", "areas": ("finance",)},
+    {"key": "letters to grandma", "backdrop": "town", "world": "sending letters to Grandma's house", "place": "house", "label": "GRANDMA", "items": "letter, truck, key, lock", "areas": ("tech",)},
+    {"key": "apple tree", "backdrop": "garden", "world": "the apple tree in Zoe's garden", "place": "tree", "label": "APPLES", "items": "apple, seed, water, jar", "areas": ("finance", "tech")},
+    {"key": "delivery truck", "backdrop": "town", "world": "Leo's delivery truck", "place": "truck", "label": "DELIVERY", "items": "box, gift, letter, key", "areas": ("tech", "finance")},
+    {"key": "pizza shop", "backdrop": "kitchen", "world": "Mia's pizza shop", "place": "pizza", "label": "PIZZA", "items": "pizza, slice, coin", "areas": ("finance",)},
+    {"key": "rocket club", "backdrop": "space", "world": "the kids' rocket club", "place": "rocket", "label": "ROCKET", "items": "star, battery, chip, bulb", "areas": ("tech",)},
+    {"key": "piggy bank", "backdrop": "room", "world": "the piggy bank in Leo's house", "place": "piggy", "label": "PIGGY BANK", "items": "piggy, coin, jar, gift", "areas": ("finance",)},
+    {"key": "book swap", "backdrop": "room", "world": "the book swap at Zoe's house", "place": "book", "label": "BOOKS", "items": "book, box, star, key", "areas": ("tech", "finance")},
+    {"key": "lemonade stand", "backdrop": "meadow", "world": "Mia's lemonade stand", "place": "stand", "label": "LEMONADE", "items": "lemon, cup, coin, jar", "areas": ("finance",)},
 )
 
 
@@ -213,6 +213,7 @@ class KidsScriptAgent:
             "title": title, "tags": tags, "topic": topic["topic"],
             "thumbnail_text": script.get("thumbnail_text") or plan["question"],
             "analogy": {"world": plan.get("world", ""), "map": plan.get("map", [])},
+            "backdrop": getattr(self, "world", {}).get("backdrop", "meadow"),
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],
             "llm": self.llm.last_model,
         })

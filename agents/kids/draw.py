@@ -274,7 +274,7 @@ def cloud(c, x, y, s, color="#ffffff"):
             circle(c, dx, dy, r, color)
 
 
-def background(c, t, weather="sunny"):
+def _sky(c, t, weather="sunny"):
     sky = {"sunny": ("#7ec8f0", "#d8f1ff"), "rainy": ("#8d99ae", "#c9d2dd"), "night": ("#1d2b53", "#4a4e8c")}
     top, bot = sky.get(weather, sky["sunny"])
     g = cairo.LinearGradient(0, 0, 0, 820)
@@ -305,17 +305,9 @@ def background(c, t, weather="sunny"):
     for cx, cy, s in CLOUDS:
         x = (cx + t * 18 * s) % (W + 400) - 200
         cloud(c, x, cy, s, {"rainy": "#6c757d", "night": "#39437a"}.get(weather, "#ffffff"))
-    hill, grass = {"rainy": ("#5c8f60", "#6f9f72"), "night": ("#2f5d50", "#3a6b5a")}.get(weather, ("#6fbf73", "#8fd694"))
-    c.move_to(0, 760)
-    c.curve_to(400, 640, 800, 700, 1000, 760)
-    c.curve_to(1300, 660, 1700, 680, W, 740)
-    c.line_to(W, 900)
-    c.line_to(0, 900)
-    col(c, hill)
-    c.fill()
-    c.rectangle(0, 800, W, H - 800)
-    col(c, grass)
-    c.fill()
+
+
+def _rain(c, t, weather):
     if weather == "rainy":
         rnd = random.Random(3)
         c.set_line_width(4)
@@ -335,3 +327,253 @@ def background(c, t, weather="sunny"):
             c.restore()
             col(c, "#9ec9e2", 0.8)
             c.fill()
+
+
+def _meadow(c, t, weather):
+    _sky(c, t, weather)
+    hill, grass = {"rainy": ("#5c8f60", "#6f9f72"), "night": ("#2f5d50", "#3a6b5a")}.get(weather, ("#6fbf73", "#8fd694"))
+    c.move_to(0, 760)
+    c.curve_to(400, 640, 800, 700, 1000, 760)
+    c.curve_to(1300, 660, 1700, 680, W, 740)
+    c.line_to(W, 900)
+    c.line_to(0, 900)
+    col(c, hill)
+    c.fill()
+    c.rectangle(0, 800, W, H - 800)
+    col(c, grass)
+    c.fill()
+    _rain(c, t, weather)
+
+
+def _town(c, t, weather):
+    """A street: a row of little buildings, pavement and a road."""
+    _sky(c, t, weather)
+    dim = {"rainy": 0.82, "night": 0.55}.get(weather, 1.0)
+    rnd = random.Random(11)
+    x = -40
+    cols = ("#f4a261", "#e76f51", "#8ecae6", "#ffd166", "#b8e0d2", "#cdb4db", "#f28482")
+    while x < W:
+        w, h = rnd.choice((230, 270, 310)), rnd.choice((300, 380, 460))
+        fill = [v * dim for v in hexc(cols[rnd.randrange(len(cols))])[:3]]
+        c.rectangle(x, 800 - h, w, h)
+        c.set_source_rgb(*fill)
+        c.fill()
+        c.move_to(x - 14, 800 - h)
+        c.line_to(x + w / 2, 800 - h - 70)
+        c.line_to(x + w + 14, 800 - h)
+        c.close_path()
+        col(c, "#9d5b4a" if weather != "night" else "#4a3040")
+        c.fill()
+        for wy in range(int(800 - h + 50), 720, 110):
+            for wx in (x + w * 0.22, x + w * 0.62):
+                rr(c, wx, wy, w * 0.18, 62, 8)
+                col(c, "#fff3b0" if weather == "night" else "#eaf6ff")
+                c.fill()
+        x += w + 26
+    c.rectangle(0, 800, W, 70)
+    col(c, "#cfd3d8" if weather != "night" else "#5b6170")
+    c.fill()
+    c.rectangle(0, 870, W, H - 870)
+    col(c, "#5c6370" if weather != "night" else "#2e3340")
+    c.fill()
+    for dx in range(40, W, 240):
+        rr(c, dx, 965, 130, 16, 8)
+        col(c, "#ffffff", 0.75)
+        c.fill()
+    _rain(c, t, weather)
+
+
+def _garden(c, t, weather):
+    """A back garden: trees, a picket fence and flowers in the grass."""
+    _sky(c, t, weather)
+    night = weather == "night"
+    for tx, s in ((180, 1.0), (520, 0.8), (1380, 0.9), (1740, 1.1)):
+        c.rectangle(tx - 22 * s, 800 - 300 * s, 44 * s, 300 * s)
+        col(c, "#8d6e63" if not night else "#4e3b36")
+        c.fill()
+        for dx, dy, r in ((-80, -320, 110), (70, -330, 120), (0, -420, 130)):
+            circle(c, tx + dx * s, 800 + dy * s, r * s, "#4caf50" if not night else "#255c3b")
+    for fx in range(0, W, 62):
+        rr(c, fx + 8, 690, 40, 120, 14)
+        col(c, "#ffffff" if not night else "#8f97b8")
+        c.fill()
+    c.rectangle(0, 730, W, 16)
+    col(c, "#f1f1f1" if not night else "#7c84a6")
+    c.fill()
+    c.rectangle(0, 800, W, H - 800)
+    col(c, {"rainy": "#6f9f72", "night": "#3a6b5a"}.get(weather, "#8fd694"))
+    c.fill()
+    rnd = random.Random(7)
+    for _ in range(46):
+        fx, fy = rnd.uniform(0, W), rnd.uniform(830, 1060)
+        petal = rnd.choice((PINK, YELLOW, "#ffffff", PURPLE, ORANGE))
+        for k in range(5):
+            a = k * 2 * math.pi / 5 + math.sin(t + fx) * 0.1
+            circle(c, fx + math.cos(a) * 11, fy + math.sin(a) * 11, 8, petal)
+        circle(c, fx, fy, 7, YELLOW if petal != YELLOW else ORANGE)
+    _rain(c, t, weather)
+
+
+def _room(c, t, weather, wall="#ffe8cc", stripe="#ffdcb0", floor="#c9925e", plank="#a8743f", style="room"):
+    """Indoors: wall, a window that shows the weather, a shelf and a floor."""
+    c.rectangle(0, 0, W, 800)
+    col(c, wall)
+    c.fill()
+    if style == "kitchen":   # tiles
+        c.set_line_width(4)
+        col(c, stripe)
+        for gx in range(0, W, 120):
+            c.move_to(gx, 0)
+            c.line_to(gx, 800)
+        for gy in range(0, 800, 120):
+            c.move_to(0, gy)
+            c.line_to(W, gy)
+        c.stroke()
+    elif style == "workshop":   # pegboard
+        for gx in range(60, W, 90):
+            for gy in range(60, 780, 90):
+                circle(c, gx, gy, 7, stripe)
+    else:   # wallpaper stripes
+        for gx in range(0, W, 160):
+            c.rectangle(gx, 0, 80, 800)
+            col(c, stripe)
+            c.fill()
+    # window
+    sky = {"sunny": ("#7ec8f0", "#d8f1ff"), "rainy": ("#8d99ae", "#c9d2dd"), "night": ("#1d2b53", "#4a4e8c")}
+    top, bot = sky.get(weather, sky["sunny"])
+    g = cairo.LinearGradient(0, 110, 0, 430)
+    g.add_color_stop_rgb(0, *hexc(top)[:3])
+    g.add_color_stop_rgb(1, *hexc(bot)[:3])
+    rr(c, 1480, 110, 340, 320, 20)
+    c.set_source(g)
+    c.fill()
+    if weather == "sunny":
+        circle(c, 1740, 190, 44, YELLOW)
+    elif weather == "night":
+        circle(c, 1740, 190, 36, "#fff3b0")
+        for sx, sy in ((1540, 170), (1620, 250), (1580, 340), (1700, 330)):
+            sparkle(c, sx, sy, 6 + 2 * math.sin(t * 3 + sx), 0.9)
+    else:
+        c.set_line_width(4)
+        rnd = random.Random(3)
+        for _ in range(16):
+            rx, ry = rnd.uniform(1500, 1800), (rnd.uniform(120, 400) + t * 300) % 280 + 120
+            c.move_to(rx, ry)
+            c.line_to(rx - 5, ry + 22)
+            col(c, "#e3f2fd", 0.9)
+            c.stroke()
+    rr(c, 1480, 110, 340, 320, 20)
+    col(c, "#ffffff")
+    c.set_line_width(18)
+    c.stroke()
+    c.set_line_width(12)
+    c.move_to(1650, 110)
+    c.line_to(1650, 430)
+    c.move_to(1480, 270)
+    c.line_to(1820, 270)
+    c.stroke()
+    # shelf
+    rr(c, 90, 300, 430, 22, 8)
+    col(c, plank)
+    c.fill()
+    if style == "workshop":
+        for i, gx in enumerate((150, 260, 380)):
+            with T(c, gx, 250, 1, t * (0.6 if i % 2 else -0.6)):
+                for k in range(8):
+                    a = k * math.pi / 4
+                    rr(c, math.cos(a) * 38 - 9, math.sin(a) * 38 - 9, 18, 18, 4)
+                    col(c, "#8d99ae")
+                    c.fill()
+            circle(c, gx, 250, 34, "#adb5bd")
+            circle(c, gx, 250, 12, wall)
+    else:
+        bx = 110
+        for i, bw in enumerate((34, 46, 30, 52, 38, 44, 32)):
+            bh = 110 + (i * 37) % 60
+            rr(c, bx, 300 - bh, bw, bh, 6)
+            col(c, (PINK, BLUE, YELLOW, GREEN, PURPLE, ORANGE, BLUE)[i])
+            c.fill()
+            bx += bw + 8
+    # skirting + floor
+    c.rectangle(0, 776, W, 28)
+    col(c, "#ffffff", 0.9)
+    c.fill()
+    c.rectangle(0, 800, W, H - 800)
+    col(c, floor)
+    c.fill()
+    if style == "kitchen":   # checker floor
+        for iy, gy in enumerate(range(800, H, 70)):
+            for ix, gx in enumerate(range(0, W, 140)):
+                if (ix + iy) % 2 == 0:
+                    c.rectangle(gx, gy, 140, 70)
+                    col(c, plank)
+                    c.fill()
+    else:
+        c.set_line_width(4)
+        col(c, plank)
+        for gy in range(870, H, 70):
+            c.move_to(0, gy)
+            c.line_to(W, gy)
+        for i, gx in enumerate(range(0, W, 260)):
+            for j, gy in enumerate(range(800, H, 70)):
+                c.move_to(gx + (130 if j % 2 else 0), gy)
+                c.line_to(gx + (130 if j % 2 else 0), gy + 70)
+        c.stroke()
+    if weather == "night":
+        c.rectangle(0, 0, W, H)
+        col(c, "#101840", 0.28)
+        c.fill()
+
+
+def _space(c, t, weather):
+    """Outer space with a moon surface to stand on. Weather is ignored up here."""
+    g = cairo.LinearGradient(0, 0, 0, 820)
+    g.add_color_stop_rgb(0, *hexc("#0b1030")[:3])
+    g.add_color_stop_rgb(1, *hexc("#3b2a6b")[:3])
+    c.rectangle(0, 0, W, H)
+    c.set_source(g)
+    c.fill()
+    rnd = random.Random(9)
+    for _ in range(90):
+        sx, sy = rnd.uniform(0, W), rnd.uniform(0, 720)
+        sparkle(c, sx, sy, 4 + 3 * math.sin(t * 2.5 + sx), 0.9)
+    circle(c, 330, 230, 95, "#f4a261")
+    c.save()
+    c.translate(330, 230)
+    c.rotate(-0.35)
+    c.scale(1, 0.28)
+    c.arc(0, 0, 165, 0, 2 * math.pi)
+    c.restore()
+    col(c, "#ffd166")
+    c.set_line_width(14)
+    c.stroke()
+    circle(c, 1640, 190, 70, "#4cc9f0")
+    circle(c, 1615, 170, 24, "#80ed99")
+    circle(c, 1668, 215, 18, "#80ed99")
+    c.move_to(0, 790)
+    c.curve_to(500, 720, 1400, 730, W, 800)
+    c.line_to(W, H)
+    c.line_to(0, H)
+    col(c, "#b8bccb")
+    c.fill()
+    for cx, cy, r in ((260, 920, 70), (760, 1000, 50), (1180, 890, 90), (1620, 980, 60), (1450, 840, 34)):
+        c.save()
+        c.translate(cx, cy)
+        c.scale(1, 0.35)
+        c.arc(0, 0, r, 0, 2 * math.pi)
+        c.restore()
+        col(c, "#9a9fb3")
+        c.fill()
+
+
+BACKDROPS = {
+    "meadow": _meadow, "town": _town, "garden": _garden, "space": _space, "room": _room,
+    "kitchen": lambda c, t, w: _room(c, t, w, "#d8f3dc", "#b7e4c7", "#f8f9fa", "#ced4da", "kitchen"),
+    "workshop": lambda c, t, w: _room(c, t, w, "#dfe7f2", "#c3cfe0", "#9aa5b1", "#7b8794", "workshop"),
+}
+
+
+def background(c, t, weather="sunny", backdrop="meadow"):
+    """Full-frame scenery. `backdrop` is the video's setting (one per story world); the ground
+    line stays near y=800 in all of them so every scene fits."""
+    BACKDROPS.get(backdrop, _meadow)(c, t, weather)

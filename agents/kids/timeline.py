@@ -72,4 +72,5 @@ def build(script: Dict, voiced: List[List[Dict]]) -> Dict:
                        "start": round(start, 3), "end": round(t, 3), "beats": beats, "lines": out_lines})
     duration = t + TAIL_S
     scenes[-1]["end"] = round(duration, 3)
-    return {"duration": round(duration, 3), "scenes": scenes, "gaps": gaps}
+    return {"duration": round(duration, 3), "scenes": scenes, "gaps": gaps,
+            "backdrop": script.get("backdrop", "meadow")}

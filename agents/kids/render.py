@@ -65,7 +65,7 @@ def frame(c, TL: Dict, t: float, channel: str = "", captions: bool = True) -> No
     sc = scene_at(TL, t)
     lt = t - sc["start"]
     S = {"props": sc["props"], "beats": sc["beats"], "dur": sc["end"] - sc["start"], "weather": sc["weather"]}
-    D.background(c, t, sc["weather"])
+    D.background(c, t, sc["weather"], TL.get("backdrop", "meadow"))
     try:
         SCENES[sc["type"]](c, lt, S)
     except Exception as e:  # noqa: BLE001 — a broken scene must not kill a 2-minute render
@@ -137,7 +137,7 @@ def thumbnail(script: Dict, path: str, channel: str = "") -> None:
     """1280x720 JPEG-ready PNG: the question, the cast and the analogy's main prop."""
     D.ensure_fonts()
     s, c = _surface()
-    D.background(c, 0.8, "sunny")
+    D.background(c, 0.8, "sunny", script.get("backdrop", "meadow"))
     main_prop = "star"
     for sc in script.get("scenes", []):
         p = sc.get("props", {})
