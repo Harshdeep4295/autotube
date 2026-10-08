@@ -1,0 +1,29 @@
+name: YouTube Stats
+
+# Read-only: per-video views, watch time and traffic sources from YouTube Analytics,
+# printed in the run log (see scripts/youtube_stats.py).
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back"
+        required: false
+        default: "14"
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python packages
+        run: pip install -q python-dotenv google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+      - name: Stats
+        env:
+          IN_DAYS: ${{ inputs.days }}
+        run: python scripts/youtube_stats.py --days "${IN_DAYS:-14}"

@@ -142,6 +142,7 @@ Rules:
 | `kids_explainer.yml` | daily 03:47 UTC + manual | Scheduled runs **upload** because repo variable `KIDS_SCHEDULED_DRY_RUN=false` is set (the workflow default is dry). 45 min timeout |
 | `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `home-section` on the YouTube channel |
 | `post_reels.yml` | manual | Posts the Short of an earlier kids run (by run ID) to Instagram and/or Facebook |
+| `youtube_stats.yml` | manual | Read-only YouTube Analytics (per-video views, watch time, share watched, traffic sources) printed in the run log |
 | `social_stats.yml` | manual | Read-only Instagram and Facebook numbers (followers, per-post views and likes) printed in the run log |
 | `kids_backfill.yml` | manual | Gives a published kids video a Short and the current description; needs the video ID and the ID of the run that made it (script from its artifact, kept 7 days). `dry_run` defaults to true |
 
