@@ -1,0 +1,360 @@
+{
+ "title": "What is a Data Breach? (Explained Like You're 5)",
+ "description": "In a fun robot workshop, we see how a secret chip can slip out, why that matters, and how to keep it safe. Viewers learn what a data breach really is, what personal data means, and who a hacker is, all through a simple story with Mia, Leo, Zoe and a sneaky robot thief. No jargon, just clear analogies for kids and adults alike.",
+ "tags": [
+  "Explained Like You're 5",
+  "data breach explained",
+  "what is a data breach",
+  "kids finance video",
+  "technology for beginners",
+  "simple security concepts",
+  "robot workshop analogy",
+  "personal data meaning",
+  "hacker definition"
+ ],
+ "thumbnail_text": "What is a Data Breach?",
+ "scenes": [
+  {
+   "type": "title",
+   "weather": "sunny",
+   "props": {
+    "question": "What is a data breach?",
+    "props": [
+     "robot",
+     "chip",
+     "box"
+    ]
+   },
+   "lines": [
+    {
+     "text": "What is a data breach?",
+     "cue": "breach"
+    },
+    {
+     "text": "Robots, chips, and secret boxes appear.",
+     "cue": "boxes"
+    },
+    {
+     "text": "Mia waves hello with a smile.",
+     "cue": "hello"
+    }
+   ]
+  },
+  {
+   "type": "meet",
+   "weather": "sunny",
+   "props": {
+    "who": "zoe",
+    "place": "robot",
+    "label": "ROBOT…",
+    "greeting": "Hi! I'm Zoe!",
+    "flow": "robot"
+   },
+   "lines": [
+    {
+     "text": "Zoe steps into her bright robot workshop.",
+     "cue": "Zoe"
+    },
+    {
+     "text": "A sign glows: ROBOT WORKSHOP.",
+     "cue": "WORKSHOP"
+    },
+    {
+     "text": "She greets friends with a friendly wave.",
+     "cue": "wave"
+    }
+   ]
+  },
+  {
+   "type": "wants",
+   "weather": "sunny",
+   "props": {
+    "who": "mia",
+    "dream": "robot",
+    "dream_label": "SHINY ROBOT",
+    "need": 1.0,
+    "have": 0.0,
+    "unit": "chip"
+   },
+   "lines": [
+    {
+     "text": "Mia imagines building a shiny new robot.",
+     "cue": "shiny"
+    },
+    {
+     "text": "She needs one secret robot chip.",
+     "cue": "one"
+    },
+    {
+     "text": "She has zero chips and looks sad.",
+     "cue": "zero"
+    }
+   ]
+  },
+  {
+   "type": "talk",
+   "weather": "sunny",
+   "props": {
+    "who": "mia",
+    "bubble": "The chip holds robot’s special parts…",
+    "prop": "chip"
+   },
+   "lines": [
+    {
+     "text": "Mia holds a tiny glowing chip.",
+     "cue": "chip"
+    },
+    {
+     "text": "She says: The chip holds robot’s special parts list.",
+     "cue": "holds"
+    },
+    {
+     "text": "That list is like personal data for robots.",
+     "cue": "personal"
+    }
+   ]
+  },
+  {
+   "type": "steps",
+   "weather": "sunny",
+   "props": {
+    "items": [
+     {
+      "prop": "box",
+      "label": "Secret…"
+     },
+     {
+      "prop": "key",
+      "label": "Lock Key"
+     }
+    ],
+    "traveller": "chip"
+   },
+   "lines": [
+    {
+     "text": "Step one: Zoe places chip inside a box.",
+     "cue": "one"
+    },
+    {
+     "text": "Step two: Leo forgets to lock the box key.",
+     "cue": "two"
+    },
+    {
+     "text": "Step three: The unlocked box sits on the bench.",
+     "cue": "three"
+    }
+   ]
+  },
+  {
+   "type": "talk",
+   "weather": "sunny",
+   "props": {
+    "who": "raj",
+    "bubble": "Sneaky robot thief copies the secret…",
+    "prop": "chip"
+   },
+   "lines": [
+    {
+     "text": "Sneaky robot thief tiptoes into the workshop.",
+     "cue": "Sneaky"
+    },
+    {
+     "text": "He copies the secret chip without anyone noticing.",
+     "cue": "copies"
+    },
+    {
+     "text": "Now the chip’s copy sits on the stand.",
+     "cue": "copy"
+    }
+   ]
+  },
+  {
+   "type": "chart",
+   "weather": "sunny",
+   "props": {
+    "mode": "bouncy",
+    "title": "CHIP OUTSIDE!",
+    "who": "leo"
+   },
+   "lines": [
+    {
+     "text": "A line jumps up, then down, showing chip movement.",
+     "cue": "jumps"
+    },
+    {
+     "text": "The banner reads: CHIP OUTSIDE!",
+     "cue": "CHIP"
+    },
+    {
+     "text": "The line lands on a stand outside the door.",
+     "cue": "outside"
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "weather": "sunny",
+   "props": {
+    "word": "DATA BREACH",
+    "sub": "secret robot chip got out",
+    "prop": "box"
+   },
+   "lines": [
+    {
+     "text": "BIG banner flashes: DATA BREACH!",
+     "cue": "DATA BREACH"
+    },
+    {
+     "text": "It means the secret robot chip got out.",
+     "cue": "out"
+    }
+   ]
+  },
+  {
+   "type": "talk",
+   "weather": "sunny",
+   "props": {
+    "who": "zoe",
+    "bubble": "I feel worried; my chip is missing!",
+    "prop": "chip"
+   },
+   "lines": [
+    {
+     "text": "Zoe looks at the empty box, worried.",
+     "cue": "worried"
+    },
+    {
+     "text": "She says: My chip is missing!",
+     "cue": "missing"
+    },
+    {
+     "text": "She worries about the robot’s special parts list.",
+     "cue": "parts"
+    }
+   ]
+  },
+  {
+   "type": "grow",
+   "weather": "sunny",
+   "props": {
+    "who": "zoe",
+    "small": "lock",
+    "big": "lock",
+    "label_before": "NO LOCK",
+    "label_after": "LOCK!"
+   },
+   "lines": [
+    {
+     "text": "Zoe finds a sturdy lock on the table.",
+     "cue": "lock"
+    },
+    {
+     "text": "The lock grows big with bright sparkles.",
+     "cue": "grows"
+    },
+    {
+     "text": "Zoe cheers, securing the box safely.",
+     "cue": "cheers"
+    }
+   ]
+  },
+  {
+   "type": "recap",
+   "weather": "sunny",
+   "props": {
+    "cards": [
+     {
+      "prop": "box",
+      "term": "DATA BREACH",
+      "means": "secret robot chip got out"
+     },
+     {
+      "prop": "chip",
+      "term": "PERSONAL DATA",
+      "means": "robot’s special parts list"
+     },
+     {
+      "prop": "robot",
+      "term": "HACKER",
+      "means": "sneaky robot thief who…"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Let's remember the big words!",
+     "cue": "remember"
+    },
+    {
+     "text": "DATA BREACH: secret robot chip got out.",
+     "cue": "DATA BREACH"
+    },
+    {
+     "text": "PERSONAL DATA: robot’s special parts list.",
+     "cue": "PERSONAL"
+    },
+    {
+     "text": "HACKER: sneaky robot thief who copies chips.",
+     "cue": "HACKER"
+    }
+   ]
+  },
+  {
+   "type": "outro",
+   "weather": "sunny",
+   "props": {
+    "cast": [
+     "mia",
+     "leo",
+     "zoe"
+    ],
+    "message": "Thanks for learning…"
+   },
+   "lines": [
+    {
+     "text": "Mia, Leo, and Zoe wave goodbye.",
+     "cue": "goodbye"
+    },
+    {
+     "text": "Thanks for learning together!",
+     "cue": "Thanks"
+    }
+   ]
+  }
+ ],
+ "topic": "What is a data breach?",
+ "analogy": {
+  "world": "Zoe's robot workshop",
+  "map": [
+   {
+    "real": "data breach",
+    "kid": "secret robot chip got out"
+   },
+   {
+    "real": "personal data",
+    "kid": "robot’s special parts list"
+   },
+   {
+    "real": "hacker",
+    "kid": "sneaky robot thief"
+   }
+  ]
+ },
+ "backdrop": "workshop",
+ "estimated_seconds": 103,
+ "script_repairs": [
+  "scene 1.meet.place: 'workshop' → 'stand'",
+  "scene 1.meet.label: trimmed to 12 chars",
+  "scene 2.wants.dream: 'shiny robot' → 'stand'",
+  "scene 3.talk.bubble: trimmed to 40 chars",
+  "scene 4.steps.items[0].label: trimmed to 12 chars",
+  "scene 5.talk.bubble: trimmed to 40 chars",
+  "scene 10.recap.cards[2].means: trimmed to 30 chars",
+  "scene 11.outro.message: trimmed to 24 chars"
+ ],
+ "review": {
+  "ok": true,
+  "problems": []
+ },
+ "llm": "groq:openai/gpt-oss-120b"
+}
