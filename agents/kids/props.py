@@ -554,7 +554,76 @@ def _chart(c, t):
     c.stroke()
 
 
+def _switch(c, t):
+    """A wall light switch; the rocker flips every second or so."""
+    rr(c, -62, -92, 124, 184, 22)
+    fill_stroke(c, "#ffffff")
+    on = int(t * 1.2) % 2 == 0
+    rr(c, -30, -58, 60, 116, 12)
+    fill_stroke(c, GREEN if on else "#cfd8dc", INK, 5)
+    rr(c, -22, -50 if on else 4, 44, 46, 8)
+    fill_stroke(c, "#ffffff", INK, 4)
+    for sy in (-76, 76):
+        circle(c, 0, sy, 6, "#9aa5b1")
+
+
+def _door(c, t):
+    rr(c, -72, -100, 144, 200, 14)
+    fill_stroke(c, "#c98b5b")
+    for y0 in (-78, 10):
+        rr(c, -48, y0, 96, 68, 8)
+        fill_stroke(c, "#b5764a", "#8d5a3b", 4)
+    circle(c, 46, 6, 10, YELLOW, ORANGE, 4)
+
+
+def _mailbox(c, t):
+    rr(c, -10, 20, 20, 80, 4)
+    fill_stroke(c, "#8d6e63", INK, 5)
+    c.move_to(-85, 30)
+    c.line_to(-85, -30)
+    c.curve_to(-85, -85, 85, -85, 85, -30)
+    c.line_to(85, 30)
+    c.close_path()
+    fill_stroke(c, BLUE)
+    rr(c, -55, -22, 70, 12, 5)
+    col(c, INK)
+    c.fill()
+    rr(c, 60, -70, 12, 60, 4)
+    fill_stroke(c, PINK, INK, 4)
+    rr(c, 60, -70, 44, 28, 4)
+    fill_stroke(c, PINK, INK, 4)
+
+
+def _puzzle(c, t):
+    c.move_to(-75, -55)
+    c.line_to(-22, -55)
+    c.arc(0, -68, 24, math.pi * 0.85, math.pi * 0.15)
+    c.line_to(75, -55)
+    c.line_to(75, -8)
+    c.arc(92, 14, 24, -math.pi * 0.65, math.pi * 0.65)
+    c.line_to(75, 85)
+    c.line_to(-75, 85)
+    c.close_path()
+    c.set_line_join(cairo.LINE_JOIN_ROUND)
+    fill_stroke(c, PURPLE)
+
+
+def _gear(c, t):
+    c.save()
+    c.rotate(t * 0.8)
+    for k in range(8):
+        c.save()
+        c.rotate(k * math.pi / 4)
+        rr(c, -18, -98, 36, 40, 8)
+        fill_stroke(c, "#adb5bd", INK, 5)
+        c.restore()
+    circle(c, 0, 0, 72, "#adb5bd", INK, 6)
+    circle(c, 0, 0, 26, "#ffffff", INK, 6)
+    c.restore()
+
+
 _DRAW = {
+    "switch": _switch, "door": _door, "mailbox": _mailbox, "puzzle": _puzzle, "gear": _gear,
     "coin": _coin, "lemon": _lemon, "cup": _cup, "jar": _jar, "pizza": _pizza, "slice": _slice,
     "apple": _apple, "cookie": _cookie, "toy": _toy, "book": _book, "bulb": _bulb, "heart": _heart,
     "star": _star, "letter": _letter, "phone": _phone, "laptop": _laptop, "robot": _robot,

@@ -59,7 +59,9 @@ LENGTH (important): {min_words}-{max_words} words of narration in total (≈ 2-3
 9-14 scenes, 1-4 lines per scene, each line 4-14 words.
 
 SCENE CATALOGUE — each scene type has beats; line 1 of the scene fires beat 1, line 2 fires
-beat 2, and so on. Write each line so it SAYS what its beat SHOWS. Optional "cue": a word or
+beat 2, and so on. Write each line so it fits what its beat SHOWS, but as a story told to
+the viewer, never as a stage direction: "This is Leo. He runs a toy shop." — not "Leo walks
+in and says hi." Optional "cue": a word or
 two copied exactly from that line — the beat fires exactly on that word (use it for numbers
 and grown-up words).
 {catalogue}
@@ -96,8 +98,9 @@ FULL SCRIPT:
 
 RULES
 - {min_words}-{max_words} words of narration in total. 4-6 scenes, 1-3 lines per scene, each line 4-14 words.
-- The very first line is the HOOK: a surprising question or claim that makes someone stop
-  scrolling. No greeting, no "today we learn", no names first. Do NOT use the "title" scene type.
+- The very first line is the HOOK: a QUESTION of at most 10 words, ending in "?", that makes
+  someone stop scrolling ("How can a tiny chip think so fast?"). No greeting, no "today we
+  learn", no "look at". Do NOT use the "title" scene type.
 - Then tell the ONE core idea, in the same world and with the same characters and props as the
   full script. Say the main grown-up word once, right after the kid version is clear.
 - Lines are a story told to the viewer, never stage directions.
@@ -136,7 +139,9 @@ SCRIPT:
 {script}"""
 
 LENGTH_USER = """The script has {words} words; it must have {min_words}-{max_words}. {direction}
-Keep the same JSON shape, scenes and story. Return the full JSON.
+Keep the same JSON shape, scenes and story. Never reach the length by tacking adverbs or
+adjectives onto lines ("quickly", "brightly", "perfectly"): every added word must carry
+story. Return the full JSON.
 
 SCRIPT:
 {script}"""

@@ -279,3 +279,19 @@ def test_short_has_no_title_card_and_ends_with_the_pointer():
     assert _words(s) <= SHORT_MAX_WORDS and sum(sc["type"] == "outro" for sc in s) == 1
     cut = short_cut({"scenes": scenes})
     assert cut[0]["type"] == "talk" and 40 <= _words(cut) <= SHORT_MAX_WORDS
+
+
+def test_short_opens_with_a_question_and_filler_is_stripped():
+    from agents.kids_script_agent import finish_short, strip_filler
+
+    body = [{"type": "meet", "props": {}, "lines": [{"text": "Look inside a tiny toy shop."}]}]
+    s = finish_short(body, hook="How do computer chips work?")
+    assert s[0]["lines"][0]["text"] == "How do computer chips work?" and s[1]["type"] == "meet"
+    asked = [{"type": "talk", "props": {}, "lines": [{"text": "How can a tiny chip think so fast?"}]}]
+    assert finish_short(asked, hook="How do computer chips work?")[0] is asked[0]
+    sc = {"scenes": [{"lines": [{"text": "Leo walks in and says hi cheerfully."},
+                                {"text": "Tiny switches flip quickly.", "cue": "quickly"},
+                                {"text": "Each tiny switch says yes or no quickly!"}]}]}
+    assert strip_filler(sc) == 2
+    assert [ln["text"] for ln in sc["scenes"][0]["lines"]] == [
+        "Leo walks in and says hi.", "Tiny switches flip quickly.", "Each tiny switch says yes or no!"]

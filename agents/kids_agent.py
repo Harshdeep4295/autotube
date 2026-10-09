@@ -181,8 +181,10 @@ class KidsAgent:
 
         path, work = out / "short.mp4", out / "short_work"
         try:
+            hook = S.card_title(script.get("title", ""))
+            hook = hook if hook.endswith("?") else ""
             scenes = (script.get("short") or {}).get("scenes")
-            scenes = finish_short(scenes) if scenes else short_cut(script)
+            scenes = finish_short(scenes, hook) if scenes else short_cut(script, hook)
             mini, _ = validate_and_repair({"title": script.get("title", ""), "backdrop": script.get("backdrop", "meadow"),
                                            "scenes": scenes})
             work.mkdir(parents=True, exist_ok=True)

@@ -108,10 +108,38 @@ def _words(scenes: List[Dict]) -> int:
     return sum(len(str(ln.get("text", "")).split()) for sc in scenes for ln in sc.get("lines", []))
 
 
-def finish_short(scenes: List[Dict]) -> List[Dict]:
-    """Shape scenes into a Short: no title card, at most SHORT_MAX_WORDS, and a fixed closing
-    line that points to the full video."""
+FILLER = {"quickly", "perfectly", "cleverly", "brightly", "cheerfully", "smartly", "nicely", "gently", "softly",
+          "proudly", "happily", "eagerly", "totally", "really", "today"}
+
+
+def strip_filler(script: Dict) -> int:
+    """Drop a padding word from the end of a line ("says hi cheerfully." → "says hi."). Models add
+    these when asked for more words. Lines of five words or fewer are left alone."""
+    n = 0
+    for sc in script.get("scenes", []):
+        for ln in sc.get("lines", []):
+            words = str(ln.get("text", "")).split()
+            if len(words) < 6:
+                continue
+            last = words[-1].rstrip(".!?,")
+            if last.lower() in FILLER and last.lower() != str(ln.get("cue", "")).lower():
+                ln["text"] = " ".join(words[:-1]).rstrip(",;:") + (words[-1][len(last):] or ".")
+                n += 1
+    return n
+
+
+def is_hook(text: str) -> bool:
+    return text.strip().endswith("?") and len(text.split()) <= 12
+
+
+def finish_short(scenes: List[Dict], hook: str = "") -> List[Dict]:
+    """Shape scenes into a Short: no title card, a question as the first line (the video's own
+    question is put in front if the script does not open with one), at most SHORT_MAX_WORDS, and
+    a fixed closing line that points to the full video."""
     body = [sc for sc in scenes if isinstance(sc, dict) and sc.get("type") not in ("title", "outro") and sc.get("lines")]
+    if hook and body and not is_hook(str(body[0]["lines"][0].get("text", ""))):
+        body.insert(0, {"type": "talk", "weather": "sunny", "props": {"who": "mia", "bubble": hook, "prop": "bulb"},
+                        "lines": [{"text": hook}]})
     while len(body) > 2 and _words(body) > SHORT_MAX_WORDS - len(SHORT_OUTRO.split()):
         body.pop()
     return body + [{"type": "outro", "weather": "sunny",
@@ -119,7 +147,7 @@ def finish_short(scenes: List[Dict]) -> List[Dict]:
                     "lines": [{"text": SHORT_OUTRO}]}]
 
 
-def short_cut(script: Dict) -> List[Dict]:
+def short_cut(script: Dict, hook: str = "") -> List[Dict]:
     """A Short without an LLM: the start of the story (after the title card), up to about 75 words."""
     body, n = [], 0
     for sc in script.get("scenes", [])[1:]:
@@ -130,7 +158,7 @@ def short_cut(script: Dict) -> List[Dict]:
             break
         body.append(sc)
         n += w
-    return finish_short(body)
+    return finish_short(body, hook)
 
 
 class KidsScriptAgent:
@@ -237,11 +265,14 @@ class KidsScriptAgent:
             w = _words([sc for sc in o["scenes"] if isinstance(sc, dict)])
             if w < 40:
                 raise ValueError(f"only {w} words, need {SHORT_WORDS[0]}-{SHORT_WORDS[1]}")
+            first = next((sc for sc in o["scenes"] if isinstance(sc, dict) and sc.get("type") != "title" and sc.get("lines")), {})
+            if not is_hook(str((first.get("lines") or [{}])[0].get("text", ""))):
+                raise ValueError('the first line must be a question of at most 10 words ending in "?"')
 
         full = {"title": script.get("title", ""), "scenes": script.get("scenes", [])}
         o = self._ask(P.SHORT_USER.format(script=json.dumps(full, ensure_ascii=False), min_words=SHORT_WORDS[0],
                                           max_words=SHORT_WORDS[1], catalogue=catalogue_for_prompt()),
-                      check, max_tokens=6000, repairs=1)
+                      check, max_tokens=6000, repairs=2)
         return finish_short(o["scenes"])
 
     def generate(self, topic: Dict) -> Dict:
@@ -253,6 +284,9 @@ class KidsScriptAgent:
         reviewed = self.review(script)
         script = reviewed["script"]
         script, repairs = validate_and_repair(script)
+        trimmed = strip_filler(script)
+        if trimmed:
+            logger.info(f"[kids-script] removed a padding word from {trimmed} line(s)")
         # After the repair, not before: an unknown place ("workshop") is repaired to the default stall.
         swapped = swap_stand(script, getattr(self, "world", {}).get("place", "stand"))
         if swapped:
@@ -280,6 +314,7 @@ class KidsScriptAgent:
         if config.KIDS_SHORTS:
             try:
                 short = {"scenes": self.short(script)}
+                strip_filler(short)
                 swap_stand(short, getattr(self, "world", {}).get("place", "stand"))
                 script["short"] = short
                 logger.info(f"[kids-script] short: {len(short['scenes'])} scenes, {_words(short['scenes'])} words")

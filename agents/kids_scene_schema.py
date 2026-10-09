@@ -26,7 +26,7 @@ PROPS = (
     "coin", "lemon", "cup", "jar", "pizza", "slice", "apple", "cookie", "toy", "book", "bulb", "heart",
     "star", "letter", "phone", "laptop", "robot", "cloud", "server", "lock", "key", "gift", "seed",
     "tree", "battery", "stand", "shop", "bank", "house", "truck", "rocket", "piggy", "box", "chip",
-    "water", "chart",
+    "water", "chart", "switch", "door", "mailbox", "puzzle", "gear",
 )
 CHARACTERS = ("mia", "leo", "zoe", "sam", "ava", "raj", "kim")
 WEATHER = ("sunny", "rainy", "night")
