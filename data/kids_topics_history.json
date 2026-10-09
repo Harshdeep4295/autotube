@@ -53,5 +53,12 @@
     "source": "feed",
     "world": "robot workshop",
     "date": "2026-10-08T13:53:43+00:00"
+  },
+  {
+    "topic": "What is a scam?",
+    "area": "finance",
+    "source": "feed",
+    "world": "toy shop",
+    "date": "2026-10-09T11:11:20+00:00"
   }
 ]
