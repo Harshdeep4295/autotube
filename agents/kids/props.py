@@ -187,10 +187,15 @@ def _heart(c, t):
     s = 1 + 0.06 * math.sin(t * 6)
     c.save()
     c.scale(s, s)
-    c.move_to(0, 80)
-    c.curve_to(-120, 0, -70, -90, 0, -40)
-    c.curve_to(70, -90, 120, 0, 0, 80)
+    c.move_to(0, 88)
+    c.curve_to(-40, 50, -100, 10, -100, -35)
+    c.curve_to(-100, -95, -25, -105, 0, -50)
+    c.curve_to(25, -105, 100, -95, 100, -35)
+    c.curve_to(100, 10, 40, 50, 0, 88)
+    c.close_path()
+    c.set_line_join(cairo.LINE_JOIN_ROUND)
     fill_stroke(c, PINK)
+    circle(c, -48, -48, 14, "#ffffff")
     c.restore()
 
 
@@ -282,15 +287,11 @@ def _robot(c, t):
 
 
 def _cloud(c, t):
-    for dx, dy, r in ((-50, 15, 45), (0, -15, 60), (50, 15, 45), (0, 25, 45)):
+    blobs = ((-50, 15, 45), (0, -15, 60), (50, 15, 45), (0, 25, 45))
+    for dx, dy, r in blobs:   # outline first, so the cloud also shows on a pale wall
+        circle(c, dx, dy, r + 6, INK)
+    for dx, dy, r in blobs:
         circle(c, dx, dy, r, "#ffffff")
-    c.save()
-    c.set_line_width(5)
-    col(c, "#9aa5b1")
-    c.move_to(-95, 60)
-    c.line_to(95, 60)
-    c.stroke()
-    c.restore()
 
 
 def _server(c, t):

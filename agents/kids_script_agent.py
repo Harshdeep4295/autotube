@@ -109,7 +109,7 @@ def finish_short(scenes: List[Dict]) -> List[Dict]:
     while len(body) > 2 and _words(body) > SHORT_MAX_WORDS - len(SHORT_OUTRO.split()):
         body.pop()
     return body + [{"type": "outro", "weather": "sunny",
-                    "props": {"cast": ["leo", "mia", "zoe"], "message": "Full video on the channel!"},
+                    "props": {"cast": ["leo", "mia", "zoe"], "message": "Watch the full video!"},
                     "lines": [{"text": SHORT_OUTRO}]}]
 
 

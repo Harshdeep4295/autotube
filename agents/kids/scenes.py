@@ -405,7 +405,7 @@ def s_talk(c, t, S):
     kid(c, p["who"], 560, 880, 1.15, t, wave=1)
     with T(c, 860, 330, pop(t, B(S, 1) if len(S["beats"]) >= 2 else 0.3)):
         bubble(c, 0, 0, 720, 230, tail_dx=-160)
-        text_block(c, p["bubble"], 0, 0, 58, INK, max_w=640, max_rows=2)
+        text_block(c, p["bubble"], 0, 0, 58, INK, max_w=640, max_rows=3)
     bounce = abs(math.sin(t * 3)) * 30 if len(S["beats"]) >= 3 and t > B(S, 2) else 0
     prop(c, p["prop"], 1450, 640 - bounce, 300 * pop(t, 0.2), t)
 

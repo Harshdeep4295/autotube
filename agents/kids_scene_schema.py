@@ -146,7 +146,7 @@ CATALOGUE: Dict[str, Dict[str, Any]] = {
         "use": "a character says one simple idea (fallback for anything else)",
         "lines": (1, 3),
         "beats": ["the character and the thing appear", "the speech bubble appears", "the thing bounces"],
-        "props": {"who": WHO(), "bubble": T(40, True), "prop": PR("star")},
+        "props": {"who": WHO(), "bubble": T(60, True), "prop": PR("star")},
         "example": {"who": "zoe", "bubble": "Be patient!", "prop": "tree"},
     },
     "recap": {
@@ -161,7 +161,7 @@ CATALOGUE: Dict[str, Dict[str, Any]] = {
         "use": "last scene: the cast waves goodbye",
         "lines": (1, 2),
         "beats": ["the cast waves", "the goodbye message and confetti"],
-        "props": {"cast": L(WHO(), 1, 3), "message": T(24, default="Great job, friend!")},
+        "props": {"cast": L(WHO(), 1, 3), "message": T(34, default="Great job, friend!")},
         "example": {"cast": ["leo", "mia", "zoe"], "message": "Great job, friend!"},
     },
 }
@@ -247,6 +247,16 @@ def repair_scene(scene: Any, where: str, repairs: List[str]) -> Dict:
     return {"type": stype, "weather": weather, "props": props, "lines": lines}
 
 
+def _no_ellipsis(v: Any) -> Any:
+    if isinstance(v, str):
+        return v[:-1].rstrip() if v.endswith("…") and len(v) <= 24 else v
+    if isinstance(v, list):
+        return [_no_ellipsis(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _no_ellipsis(x) for k, x in v.items()}
+    return v
+
+
 def validate_and_repair(script: Dict) -> Tuple[Dict, List[str]]:
     """Return (safe_script, repairs). Raises ValueError only if nothing is narratable."""
     repairs: List[str] = []
@@ -266,6 +276,8 @@ def validate_and_repair(script: Dict) -> Tuple[Dict, List[str]]:
         for ln in sc["lines"]:
             if len(ln["text"].split()) > MAX_LINE_WORDS:
                 repairs.append(f"long line ({len(ln['text'].split())} words): {ln['text'][:40]}…")
+    for sc in scenes:   # a short label cut at a word reads fine without the "…" ("GRANDMA'S", not "GRANDMA'S…")
+        sc["props"] = _no_ellipsis(sc["props"])
     out = dict(script)
     out["scenes"] = scenes
     return out, repairs

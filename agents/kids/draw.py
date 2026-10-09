@@ -370,6 +370,10 @@ def _town(c, t, weather):
                 col(c, "#fff3b0" if weather == "night" else "#eaf6ff")
                 c.fill()
         x += w + 26
+    if weather != "night":   # push the street back so characters and props stand out
+        c.rectangle(0, 250, W, 550)
+        col(c, "#eaf6ff", 0.5)
+        c.fill()
     c.rectangle(0, 800, W, 70)
     col(c, "#cfd3d8" if weather != "night" else "#5b6170")
     c.fill()

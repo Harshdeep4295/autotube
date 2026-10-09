@@ -21,10 +21,12 @@ logger = logging.getLogger(__name__)
 
 SW, SH = 1080, 1920
 MAX_SECONDS = 180                     # YouTube Shorts limit
-BAND_X, BAND_Y, BAND_W = 20, 640, 1040
-BAND_H = BAND_W * D.H / D.W           # keeps 16:9 → 585
+BAND_X, BAND_Y, BAND_W = 20, 620, 1040
+CROP_X, CROP_W = 160, 1600            # the middle of the 1920-wide picture; scenes keep their action there
+BAND_H = BAND_W * D.H / CROP_W        # → 702
 PAPER = "#fff8e7"
-CAPTION_Y, CAPTION_SIZE, CAPTION_LINE_H, CAPTION_MAX_W = 1380, 64, 84, 960
+CAPTION_Y, CAPTION_SIZE, CAPTION_LINE_H, CAPTION_MAX_W = 1500, 68, 88, 960
+FOOTER_Y = 1770
 
 
 def card_title(title: str) -> str:
@@ -67,8 +69,8 @@ def frame(c, TL: Dict, t: float, title: str, channel: str = "") -> None:
     c.fill()
     if channel:
         text(c, channel, SW / 2, 150, 34, INK, max_w=900)
-    D.text_block(c, title, SW / 2, 345, 88, INK, max_w=960, max_rows=3)
-    with T(c, SW / 2, 560):
+    D.text_block(c, title, SW / 2, 335, 88, INK, max_w=960, max_rows=3)
+    with T(c, SW / 2, 540):
         card(c, 0, 0, 640, 84, PINK, INK, 6, 42)
         text(c, "EXPLAINED LIKE YOU'RE 5", 0, 0, 42, "#ffffff", max_w=580)
 
@@ -76,7 +78,8 @@ def frame(c, TL: Dict, t: float, title: str, channel: str = "") -> None:
     D.rr(c, BAND_X, BAND_Y, BAND_W, BAND_H, 36)
     c.clip()
     c.translate(BAND_X, BAND_Y)
-    c.scale(BAND_W / D.W, BAND_W / D.W)
+    c.scale(BAND_W / CROP_W, BAND_W / CROP_W)
+    c.translate(-CROP_X, 0)
     R.frame(c, TL, t, "", captions=False)
     c.restore()
     D.rr(c, BAND_X, BAND_Y, BAND_W, BAND_H, 36)
@@ -85,6 +88,9 @@ def frame(c, TL: Dict, t: float, title: str, channel: str = "") -> None:
     c.stroke()
 
     _captions(c, TL, t)
+    with T(c, SW / 2, FOOTER_Y):
+        card(c, 0, 0, 760, 96, "#ffffff", INK, 6, 48)
+        text(c, "Full video on the channel", 0, 0, 44, INK, max_w=680)
 
 
 def _surface():
