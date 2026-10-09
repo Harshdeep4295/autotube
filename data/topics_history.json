@@ -26,5 +26,12 @@
     "timestamp": "2026-10-03T09:51:06.896375",
     "used_at": "2026-10-03T09:51:06.896375",
     "source": "lobsters"
+  },
+  {
+    "topic": "Ollama explained: run AI models on your own computer for free",
+    "normalized_topic": "ollama explained run ai models on your o",
+    "timestamp": "2026-10-09T11:28:36.340965",
+    "used_at": "2026-10-09T11:28:36.340965",
+    "source": "bank"
   }
 ]
