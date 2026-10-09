@@ -251,6 +251,9 @@ def test_story_worlds_rotate_and_only_use_drawable_props():
         seen.append(w["key"])
         hist.append({"topic": f"t{i}", "world": w["key"]})
     assert len(set(seen)) == 6 and "lemonade stand" not in seen
+    from agents.kids_script_agent import world_options
+    opts = [w["key"] for w in world_options("tech", hist)]
+    assert len(opts) == 4 and not set(opts) & set(seen) and "lemonade stand" not in opts
 
 
 def test_swap_stand_redraws_the_stall_but_keeps_text():

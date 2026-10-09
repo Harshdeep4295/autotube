@@ -55,9 +55,11 @@ WORLDS = (
 )
 
 
-def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
-    """The world used longest ago (never-used first), preferring ones that fit the topic's area.
-    History rows from before worlds were recorded count as the lemonade stand."""
+def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int = 4) -> List[Dict]:
+    """The `n` worlds used longest ago (never-used first), ones that fit the topic's area first.
+    The script model picks the best fit among them, so settings rotate without forcing a world
+    onto a topic it does not suit. History rows from before worlds were recorded count as the
+    lemonade stand."""
     if history is None:
         try:
             history = json.loads((REPO / config.KIDS_HISTORY_FILE).read_text())
@@ -65,8 +67,12 @@ def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
             history = []
     used = [h.get("world") or "lemonade stand" for h in history]
     last = {w["key"]: max((i for i, u in enumerate(used) if u == w["key"]), default=-1) for w in WORLDS}
-    fits = [w for w in WORLDS if area in w["areas"]] or list(WORLDS)
-    return min(fits, key=lambda w: last[w["key"]])
+    return sorted(WORLDS, key=lambda w: (last[w["key"]], area not in w["areas"]))[:n]
+
+
+def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
+    """Default world when the model does not choose: the first option."""
+    return world_options(area, history)[0]
 
 
 def swap_stand(script: Dict, place: str) -> int:
@@ -156,13 +162,17 @@ class KidsScriptAgent:
                 raise ValueError("story needs 4+ beats")
 
         ctx = "\n".join(x for x in (topic.get("from_headline", ""), topic.get("summary", ""), topic.get("hint", "")) if x)
-        w = pick_world(topic.get("area", ""))
+        opts = world_options(topic.get("area", ""))
+        worlds = "\n".join(f'  - key "{w["key"]}": {w["world"]}. Main place: prop "{w["place"]}" with the sign '
+                           f'"{w["label"]}". Things that fit: {w["items"]}.' for w in opts)
+        plan = self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
+                                            worlds=worlds), check, max_tokens=3000)
+        key = str(plan.get("world_key", "")).strip().lower()
+        w = next((o for o in opts if o["key"] == key), opts[0])
         self.world = w
         topic["world"] = w["key"]   # recorded in the history by mark_used after a successful upload
-        logger.info(f"[kids-script] story world: {w['world']}")
-        return self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
-                                            world=w["world"], place=w["place"], label=w["label"], items=w["items"]),
-                         check, max_tokens=3000)
+        logger.info(f"[kids-script] story world: {w['world']} (options: {', '.join(o['key'] for o in opts)})")
+        return plan
 
     def write(self, plan: Dict) -> Dict:
         lo, hi = word_bounds()

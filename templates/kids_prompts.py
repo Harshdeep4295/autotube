@@ -30,10 +30,9 @@ Context (may be a news headline; use only to understand the idea, never mention 
 {context}
 >>>
 
-STORY WORLD (use exactly this one; every video has a different world, so do NOT fall back
-to a lemonade stand unless that is the world named here):
-  {world}
-  Main place to show: prop "{place}" with the sign "{label}". Things that fit this world: {items}.
+STORY WORLD: pick the ONE world below in which this idea is easiest to show truthfully, and
+stay in it. Do not invent another world and do not use a lemonade stand unless it is listed.
+{worlds}
 
 Things the animation can show (use only these): {props}
 Cast: mia, leo, zoe (main), sam, ava, raj, kim (friends).
@@ -41,12 +40,15 @@ Cast: mia, leo, zoe (main), sam, ava, raj, kim (friends).
 Return JSON:
 {{
   "question": "the kid-friendly question, ≤44 chars, e.g. 'How does the stock market work?'",
+  "world_key": "the key of the world you picked, copied exactly",
   "world": "the analogy world in a few words",
   "map": [{{"real": "grown-up word", "kid": "what it is in the story"}}],
   "story": ["6-10 short story beats in order, each one sentence"],
   "takeaway": "one sentence a 5-year-old could repeat"
 }}
-Use 2-4 map rows. The story must reach the real idea (say the grown-up word) by the last third."""
+Use 2-4 map rows. If the real thing is itself in the list of things the animation can show
+(chip, phone, laptop, robot, server, cloud, lock, key, battery, bank, coin...), the story must
+show that real thing; the world's objects only help explain it. The story must reach the real idea (say the grown-up word) by the last third."""
 
 SCRIPT_USER = """Write the full script for this plan.
 
@@ -67,6 +69,9 @@ STRUCTURE
 - Second to last: "recap" with one card per grown-up word (term = grown-up word, means = kid meaning).
 - Use a "reveal" or "many"(with reveal) scene when the grown-up word is said for the first time.
 - Vary scene types; never the same type twice in a row; "talk" at most twice.
+- PICTURE MATCHES WORDS: every prop on screen must be the thing its line talks about. When a
+  line names the real thing (a chip, a phone, a bank...), show that prop. Never stand in an
+  unrelated object for it (no apple while talking about a chip).
 - Stay in the plan's world: every place, sign label and prop must fit it. The catalogue
   examples below show a lemonade stand only to illustrate the format; do not copy them.
 - "weather": "rainy" is allowed for a bad-day moment, "night" for night; default "sunny".
@@ -96,6 +101,9 @@ RULES
 - Then tell the ONE core idea, in the same world and with the same characters and props as the
   full script. Say the main grown-up word once, right after the kid version is clear.
 - Lines are a story told to the viewer, never stage directions.
+- PICTURE MATCHES WORDS: every prop on screen must be the thing its line talks about. When a
+  line names the real thing (a chip, a phone, a bank...), show that prop. Never stand in an
+  unrelated object for it (no apple while talking about a chip).
 - Last scene: "outro".
 - Use the same scene catalogue and scene JSON shape as the full script:
 {catalogue}
@@ -112,6 +120,8 @@ Check:
 2. Any advice, real brand/company/person/app/coin name, scary or sad content, or unrealistic promise?
 3. Any line a 5-year-old would not understand (hard words used before they are explained)?
 4. Does each line say what its scene beat shows?
+5. Does any scene show a prop that has nothing to do with its lines or with the topic
+   (for example an apple in a video about computer chips)? Name the scene.
 
 Return JSON: {{"ok": true|false, "problems": ["specific problem + the line it is in"]}}
 Say ok=true if there are only tiny style issues."""
