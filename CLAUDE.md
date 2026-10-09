@@ -5,8 +5,8 @@ run yourself). One entry point, `orchestrator.py`, with two video styles:
 
 | Style | What it makes | Renderer | State (2026-10-01) |
 |---|---|---|---|
-| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Paused since 2026-10-04**: scheduled runs render but don't upload (`SCHEDULED_DRY_RUN=true`) . The topic bank exists since 2026-10-05; un-pause after a dry run has been reviewed |
-| `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea), plus a vertical cut uploaded as a Short | pycairo (`agents/kids/`) | **Live** since 2026-10-02: daily upload, public at 14:30 UTC |
+| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Live** again since 2026-10-09 on topic-bank topics (was paused 2026-10-04 to 2026-10-09); set repo variable `SCHEDULED_DRY_RUN=true` to pause |
+| `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea), plus a 30–40 s vertical Short with its own hook-first script (`script["short"]`; falls back to a cut of the story's start) | pycairo (`agents/kids/`) | **Live** since 2026-10-02: daily upload, public at 14:30 UTC |
 
 **Hard constraint: $0.** Gemini and Groq free tiers, standard GitHub Actions runner, open-source
 everything else. Never add a paid provider.
@@ -228,8 +228,8 @@ KIDS_SHORTS = true                  # vertical cut uploaded as a Short; KIDS_SHO
   Groq only. The key appears to be on a prepaid billing account; replace it with a free-tier key.
 - The old renderer, Shorts reposting, approval queue, paid-provider integrations and their docs were
   removed on 2026-10-01. Only the explainer and kids paths remain.
-- Explainer uploads are paused (2026-10-04) because research kept picking off-niche news. The topic bank
-  (2026-10-05) fixes the topics; un-pause by deleting the repo variable `SCHEDULED_DRY_RUN`.
+- Explainer uploads were paused 2026-10-04 to 2026-10-09 because research kept picking off-niche news; the topic bank
+  (2026-10-05) fixed the topics. Pause again with repo variable `SCHEDULED_DRY_RUN=true`.
 - More kids scene types (rest of milestone M5) and Phase B (AI clips) have not started.
 - The YouTube OAuth token was once shown in a chat session; `docs/HANDOFF.md` §4 has the revoke and
   regenerate steps. If the consent screen is in "Testing", refresh tokens expire after 7 days.

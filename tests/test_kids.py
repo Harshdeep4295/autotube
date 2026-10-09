@@ -262,3 +262,17 @@ def test_swap_stand_redraws_the_stall_but_keeps_text():
     assert s["scenes"][0]["props"] == {"place": "house", "label": "stand", "flow": "coin"}
     assert s["scenes"][1]["props"]["items"][0]["prop"] == "house"
     assert swap_stand(s, "stand") == 0
+
+
+def test_short_has_no_title_card_and_ends_with_the_pointer():
+    from agents.kids_script_agent import SHORT_MAX_WORDS, SHORT_OUTRO, _words, finish_short, short_cut
+
+    line = {"text": "one two three four five six seven eight nine ten"}
+    scenes = [{"type": "title", "props": {}, "lines": [line]}] + \
+             [{"type": "talk", "props": {}, "lines": [line, line]} for _ in range(9)] + \
+             [{"type": "outro", "props": {}, "lines": [line]}]
+    s = finish_short(scenes)
+    assert s[0]["type"] != "title" and s[-1]["type"] == "outro" and s[-1]["lines"][0]["text"] == SHORT_OUTRO
+    assert _words(s) <= SHORT_MAX_WORDS and sum(sc["type"] == "outro" for sc in s) == 1
+    cut = short_cut({"scenes": scenes})
+    assert cut[0]["type"] == "talk" and 40 <= _words(cut) <= SHORT_MAX_WORDS

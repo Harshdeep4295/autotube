@@ -81,6 +81,27 @@ Return JSON:
               "lines": [{{"text": "...", "cue": "optional word from the text"}}]}}]
 }}"""
 
+SHORT_USER = """Here is a finished script. Write a SHORT version of it: a 30-40 second vertical video
+for people scrolling a feed.
+
+FULL SCRIPT:
+<<<
+{script}
+>>>
+
+RULES
+- {min_words}-{max_words} words of narration in total. 4-6 scenes, 1-3 lines per scene, each line 4-14 words.
+- The very first line is the HOOK: a surprising question or claim that makes someone stop
+  scrolling. No greeting, no "today we learn", no names first. Do NOT use the "title" scene type.
+- Then tell the ONE core idea, in the same world and with the same characters and props as the
+  full script. Say the main grown-up word once, right after the kid version is clear.
+- Lines are a story told to the viewer, never stage directions.
+- Last scene: "outro".
+- Use the same scene catalogue and scene JSON shape as the full script:
+{catalogue}
+
+Return JSON: {{"scenes": [{{"type": "...", "weather": "sunny", "props": {{...}}, "lines": [{{"text": "...", "cue": "optional"}}]}}]}}"""
+
 CHECK_USER = """You are a strict reviewer for a kids-style explainer. Script JSON:
 <<<
 {script}

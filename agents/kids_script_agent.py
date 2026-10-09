@@ -93,6 +93,40 @@ def swap_stand(script: Dict, place: str) -> int:
     return n
 
 
+SHORT_WORDS = (60, 95)       # ≈ 30-40 s at the kids narration pace
+SHORT_MAX_WORDS = 110
+SHORT_OUTRO = "Want the whole story? Watch the full video!"
+
+
+def _words(scenes: List[Dict]) -> int:
+    return sum(len(str(ln.get("text", "")).split()) for sc in scenes for ln in sc.get("lines", []))
+
+
+def finish_short(scenes: List[Dict]) -> List[Dict]:
+    """Shape scenes into a Short: no title card, at most SHORT_MAX_WORDS, and a fixed closing
+    line that points to the full video."""
+    body = [sc for sc in scenes if isinstance(sc, dict) and sc.get("type") not in ("title", "outro") and sc.get("lines")]
+    while len(body) > 2 and _words(body) > SHORT_MAX_WORDS - len(SHORT_OUTRO.split()):
+        body.pop()
+    return body + [{"type": "outro", "weather": "sunny",
+                    "props": {"cast": ["leo", "mia", "zoe"], "message": "Full video on the channel!"},
+                    "lines": [{"text": SHORT_OUTRO}]}]
+
+
+def short_cut(script: Dict) -> List[Dict]:
+    """A Short without an LLM: the start of the story (after the title card), up to about 75 words."""
+    body, n = [], 0
+    for sc in script.get("scenes", [])[1:]:
+        if sc.get("type") in ("title", "outro", "recap"):
+            continue
+        w = _words([sc])
+        if body and n + w > 75:
+            break
+        body.append(sc)
+        n += w
+    return finish_short(body)
+
+
 class KidsScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
         self.llm = llm or FreeLLM()
@@ -185,6 +219,21 @@ class KidsScriptAgent:
                 break
         return script
 
+    def short(self, script: Dict) -> List[Dict]:
+        """Scenes of the 30-40 s Short: hook line first, one idea, pointer to the full video."""
+        def check(o):
+            if not isinstance(o.get("scenes"), list) or len(o["scenes"]) < 3:
+                raise ValueError("need 3+ scenes")
+            w = _words([sc for sc in o["scenes"] if isinstance(sc, dict)])
+            if w < 40:
+                raise ValueError(f"only {w} words, need {SHORT_WORDS[0]}-{SHORT_WORDS[1]}")
+
+        full = {"title": script.get("title", ""), "scenes": script.get("scenes", [])}
+        o = self._ask(P.SHORT_USER.format(script=json.dumps(full, ensure_ascii=False), min_words=SHORT_WORDS[0],
+                                          max_words=SHORT_WORDS[1], catalogue=catalogue_for_prompt()),
+                      check, max_tokens=6000, repairs=1)
+        return finish_short(o["scenes"])
+
     def generate(self, topic: Dict) -> Dict:
         logger.info(f"[kids-script] topic: {topic['topic'][:70]}")
         plan = self.plan(topic)
@@ -218,6 +267,14 @@ class KidsScriptAgent:
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],
             "llm": self.llm.last_model,
         })
+        if config.KIDS_SHORTS:
+            try:
+                short = {"scenes": self.short(script)}
+                swap_stand(short, getattr(self, "world", {}).get("place", "stand"))
+                script["short"] = short
+                logger.info(f"[kids-script] short: {len(short['scenes'])} scenes, {_words(short['scenes'])} words")
+            except Exception as e:  # noqa: BLE001 — the renderer falls back to a cut of the full story
+                logger.warning(f"[kids-script] short script failed ({str(e)[:120]}) — a cut of the full story is used")
         logger.info(f"[kids-script] ✓ {len(script['scenes'])} scenes, {words} words ≈ {est:.0f}s, "
                     f"{len(repairs)} repairs, checker ok={reviewed['review'].get('ok')}")
         return script

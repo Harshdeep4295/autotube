@@ -161,7 +161,7 @@ class KidsAgent:
                                for sc in TL["scenes"] for ln in sc["lines"]])
         (out / "captions.srt").write_text(srt(pages), encoding="utf-8")
         contact = self.contact_sheet(TL, out)
-        short = self.make_short(TL, safe, video, out) if config.KIDS_SHORTS else None
+        short = self.make_short(safe, out) if config.KIDS_SHORTS else None
         report = {"duration_s": round(total, 2), "scenes": len(TL["scenes"]), "words": word_count(safe),
                   "render_seconds": round(time.time() - t0, 1), "repairs": repairs, "voice": self.voice().name,
                   "scene_counts": _counts(s["type"] for s in TL["scenes"]), "qa": qa, "short": bool(short)}
@@ -171,34 +171,46 @@ class KidsAgent:
         return {"video_path": str(video), "thumbnail_path": str(thumb), "captions_path": str(out / "captions.srt"),
                 "contact_sheet": contact, "short_path": short, "duration": total, "report": report, "script": safe}
 
-    @staticmethod
-    def make_short(TL: Dict, script: Dict, video: Path, out: Path) -> Optional[str]:
-        """Vertical 9:16 cut for YouTube Shorts. Returns its path, or None if it can't be made —
-        a failed Short must never block the main video."""
+    def make_short(self, script: Dict, out: Path) -> Optional[str]:
+        """Vertical 9:16 Short: its own 30-40 s script (script["short"], hook line first) or, without
+        one, a cut of the story's start. Returns its path, or None if it can't be made — a failed
+        Short must never block the main video."""
         from agents.kids import short as S
+        from agents.kids_script_agent import finish_short, short_cut
         from scripts.qa_video import run_qa
 
-        total = TL["duration"]
-        if total > S.MAX_SECONDS:
-            logger.info(f"[kids-short] skipped: {total:.0f}s is over the {S.MAX_SECONDS}s Shorts limit")
-            return None
-        path = out / "short.mp4"
+        path, work = out / "short.mp4", out / "short_work"
         try:
-            logger.info("[kids-short] rendering vertical frames…")
+            scenes = (script.get("short") or {}).get("scenes")
+            scenes = finish_short(scenes) if scenes else short_cut(script)
+            mini, _ = validate_and_repair({"title": script.get("title", ""), "backdrop": script.get("backdrop", "meadow"),
+                                           "scenes": scenes})
+            work.mkdir(parents=True, exist_ok=True)
+            voiced, audio, sr = self.voice_lines(mini, work / "lines")
+            TL = TLB.build(mini, voiced)
+            total = TL["duration"]
+            if total > S.MAX_SECONDS:
+                raise RuntimeError(f"{total:.0f}s is over the {S.MAX_SECONDS}s Shorts limit")
+            self.assemble_voice(audio, TL["gaps"], sr, work / "voice.wav")
+            music = self.music_for(mini, total, work)
+            logger.info(f"[kids-short] {total:.0f}s, {len(TL['scenes'])} scenes, {word_count(mini)} words — rendering…")
+            R.video(TL, str(work / "voice.wav"), str(work / "wide.mp4"), music, channel="")
             title = S.card_title(script.get("title", ""))
-            S.video(TL, str(video), str(path), title, channel=config.CHANNEL_NAME)
+            S.video(TL, str(work / "wide.mp4"), str(path), title, channel=config.CHANNEL_NAME)
             qa = run_qa(str(path), expected=total, resolution=(S.SW, S.SH))
             (out / "short_qa.json").write_text(json.dumps(qa, indent=2))
             if not qa["passed"]:
                 raise RuntimeError("failed QA: " + ", ".join(c["name"] for c in qa["checks"] if not c["ok"]))
-            S.still(TL, TL["scenes"][min(2, len(TL["scenes"]) - 1)]["end"] - 0.5, str(out / "short_still.png"),
+            S.still(TL, TL["scenes"][min(1, len(TL["scenes"]) - 1)]["end"] - 0.5, str(out / "short_still.png"),
                     title, config.CHANNEL_NAME)
-            logger.info(f"[kids-short] ✓ {path}")
+            logger.info(f"[kids-short] ✓ {path} ({total:.0f}s)")
             return str(path)
         except Exception as e:  # noqa: BLE001
             logger.warning(f"[kids-short] not made: {e}")
             path.unlink(missing_ok=True)
             return None
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
     @staticmethod
     def contact_sheet(TL: Dict, out: Path) -> str:
