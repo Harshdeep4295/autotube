@@ -33,5 +33,12 @@
     "timestamp": "2026-10-09T11:28:36.340965",
     "used_at": "2026-10-09T11:28:36.340965",
     "source": "bank"
+  },
+  {
+    "topic": "Open WebUI: a free ChatGPT-style interface for your own local AI",
+    "normalized_topic": "open webui a free chatgptstyle interface",
+    "timestamp": "2026-10-10T10:35:18.558750",
+    "used_at": "2026-10-10T10:35:18.558750",
+    "source": "bank"
   }
 ]
