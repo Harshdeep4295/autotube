@@ -40,5 +40,12 @@
     "timestamp": "2026-10-10T10:35:18.558750",
     "used_at": "2026-10-10T10:35:18.558750",
     "source": "bank"
+  },
+  {
+    "topic": "llama.cpp explained: the engine behind most local AI apps",
+    "normalized_topic": "llamacpp explained the engine behind mos",
+    "timestamp": "2026-10-11T10:48:26.545388",
+    "used_at": "2026-10-11T10:48:26.545388",
+    "source": "bank"
   }
 ]
