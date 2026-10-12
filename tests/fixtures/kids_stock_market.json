@@ -10,9 +10,9 @@
     {"real": "stock market", "kid": "a big playground where people buy and sell slices"}]},
   "scenes": [
     {"type": "title", "props": {"question": "How does the stock market work?", "props": ["coin", "lemon", "chart"]},
-     "lines": [{"text": "Hi friend! Today we're going to learn about the stock market."},
-               {"text": "It sounds big and grown-up, but it's really simple."},
-               {"text": "Let's find out... with lemonade!", "cue": "lemonade"}]},
+     "lines": [{"text": "How does the stock market work?"},
+               {"text": "It sounds big and grown-up. You will see it is simple."},
+               {"text": "Let's find out with lemonade!", "cue": "lemonade"}]},
     {"type": "meet", "props": {"who": "mia", "place": "stand", "label": "LEMONADE", "greeting": "Hi! I'm Mia!", "flow": "coin"},
      "lines": [{"text": "This is Mia."},
                {"text": "Mia has a little lemonade stand."},

@@ -295,3 +295,24 @@ def test_short_opens_with_a_question_and_filler_is_stripped():
     assert strip_filler(sc) == 2
     assert [ln["text"] for ln in sc["scenes"][0]["lines"]] == [
         "Leo walks in and says hi.", "Tiny switches flip quickly.", "Each tiny switch says yes or no!"]
+
+
+def test_opening_must_start_the_story_not_greet():
+    from agents.kids_script_agent import drop_greetings, opening_problems
+
+    def scenes(*title_and_meet):
+        t, m = title_and_meet
+        return [{"type": "title", "lines": [{"text": x} for x in t]}, {"type": "meet", "lines": [{"text": x} for x in m]}]
+
+    bad = scenes(["Why does gasoline cost so much?", "Mia waves hello to curious friends."],
+                 ["Hi! I'm Mia, the baker.", "My bakery smells sweet like sunrise."])
+    problems = opening_problems(bad)
+    assert any("waves" in p for p in problems) and any("you" in p for p in problems)
+    assert drop_greetings(bad) == 2                      # the title keeps its question, the meet scene one line
+    assert [ln["text"] for ln in bad[0]["lines"]] == ["Why does gasoline cost so much?"]
+    assert [ln["text"] for ln in bad[1]["lines"]] == ["My bakery smells sweet like sunrise."]
+
+    good = scenes(["Why does gasoline cost so much?", "Mia's cookies cost more today. You will see why."],
+                  ["The flour truck came late this morning.", "Now Mia has only one bag of flour."])
+    assert opening_problems(good) == [] and drop_greetings(good) == 0
+    assert opening_problems(scenes(["Gasoline costs a lot."], ["You will see why."]))[0].startswith("the first line")

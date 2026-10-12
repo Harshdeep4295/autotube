@@ -43,16 +43,16 @@ def WHO(default: str = "mia") -> P:
 
 CATALOGUE: Dict[str, Dict[str, Any]] = {
     "title": {
-        "use": "first scene: the big question of the video",
+        "use": "first scene: the big question, then why the viewer will want the answer",
         "lines": (1, 3),
-        "beats": ["title card pops up", "the props bounce in", "Mia waves hello"],
+        "beats": ["title card pops up with the question", "the props bounce in", "Mia points at the question"],
         "props": {"question": T(44, True), "props": L(PR(), 0, 3)},
         "example": {"question": "How does the stock market work?", "props": ["coin", "lemon"]},
     },
     "meet": {
-        "use": "introduce a character and their place/thing (the analogy's 'company')",
+        "use": "a character and their place/thing (the analogy's 'company'), shown while the story's problem starts",
         "lines": (1, 3),
-        "beats": ["character walks in and says hi", "their place pops up", "customers bring items into the jar"],
+        "beats": ["the character walks in", "their place pops up", "customers bring items into the jar"],
         "props": {"who": WHO(), "place": PR("stand"), "label": T(12), "greeting": T(22), "flow": PR("coin")},
         "example": {"who": "mia", "place": "stand", "label": "LEMONADE", "greeting": "Hi! I'm Mia!", "flow": "coin"},
     },

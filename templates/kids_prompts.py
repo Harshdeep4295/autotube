@@ -21,7 +21,9 @@ HARD RULES
 3. Never give advice (no "you should buy/invest/save in X"), never name real companies,
    brands, apps, people or coins. No scary, sad or violent content. No real prices.
 4. Only numbers a child can picture (1-10, "a hundred"). A number shown on screen must be said.
-5. Output ONLY valid JSON. No markdown, no comments, no text outside the JSON."""
+5. The narration is a story told to the viewer. It never greets ("Hi!", "Hello", "I'm Mia",
+   "welcome") and never describes the picture ("Mia waves", "a star appears", "the shop pops up").
+6. Output ONLY valid JSON. No markdown, no comments, no text outside the JSON."""
 
 PLAN_USER = """Plan a video that answers: {question}
 
@@ -66,6 +68,14 @@ two copied exactly from that line — the beat fires exactly on that word (use i
 and grown-up words).
 {catalogue}
 
+OPENING (the first 15 seconds decide whether anyone stays)
+- Scene 1 is "title" with 2 lines. Line 1 is the plan's question, word for word. Line 2 is a
+  promise to the viewer that says "you": what they will understand, tied to the story
+  ("Mia's cookies cost more today. You will see why.").
+- Scene 2 starts the PROBLEM of the story in its very first line: something costs more, breaks,
+  runs out, goes missing. The character is introduced by what happens to them, not by a hello.
+- No greeting and no scene-setting anywhere in scenes 1-2.
+
 STRUCTURE
 - Scene 1: "title" (props.question = the plan's question). Last scene: "outro".
 - Second to last: "recap" with one card per grown-up word (term = grown-up word, means = kid meaning).
@@ -101,6 +111,8 @@ RULES
 - The very first line is the HOOK: a QUESTION of at most 10 words, ending in "?", that makes
   someone stop scrolling ("How can a tiny chip think so fast?"). No greeting, no "today we
   learn", no "look at". Do NOT use the "title" scene type.
+- The second line starts the answer inside the story: what goes wrong or what is strange
+  ("Mia's cookies cost more today."). Never a hello, never a description of the picture.
 - Then tell the ONE core idea, in the same world and with the same characters and props as the
   full script. Say the main grown-up word once, right after the kid version is clear.
 - Lines are a story told to the viewer, never stage directions.
@@ -125,6 +137,8 @@ Check:
 4. Does each line say what its scene beat shows?
 5. Does any scene show a prop that has nothing to do with its lines or with the topic
    (for example an apple in a video about computer chips)? Name the scene.
+6. Do the first two scenes greet the viewer or describe the picture instead of starting the
+   story's problem? Quote the line.
 
 Return JSON: {{"ok": true|false, "problems": ["specific problem + the line it is in"]}}
 Say ok=true if there are only tiny style issues."""

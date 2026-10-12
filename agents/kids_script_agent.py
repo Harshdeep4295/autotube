@@ -7,6 +7,7 @@ fixed by agents.kids_scene_schema.validate_and_repair, never fatal.
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -161,6 +162,55 @@ def short_cut(script: Dict, hook: str = "") -> List[Dict]:
     return finish_short(body, hook)
 
 
+OPENING_WORDS = 35          # ≈ the first 15 s at the kids narration pace
+GREETING = re.compile(r"\b(hi|hello|hey|welcome|i'm|i am|my name is|says? (hi|hello)|waves?|waving|"
+                      r"appears?|pops? up|bounces? in|walks? in)\b", re.I)
+
+
+def opening_lines(scenes: List[Dict], words: int = OPENING_WORDS) -> List[Dict]:
+    """The narration lines heard in about the first 15 seconds."""
+    out, n = [], 0
+    for sc in scenes:
+        for ln in (sc.get("lines", []) if isinstance(sc, dict) else []):
+            if n >= words:
+                return out
+            out.append(ln)
+            n += len(str(ln.get("text", "")).split())
+    return out
+
+
+def opening_problems(scenes: List[Dict]) -> List[str]:
+    """Why the first 15 seconds would lose a viewer: no question first, a greeting or a described
+    picture where the story should start, or nothing said to the viewer."""
+    lines = [str(ln.get("text", "")) for ln in opening_lines(scenes)]
+    if not lines:
+        return []
+    out = []
+    if not lines[0].strip().endswith("?"):
+        out.append("the first line must be the question")
+    for t in lines[1:]:
+        m = GREETING.search(t)
+        if m:
+            out.append(f'"{t}" greets or describes the picture ("{m.group(0)}"); start the story\'s problem instead')
+    if not re.search(r"\byou(r|'ll)?\b", " ".join(lines[1:]), re.I):
+        out.append('one of the first lines must tell the viewer what they will understand, using "you"')
+    return out
+
+
+def drop_greetings(scenes: List[Dict]) -> int:
+    """Last resort when the model keeps greeting: cut those lines from the opening. A scene always
+    keeps one line, and the first line (the question) is never cut."""
+    n = 0
+    for ln in opening_lines(scenes)[1:]:
+        if not GREETING.search(str(ln.get("text", ""))):
+            continue
+        sc = next(s for s in scenes if isinstance(s, dict) and any(x is ln for x in s.get("lines", [])))
+        if len(sc["lines"]) > 1:
+            sc["lines"] = [x for x in sc["lines"] if x is not ln]
+            n += 1
+    return n
+
+
 class KidsScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
         self.llm = llm or FreeLLM()
@@ -205,10 +255,17 @@ class KidsScriptAgent:
     def write(self, plan: Dict) -> Dict:
         lo, hi = word_bounds()
 
+        tries = 0
+
         def check(o):
+            nonlocal tries
+            tries += 1
             if not isinstance(o.get("scenes"), list) or len(o["scenes"]) < 5:
                 raise ValueError("need 5+ scenes")
             validate_and_repair(o)
+            bad = opening_problems(o["scenes"])
+            if bad and tries <= 2:   # ask twice for a better opening, then take what there is
+                raise ValueError("weak opening: " + "; ".join(bad))
 
         return self._ask(P.SCRIPT_USER.format(plan=json.dumps(plan, ensure_ascii=False), min_words=lo, max_words=hi,
                                               catalogue=catalogue_for_prompt()), check, max_tokens=12000)
@@ -259,7 +316,11 @@ class KidsScriptAgent:
 
     def short(self, script: Dict) -> List[Dict]:
         """Scenes of the 30-40 s Short: hook line first, one idea, pointer to the full video."""
+        tries = 0
+
         def check(o):
+            nonlocal tries
+            tries += 1
             if not isinstance(o.get("scenes"), list) or len(o["scenes"]) < 3:
                 raise ValueError("need 3+ scenes")
             w = _words([sc for sc in o["scenes"] if isinstance(sc, dict)])
@@ -268,12 +329,18 @@ class KidsScriptAgent:
             first = next((sc for sc in o["scenes"] if isinstance(sc, dict) and sc.get("type") != "title" and sc.get("lines")), {})
             if not is_hook(str((first.get("lines") or [{}])[0].get("text", ""))):
                 raise ValueError('the first line must be a question of at most 10 words ending in "?"')
+            body = [sc for sc in o["scenes"] if isinstance(sc, dict) and sc.get("type") != "title"]
+            bad = [p for p in opening_problems(body) if "greets" in p]
+            if bad and tries <= 2:
+                raise ValueError("weak opening: " + "; ".join(bad))
 
         full = {"title": script.get("title", ""), "scenes": script.get("scenes", [])}
         o = self._ask(P.SHORT_USER.format(script=json.dumps(full, ensure_ascii=False), min_words=SHORT_WORDS[0],
                                           max_words=SHORT_WORDS[1], catalogue=catalogue_for_prompt()),
                       check, max_tokens=6000, repairs=2)
-        return finish_short(o["scenes"])
+        scenes = finish_short(o["scenes"])
+        drop_greetings(scenes)
+        return scenes
 
     def generate(self, topic: Dict) -> Dict:
         logger.info(f"[kids-script] topic: {topic['topic'][:70]}")
@@ -284,6 +351,12 @@ class KidsScriptAgent:
         reviewed = self.review(script)
         script = reviewed["script"]
         script, repairs = validate_and_repair(script)
+        cut = drop_greetings(script["scenes"])
+        if cut:
+            logger.info(f"[kids-script] cut {cut} greeting line(s) from the opening")
+        logger.info("[kids-script] opening: " + " / ".join(str(ln["text"]) for ln in opening_lines(script["scenes"])))
+        for p in opening_problems(script["scenes"]):
+            logger.warning(f"[kids-script] opening still weak: {p}")
         trimmed = strip_filler(script)
         if trimmed:
             logger.info(f"[kids-script] removed a padding word from {trimmed} line(s)")
