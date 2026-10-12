@@ -74,5 +74,12 @@
     "source": "feed",
     "world": "cookie bakery",
     "date": "2026-10-11T10:35:15+00:00"
+  },
+  {
+    "topic": "Why does AI need rules?",
+    "area": "tech",
+    "source": "feed",
+    "world": "delivery truck",
+    "date": "2026-10-12T11:43:34+00:00"
   }
 ]
