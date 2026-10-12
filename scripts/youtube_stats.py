@@ -20,10 +20,12 @@ from googleapiclient.discovery import build  # noqa: E402
 from agents.upload_agent import UploadAgent  # noqa: E402
 
 
-def query(ya, start: str, end: str, metrics: str, dimensions: str, sort: str = "-views", limit: int = 50):
+def query(ya, start: str, end: str, metrics: str, dimensions: str, sort: str = "-views", limit: int = 50,
+          filters: str = ""):
     try:
         r = ya.reports().query(ids="channel==MINE", startDate=start, endDate=end, metrics=metrics,
-                               dimensions=dimensions, sort=sort, maxResults=limit).execute()
+                               dimensions=dimensions, sort=sort, maxResults=limit,
+                               **({"filters": filters} if filters else {})).execute()
         return [h["name"] for h in r.get("columnHeaders", [])], r.get("rows", [])
     except Exception as e:  # noqa: BLE001 — one refused report must not hide the others
         print(f"  (report '{dimensions}' not available: {str(e)[-260:]})")
@@ -58,6 +60,12 @@ def main() -> None:
                             sort="day" if dims == "day" else "-views", limit=25)
         for r in rows:
             print(f"- {str(r[0]):<24} views {r[1]:>4}  watched {r[2]:>4} min  avg watched {r[3]:5.1f}%")
+
+    print("\n== What people typed into YouTube search ==")
+    _, rows = query(ya, start, end, "views,estimatedMinutesWatched", "insightTrafficSourceDetail", limit=25,
+                    filters="insightTrafficSourceType==YT_SEARCH")
+    for term, views, minutes in rows:
+        print(f"- views {views:>4}  watched {minutes:>4} min  {term}")
 
 
 if __name__ == "__main__":
