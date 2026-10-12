@@ -47,5 +47,12 @@
     "timestamp": "2026-10-11T10:48:26.545388",
     "used_at": "2026-10-11T10:48:26.545388",
     "source": "bank"
+  },
+  {
+    "topic": "Whisper: free speech-to-text you can run on your own computer",
+    "normalized_topic": "whisper free speechtotext you can run on",
+    "timestamp": "2026-10-12T11:33:00.330075",
+    "used_at": "2026-10-12T11:33:00.330075",
+    "source": "bank"
   }
 ]
