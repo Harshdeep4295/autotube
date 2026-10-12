@@ -316,3 +316,18 @@ def test_opening_must_start_the_story_not_greet():
                   ["The flour truck came late this morning.", "Now Mia has only one bag of flour."])
     assert opening_problems(good) == [] and drop_greetings(good) == 0
     assert opening_problems(scenes(["Gasoline costs a lot."], ["You will see why."]))[0].startswith("the first line")
+
+
+def test_title_fits_search_and_thumbnail_does_not_repeat_it():
+    from agents.kids_agent import description_for
+    from agents.kids_script_agent import QUESTION_MAX, TITLE_SUFFIX
+    from agents.packaging import TITLE_MAX, packaging_problems, short_thumb
+
+    assert QUESTION_MAX + len(TITLE_SUFFIX) == TITLE_MAX == 60
+    title = "How do drones see hidden forest fires? (Explained Like You're 5)"
+    bad = packaging_problems(title, "How do drones see hidden forest fires?")
+    assert len(bad) == 3                                   # too long, too many words, repeats the title
+    assert packaging_problems("How do drones find fires? (Explained Like You're 5)", "IT SEES HEAT") == []
+    assert short_thumb("How do drones see hidden forest fires?") == "drones see hidden?"
+    d = description_for({"title": "How do drones find fires? (Explained Like You're 5)", "description": "Tiny robots feel heat."})
+    assert d.startswith("How do drones find fires? Tiny robots feel heat.")

@@ -41,7 +41,7 @@ Cast: mia, leo, zoe (main), sam, ava, raj, kim (friends).
 
 Return JSON:
 {{
-  "question": "the kid-friendly question, ≤44 chars, e.g. 'How does the stock market work?'",
+  "question": "the kid-friendly question, at most 33 characters (it must fit a title), e.g. 'How does the stock market work?'",
   "world_key": "the key of the world you picked, copied exactly",
   "world": "the analogy world in a few words",
   "map": [{{"real": "grown-up word", "kid": "what it is in the story"}}],
@@ -90,10 +90,10 @@ STRUCTURE
 
 Return JSON:
 {{
-  "title": "YouTube title, ≤70 chars, ends with (Explained Like You're 5)",
-  "description": "60-100 words: what the viewer will understand after watching. No links.",
+  "title": "the plan's question followed by (Explained Like You're 5); 60 characters at most in total",
+  "description": "60-100 words. Sentence 1 answers the question in the words someone would type into a search box and names the grown-up word ('Drones find forest fires with an infrared sensor, a camera that sees heat.'). Then what the viewer will understand. No links.",
   "tags": ["8-12 search phrases; first one exactly: Explained Like You're 5"],
-  "thumbnail_text": "the question, ≤40 chars",
+  "thumbnail_text": "2-3 words that make someone curious and are NOT the title's words: for 'How do drones see hidden forest fires?' write 'IT SEES HEAT'",
   "scenes": [{{"type": "...", "weather": "sunny", "props": {{...}},
               "lines": [{{"text": "...", "cue": "optional word from the text"}}]}}]
 }}"""
@@ -171,5 +171,5 @@ Pick up to 3 BIG IDEAS behind them that a curious 5-year-old could learn in 2 mi
 Evergreen ideas only — never the news event itself, no company or person names.
 Skip anything about war, crime, disasters or death.
 
-Return JSON: {{"ideas": [{{"question": "≤44 chars, a kid's question", "area": "finance|tech",
+Return JSON: {{"ideas": [{{"question": "≤33 chars, a kid's question", "area": "finance|tech",
 "why": "which headline it comes from"}}]}}"""

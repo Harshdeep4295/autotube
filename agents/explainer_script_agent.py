@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 
 from agents.fact_check import unsupported_numbers
 from agents.llm import FreeLLM
+from agents.packaging import packaging_problems
 from agents.scene_schema import ICONS, catalogue_for_prompt, validate_and_repair
 from agents.source_fetcher import fetch_text
 from config import config
@@ -148,11 +149,18 @@ class ExplainerScriptAgent:
     def outline(self, topic: Dict, source: str) -> Dict:
         words = config.EXPLAINER_TARGET_WORDS
 
+        tries = 0
+
         def check(o):
+            nonlocal tries
+            tries += 1
             if not isinstance(o.get("chapters"), list) or not 3 <= len(o["chapters"]) <= 8:
                 raise ValueError("need 3-8 chapters")
             if not str(o.get("title", "")).strip():
                 raise ValueError("missing title")
+            bad = packaging_problems(str(o["title"]), str(o.get("thumbnail_text", "")))
+            if bad and tries <= 2:   # ask twice for a tighter title + thumbnail, then take what there is
+                raise ValueError("; ".join(bad))
 
         user = P.OUTLINE_USER.format(minutes=round(words / config.EXPLAINER_WPM), words=words, topic=topic["topic"],
                                      source=source or "(no source text available — use only general knowledge)",

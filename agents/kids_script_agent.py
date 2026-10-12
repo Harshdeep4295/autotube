@@ -14,10 +14,13 @@ from typing import Dict, List, Optional
 from agents.explainer_script_agent import parse_json_obj
 from agents.kids_scene_schema import PROPS, catalogue_for_prompt, validate_and_repair, word_count
 from agents.llm import FreeLLM
+from agents.packaging import TITLE_MAX, packaging_problems, short_thumb
 from config import config
 from templates import kids_prompts as P
 
 REPO = Path(__file__).resolve().parent.parent
+TITLE_SUFFIX = " (Explained Like You're 5)"
+QUESTION_MAX = TITLE_MAX - len(TITLE_SUFFIX)    # the question that still fits a 60-character title
 
 logger = logging.getLogger(__name__)
 
@@ -231,9 +234,16 @@ class KidsScriptAgent:
         raise ValueError("unreachable")
 
     def plan(self, topic: Dict) -> Dict:
+        tries = 0
+
         def check(o):
-            if not str(o.get("question", "")).strip():
+            nonlocal tries
+            tries += 1
+            q = str(o.get("question", "")).strip()
+            if not q:
                 raise ValueError("missing question")
+            if len(q) > QUESTION_MAX and tries <= 2:
+                raise ValueError(f'"question" has {len(q)} characters; write it in {QUESTION_MAX} or fewer')
             if not isinstance(o.get("map"), list) or not o["map"]:
                 raise ValueError("missing map")
             if not isinstance(o.get("story"), list) or len(o["story"]) < 4:
@@ -266,6 +276,10 @@ class KidsScriptAgent:
             bad = opening_problems(o["scenes"])
             if bad and tries <= 2:   # ask twice for a better opening, then take what there is
                 raise ValueError("weak opening: " + "; ".join(bad))
+            bad = [p for p in packaging_problems(str(plan.get("question", "")), str(o.get("thumbnail_text", "")))
+                   if "thumbnail" in p]
+            if bad and tries <= 2:
+                raise ValueError("; ".join(bad))
 
         return self._ask(P.SCRIPT_USER.format(plan=json.dumps(plan, ensure_ascii=False), min_words=lo, max_words=hi,
                                               catalogue=catalogue_for_prompt()), check, max_tokens=12000)
@@ -371,14 +385,19 @@ class KidsScriptAgent:
         if est < config.KIDS_MIN_SECONDS * 0.8:
             raise RuntimeError(f"script too short: {words} words ≈ {est:.0f}s (min {config.KIDS_MIN_SECONDS}s)")
         title = str(script.get("title") or plan["question"])[:100]
-        if "like you're 5" not in title.lower():
-            title = f"{plan['question'].rstrip('?')}? (Explained Like You're 5)"[:100]
+        if "like you're 5" not in title.lower() or len(title) > TITLE_MAX:
+            title = f"{plan['question'].rstrip('?')}?{TITLE_SUFFIX}"[:100]
+        thumb = str(script.get("thumbnail_text") or "").strip()
+        if not thumb or len(thumb.split()) > 3:
+            thumb = short_thumb(plan["question"])
+        script["thumbnail_text"] = thumb
+        for p in packaging_problems(title, thumb):
+            logger.warning(f"[kids-script] packaging: {p}")
         tags = [str(t) for t in (script.get("tags") or [])][:15]
         if config.KIDS_PLAYLIST and (not tags or tags[0] != config.KIDS_PLAYLIST):
             tags = [config.KIDS_PLAYLIST] + [t for t in tags if t != config.KIDS_PLAYLIST][:14]
         script.update({
             "title": title, "tags": tags, "topic": topic["topic"],
-            "thumbnail_text": script.get("thumbnail_text") or plan["question"],
             "analogy": {"world": plan.get("world", ""), "map": plan.get("map", [])},
             "backdrop": getattr(self, "world", {}).get("backdrop", "meadow"),
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],

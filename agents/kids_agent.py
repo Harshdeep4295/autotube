@@ -262,7 +262,11 @@ def earlier_videos(limit: int = 3, skip_url: str = "") -> list:
 
 
 def description_for(script: Dict, skip_url: str = "") -> str:
-    parts = [script.get("description", "").strip()]
+    body = script.get("description", "").strip()
+    question = str(script.get("title", "")).split(" (")[0].strip()
+    if question.endswith("?") and question.lower() not in body[:160].lower():
+        body = f"{question} {body}"
+    parts = [body]
     amap = (script.get("analogy") or {}).get("map") or []
     if amap:
         parts.append("Grown-up words in this video:\n" + "\n".join(

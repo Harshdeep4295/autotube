@@ -32,10 +32,10 @@ SOURCE (the only place specific facts may come from):
 
 Return JSON:
 {{
-  "title": "40-70 chars. Specific and honest; a clear benefit or question. No clickbait.",
+  "title": "40-60 characters, never more. Starts with the tool's name or the action ('Run', 'Install'), not 'Understanding' or 'A guide to'. Specific and honest. No clickbait.",
   "description": "120-180 words for YouTube. What the viewer will learn. No timestamps, no links.",
   "tags": ["10-15 search phrases"],
-  "thumbnail_text": "2-4 words, the core promise",
+  "thumbnail_text": "2-3 words, the core promise, in words the title does NOT use",
   "thumbnail_subtext": "0-2 words, e.g. FREE, OFFLINE, 2026",
   "thumbnail_icon": "one of: {icons}",
   "chapters": [

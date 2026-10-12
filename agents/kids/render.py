@@ -150,7 +150,7 @@ def thumbnail(script: Dict, path: str, channel: str = "") -> None:
     q = (script.get("thumbnail_text") or script.get("title", "")).upper()
     with T(c, 700, 330):
         card(c, 0, 0, 1260, 470, "#ffffff", INK, 12, 70)
-        D.text_block(c, q, 0, -20, 120, INK, max_w=1160, max_rows=3)
+        D.text_block(c, q, 0, -20, 190 if len(q.split()) <= 3 else 120, INK, max_w=1160, max_rows=2 if len(q.split()) <= 3 else 3)
     with T(c, 700, 610):
         card(c, 0, 0, 760, 100, PINK, INK, 8, 50)
         text(c, "EXPLAINED LIKE YOU'RE 5", 0, 0, 52, "#ffffff", max_w=700)

@@ -39,7 +39,7 @@ def chapter(n, first=0, cta=False):
 
 OUTLINE = json.dumps({
     "title": "Run a Real AI Model on Your Laptop", "description": "d", "tags": ["a"],
-    "thumbnail_text": "Run AI", "thumbnail_subtext": "free", "thumbnail_icon": "laptop",
+    "thumbnail_text": "No Cloud", "thumbnail_subtext": "free", "thumbnail_icon": "laptop",
     "chapters": [{"title": f"Ch {i}", "goal": "g", "key_points": ["k"], "target_words": 40} for i in range(3)],
 })
 
