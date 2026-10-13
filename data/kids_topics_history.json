@@ -81,5 +81,12 @@
     "source": "feed",
     "world": "delivery truck",
     "date": "2026-10-12T11:43:34+00:00"
+  },
+  {
+    "topic": "Why do things cost more?",
+    "area": "finance",
+    "source": "feed",
+    "world": "pizza shop",
+    "date": "2026-10-13T11:19:26+00:00"
   }
 ]
