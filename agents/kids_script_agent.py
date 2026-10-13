@@ -365,8 +365,15 @@ class KidsScriptAgent:
         logger.info(f"[kids-script] topic: {topic['topic'][:70]}")
         plan = self.plan(topic)
         logger.info(f"[kids-script] analogy: {plan.get('world', '')!r} — {len(plan.get('map', []))} grown-up words")
-        script = self.write(plan)
-        script = self.fit_length(script)
+        script = self.fit_length(self.write(plan))
+        lo, _ = word_bounds()
+        if word_count(validate_and_repair(script)[0]) < lo:
+            # A backup model sometimes writes half a script and cannot lengthen it; a short script only
+            # fails later, at the video length check, so write it once more from the plan.
+            logger.warning(f"[kids-script] still under {lo} words after lengthening — writing the script again")
+            again = self.fit_length(self.write(plan))
+            if word_count(validate_and_repair(again)[0]) > word_count(validate_and_repair(script)[0]):
+                script = again
         reviewed = self.review(script)
         script = reviewed["script"]
         script, repairs = validate_and_repair(script)

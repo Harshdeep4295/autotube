@@ -34,6 +34,19 @@ def _is_rate_limit(exc: Exception) -> bool:
     return "429" in s or "rate limit" in s or "resource_exhausted" in s or "quota" in s
 
 
+def _is_dead(exc: Exception) -> bool:
+    """A key that cannot work until its owner acts (prepaid credits used up): retrying only wastes minutes."""
+    s = str(exc).lower()
+    return "402" in s or "prepayment" in s or "credits are depleted" in s
+
+
+def _is_minute_budget(exc: Exception) -> bool:
+    """Groq answers 413 when the request does not fit what is left of the tokens-per-minute budget
+    (another run is using the same key). The budget refills within a minute."""
+    s = str(exc).lower()
+    return "413" in s and ("tokens per minute" in s or "tpm" in s)
+
+
 def _is_transient(exc: Exception) -> bool:
     s = str(exc).lower()
     return ("503" in s or "unavailable" in s or "high demand" in s or "overloaded" in s
@@ -61,6 +74,7 @@ class FreeLLM:
         self._preferred: Optional[Tuple[str, str, Callable]] = None
         self._no_thinking_cfg: set = set()   # models that rejected thinking_config
         self.max_transient = 2
+        self._dead: set = set()              # (provider, model) with no credit left
 
     # Providers ---------------------------------------------------------------
 
@@ -128,7 +142,7 @@ class FreeLLM:
         if self._preferred:
             chain = [self._preferred] + [c for c in chain if c[:2] != self._preferred[:2]]
         errors = []
-        tried = set()
+        tried = set(self._dead)
         i = 0
         while i < len(chain):
             provider, model, fn = chain[i]
@@ -146,6 +160,15 @@ class FreeLLM:
                     logger.info(f"[LLM] {self.last_model} ok ({len(text)} chars)")
                     return text
                 except Exception as e:  # noqa: BLE001 — any provider error → next option
+                    if _is_dead(e):
+                        self._dead.add((provider, model))
+                        logger.warning(f"[LLM] {provider}:{model} has no credit left — skipped for the rest of this run")
+                        errors.append(f"{provider}:{model}: no credit")
+                        break
+                    if _is_minute_budget(e) and attempt == 0:
+                        logger.warning(f"[LLM] {provider}:{model} minute budget used up — retry in 62s ({str(e)[-160:]})")
+                        time.sleep(62)
+                        continue
                     if _is_transient(e) and not _is_rate_limit(e) and attempt < self.max_transient:
                         wait = 8 * (attempt + 1)
                         logger.warning(f"[LLM] {provider}:{model} overloaded — retry in {wait}s")
@@ -156,7 +179,7 @@ class FreeLLM:
                         logger.warning(f"[LLM] {provider}:{model} rate-limited — retry in {wait:.0f}s")
                         time.sleep(wait)
                         continue
-                    logger.warning(f"[LLM] {provider}:{model} failed: {str(e)[:200]}")
+                    logger.warning(f"[LLM] {provider}:{model} failed: {str(e)[:420]}")
                     errors.append(f"{provider}:{model}: {str(e)[:120]}")
                     # Retired model: the error names its replacement ("use models/gemini-3.5-flash-lite").
                     successor = _successor(e)

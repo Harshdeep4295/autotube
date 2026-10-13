@@ -331,3 +331,27 @@ def test_title_fits_search_and_thumbnail_does_not_repeat_it():
     assert short_thumb("How do drones see hidden forest fires?") == "drones see hidden?"
     d = description_for({"title": "How do drones find fires? (Explained Like You're 5)", "description": "Tiny robots feel heat."})
     assert d.startswith("How do drones find fires? Tiny robots feel heat.")
+
+
+def test_llm_skips_a_key_without_credit_and_waits_out_the_minute_budget(monkeypatch):
+    from agents import llm as L
+
+    calls, slept = [], []
+    monkeypatch.setattr(L.time, "sleep", slept.append)
+
+    def dead(model, *a):
+        calls.append("dead")
+        raise RuntimeError("402 RESOURCE_EXHAUSTED. Your prepayment credits are depleted.")
+
+    def busy(model, *a):
+        calls.append("busy")
+        if calls.count("busy") == 1:
+            raise RuntimeError("Error code: 413 - Request too large for model on tokens per minute (TPM): Limit 8000, Requested 9000")
+        return '{"ok": true}'
+
+    f = L.FreeLLM()
+    monkeypatch.setattr(f, "chain", lambda: [("gemini", "g", dead), ("groq", "q", busy)])
+    assert f.complete("s", "u") == '{"ok": true}' and slept == [62]
+    f._preferred = None
+    assert f.complete("s", "u") == '{"ok": true}'
+    assert calls.count("dead") == 1                      # the dead key is not asked again
