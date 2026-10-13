@@ -54,5 +54,12 @@
     "timestamp": "2026-10-12T11:33:00.330075",
     "used_at": "2026-10-12T11:33:00.330075",
     "source": "bank"
+  },
+  {
+    "topic": "ComfyUI explained: make AI images locally with a node graph",
+    "normalized_topic": "comfyui explained make ai images locally",
+    "timestamp": "2026-10-13T11:14:25.383837",
+    "used_at": "2026-10-13T11:14:25.383837",
+    "source": "bank"
   }
 ]
