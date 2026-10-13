@@ -1,0 +1,37 @@
+name: Channel Report
+
+# Read-only: one JSON snapshot of the channel's numbers (see scripts/channel_report.py),
+# published as the asset report.json on the release "channel-report" so the report page can
+# be refreshed from a public URL. Daily, after YouTube Analytics has usually updated.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 1 * * *"
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # release asset only; nothing is committed
+    env:
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+      INSTAGRAM_ACCOUNT_ID: ${{ vars.INSTAGRAM_ACCOUNT_ID || '' }}
+      FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID || '' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python packages
+        run: pip install -q requests python-dotenv google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+      - name: Build the report
+        run: python scripts/channel_report.py --days 90 --out report.json
+      - name: Publish report.json
+        run: |
+          gh release view channel-report --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create channel-report --repo "$GITHUB_REPOSITORY" --prerelease \
+              --title "Channel report data" --notes "report.json is rewritten daily by the Channel Report workflow."
+          gh release upload channel-report report.json --repo "$GITHUB_REPOSITORY" --clobber
