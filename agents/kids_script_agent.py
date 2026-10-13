@@ -15,6 +15,7 @@ from agents.explainer_script_agent import parse_json_obj
 from agents.kids_scene_schema import PROPS, catalogue_for_prompt, validate_and_repair, word_count
 from agents.llm import FreeLLM
 from agents.packaging import TITLE_MAX, packaging_problems, short_thumb
+from agents.script_rules import check_script
 from config import config
 from templates import kids_prompts as P
 
@@ -295,9 +296,13 @@ class KidsScriptAgent:
             logger.warning(f"[kids-script] checker unavailable: {str(e)[:120]}")
             return {"script": script, "review": {"ok": None, "problems": []}}
         problems = [str(p) for p in verdict.get("problems", [])][:8]
-        if verdict.get("ok") or not problems:
+        rules = [p for p in check_script(script) if "title has" not in p]   # the title is rebuilt later
+        if (verdict.get("ok") or not problems) and not rules:
             return {"script": script, "review": {"ok": True, "problems": problems}}
-        logger.info(f"[kids-script] checker found {len(problems)} problem(s) — one fix round")
+        if verdict.get("ok"):
+            problems = []
+        problems += rules
+        logger.info(f"[kids-script] checker: {len(problems) - len(rules)} problem(s), script rules: {len(rules)} — one fix round")
         try:
             fixed = self._ask(P.FIX_USER.format(problems="\n".join(f"- {p}" for p in problems), min_words=lo,
                                                 max_words=hi, script=json.dumps(script, ensure_ascii=False)),
@@ -412,6 +417,9 @@ class KidsScriptAgent:
                 logger.info(f"[kids-script] short: {len(short['scenes'])} scenes, {_words(short['scenes'])} words")
             except Exception as e:  # noqa: BLE001 — the renderer falls back to a cut of the full story
                 logger.warning(f"[kids-script] short script failed ({str(e)[:120]}) — a cut of the full story is used")
+        script["rule_problems"] = check_script(script)
+        for p in script["rule_problems"]:
+            logger.warning(f"[kids-script] rule still broken: {p}")
         logger.info(f"[kids-script] ✓ {len(script['scenes'])} scenes, {words} words ≈ {est:.0f}s, "
                     f"{len(repairs)} repairs, checker ok={reviewed['review'].get('ok')}")
         return script

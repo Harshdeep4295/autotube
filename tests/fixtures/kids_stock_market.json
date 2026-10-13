@@ -3,7 +3,7 @@
   "title": "How Does the Stock Market Work? (Explained Like You're 5)",
   "description": "What is a share? Why do prices go up and down? Mia and her lemonade stand explain the stock market in two minutes.",
   "tags": ["Explained Like You're 5", "stock market", "shares", "finance for beginners", "money basics"],
-  "thumbnail_text": "How does the stock market work?",
+  "thumbnail_text": "SLICES FOR SALE",
   "analogy": {"world": "Mia's lemonade stand", "map": [
     {"real": "company", "kid": "a lemonade stand"},
     {"real": "share", "kid": "one slice of the stand"},
@@ -56,7 +56,7 @@
     {"type": "recap", "props": {"cards": [{"prop": "stand", "term": "COMPANY", "means": "a lemonade stand"},
                {"prop": "slice", "term": "SHARE", "means": "one slice"},
                {"prop": "chart", "term": "STOCK MARKET", "means": "where slices are traded"}]},
-     "lines": [{"text": "So let's remember!"},
+     "lines": [{"text": "Now you know how the stock market works!"},
                {"text": "A company is like a lemonade stand."},
                {"text": "A share is one slice."},
                {"text": "And the stock market is where people buy and sell slices."}]},

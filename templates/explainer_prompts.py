@@ -67,7 +67,8 @@ SCENE CATALOGUE — every shot gets exactly one scene; props must match the narr
 
 Scene rules: vary scene types; never the same type twice in a row; use key_point for at
 most 1 in 3 shots; numbers shown in a scene must also be said in that shot's narration;
-use terminal only for real commands, chat only for example prompts/answers.
+use terminal only for real commands, chat only for example prompts/answers. Never say the
+same sentence twice, in this chapter or from the previous lines.
 
 Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
@@ -88,6 +89,7 @@ The chapter so far (do NOT repeat or rephrase any of it):
 Add exactly {n_shots} NEW shots (about {missing_words} more words, 16-24 words per shot) that go
 deeper into the key points: concrete steps, examples, trade-offs, common mistakes. They must
 follow on naturally from the last line. Do not greet, recap the whole video or say goodbye.
+Every sentence must be new: never reuse a sentence from the chapter so far.
 
 SOURCE (the only place specific facts may come from):
 <<<
@@ -101,8 +103,14 @@ Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
              "scene": {{"type": "scene_name", "props": {{...}}}}}}]}}"""
 
-FIRST_RULE = "This is the FIRST chapter: shot 1 must use the title_hook scene and open with the video's promise."
-LAST_RULE = "This is the LAST chapter: the final shot must use the cta_end scene and ask a question for the comments."
+FIRST_RULE = ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is a QUESTION the viewer has, "
+              "said to them with \"you\" and naming the tool from the title (\"Want to turn speech into text on your own "
+              "PC, free, with Whisper?\"). Shot 2 says in one sentence what they will be able to do by the end. "
+              "No welcome, no \"in this video\", no channel or subscribe talk.")
+LAST_RULE = ("This is the LAST chapter: exactly ONE shot uses the cta_end scene, it is the final shot, and it asks one "
+             "question for the comments and nothing else (no subscribe, no share). The shot before it delivers the "
+             "payoff out loud and starts \"That is how\" or \"Now you know\" (\"That is how you run Whisper on your own PC: "
+             "install it, pick a model, transcribe.\").")
 MIDDLE_RULE = "This is a middle chapter: do not greet or say goodbye."
 
 REPAIR_USER = """Your previous answer could not be used: {error}

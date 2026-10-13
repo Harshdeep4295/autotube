@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 from agents.fact_check import unsupported_numbers
 from agents.llm import FreeLLM
 from agents.packaging import packaging_problems
+from agents.script_rules import check_script
 from agents.scene_schema import ICONS, catalogue_for_prompt, validate_and_repair
 from agents.source_fetcher import fetch_text
 from config import config
@@ -117,6 +118,26 @@ def estimated_seconds(words: int) -> float:
 
 def word_count(shots: List[Dict]) -> int:
     return sum(len(str(s.get("text", "")).split()) for s in shots)
+
+
+def tidy_shots(shots: List[Dict], min_words: int) -> List[Dict]:
+    """Drop shots that repeat an earlier shot word for word, and every cta_end but the last (top-up
+    calls produce both). Never cuts below `min_words`, so a tidy-up cannot make the video too short."""
+    last_cta = max((i for i, s in enumerate(shots) if (s.get("scene") or {}).get("type") == "cta_end"), default=-1)
+    seen, drop = set(), []
+    for i, s in enumerate(shots):
+        key = " ".join(re.findall(r"[a-z0-9']+", str(s.get("text", "")).lower()))
+        if (key in seen or ((s.get("scene") or {}).get("type") == "cta_end" and i != last_cta)) and not s.get("chapter"):
+            drop.append(i)
+        seen.add(key)
+    budget = word_count(shots) - min_words
+    out = list(shots)
+    for i in reversed(drop):
+        w = len(str(shots[i].get("text", "")).split())
+        if w <= budget:
+            budget -= w
+            del out[i]
+    return out
 
 
 class ExplainerScriptAgent:
@@ -272,6 +293,11 @@ class ExplainerScriptAgent:
             "topic": topic["topic"],
             "shots": shots,
         }
+        floor = max(round(config.EXPLAINER_TARGET_WORDS * 0.8), round((config.EXPLAINER_MIN_SECONDS + 20) / 60 * config.EXPLAINER_WPM))
+        tidy = tidy_shots(shots, floor)
+        if len(tidy) < len(shots):
+            logger.info(f"[script] dropped {len(shots) - len(tidy)} repeated shot(s)")
+            script["shots"] = tidy
         script, repairs = validate_and_repair(script)
         words = word_count(script["shots"])
         est = estimated_seconds(words)
@@ -281,6 +307,9 @@ class ExplainerScriptAgent:
                                f"(need ≥ {config.EXPLAINER_MIN_SECONDS/60:.0f} min; target {config.EXPLAINER_TARGET_WORDS} words)")
         script["fact_flags"] = unsupported_numbers(script, source)
         script["script_repairs"] = repairs
+        script["rule_problems"] = check_script(script)
+        for p in script["rule_problems"]:
+            logger.warning(f"[script] rule broken: {p}")
         script["llm"] = self.llm.last_model
         logger.info(f"[script] ✓ {len(script['shots'])} shots, {words} words, {len(repairs)} repairs, "
                     f"{len(script['fact_flags'])} numbers not found in source, ≈ {est/60:.1f} min")

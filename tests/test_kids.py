@@ -175,7 +175,7 @@ def test_script_agent_fix_round_and_too_long():
     from agents.kids_script_agent import KidsScriptAgent
 
     fx = load("kids_stock_market.json")
-    body = {"scenes": fx["scenes"], "title": "t", "tags": [], "description": ""}
+    body = {"scenes": fx["scenes"], "title": "How does the stock market work?", "tags": [], "description": ""}
     llm = FakeLLM([json.dumps(PLAN), json.dumps(body),
                    json.dumps({"ok": False, "problems": ["line 3 gives advice"]}), json.dumps(body)])
     s = KidsScriptAgent(llm).generate({"topic": "q"})

@@ -79,6 +79,10 @@ OPENING (the first 15 seconds decide whether anyone stays)
 STRUCTURE
 - Scene 1: "title" (props.question = the plan's question). Last scene: "outro".
 - Second to last: "recap" with one card per grown-up word (term = grown-up word, means = kid meaning).
+- PAYOFF: the scene before the recap answers the title's question out loud in one line that
+  starts "That is why", "That is how" or "Now you know" ("That is how drones find hidden fires:
+  they see heat."). The viewer was promised an answer; say it plainly.
+- Never say the same sentence twice. The outro asks for nothing or for one thing, never two.
 - Use a "reveal" or "many"(with reveal) scene when the grown-up word is said for the first time.
 - Vary scene types; never the same type twice in a row; "talk" at most twice.
 - PICTURE MATCHES WORDS: every prop on screen must be the thing its line talks about. When a
