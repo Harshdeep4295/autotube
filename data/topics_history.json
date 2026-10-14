@@ -61,5 +61,12 @@
     "timestamp": "2026-10-13T11:14:25.383837",
     "used_at": "2026-10-13T11:14:25.383837",
     "source": "bank"
+  },
+  {
+    "topic": "AnythingLLM: chat with your own documents using a private local AI",
+    "normalized_topic": "anythingllm chat with your own documents",
+    "timestamp": "2026-10-14T09:25:37.533251",
+    "used_at": "2026-10-14T09:25:37.533251",
+    "source": "bank"
   }
 ]
