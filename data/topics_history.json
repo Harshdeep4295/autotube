@@ -68,5 +68,12 @@
     "timestamp": "2026-10-14T09:25:37.533251",
     "used_at": "2026-10-14T09:25:37.533251",
     "source": "bank"
+  },
+  {
+    "topic": "Jan: an open-source ChatGPT alternative that runs fully offline",
+    "normalized_topic": "jan an opensource chatgpt alternative th",
+    "timestamp": "2026-10-15T09:10:42.251453",
+    "used_at": "2026-10-15T09:10:42.251453",
+    "source": "bank"
   }
 ]
