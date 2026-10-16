@@ -75,5 +75,12 @@
     "timestamp": "2026-10-15T09:10:42.251453",
     "used_at": "2026-10-15T09:10:42.251453",
     "source": "bank"
+  },
+  {
+    "topic": "GPT4All: run a private AI chatbot on an ordinary laptop",
+    "normalized_topic": "gpt4all run a private ai chatbot on an o",
+    "timestamp": "2026-10-16T08:53:07.132878",
+    "used_at": "2026-10-16T08:53:07.132878",
+    "source": "bank"
   }
 ]
