@@ -109,5 +109,12 @@
     "source": "feed",
     "world": "robot workshop",
     "date": "2026-10-16T08:37:16+00:00"
+  },
+  {
+    "topic": "Why do we pay taxes?",
+    "area": "finance",
+    "source": "feed",
+    "world": "piggy bank",
+    "date": "2026-10-17T08:10:45+00:00"
   }
 ]
