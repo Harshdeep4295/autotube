@@ -82,5 +82,12 @@
     "timestamp": "2026-10-16T08:53:07.132878",
     "used_at": "2026-10-16T08:53:07.132878",
     "source": "bank"
+  },
+  {
+    "topic": "Wan2GP: free AI video generation on a low-VRAM graphics card",
+    "normalized_topic": "wan2gp free ai video generation on a low",
+    "timestamp": "2026-10-17T08:30:18.687129",
+    "used_at": "2026-10-17T08:30:18.687129",
+    "source": "bank"
   }
 ]
