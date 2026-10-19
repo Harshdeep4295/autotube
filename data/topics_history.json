@@ -96,5 +96,12 @@
     "timestamp": "2026-10-18T08:36:51.397144",
     "used_at": "2026-10-18T08:36:51.397144",
     "source": "bank"
+  },
+  {
+    "topic": "LocalAI: a free, self-hosted replacement for the OpenAI API",
+    "normalized_topic": "localai a free selfhosted replacement fo",
+    "timestamp": "2026-10-19T09:40:00.401283",
+    "used_at": "2026-10-19T09:40:00.401283",
+    "source": "bank"
   }
 ]
