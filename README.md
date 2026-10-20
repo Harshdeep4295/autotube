@@ -6,7 +6,7 @@ and uploads it as a private video that YouTube publishes later in the day.
 
 | Style | Video | Renderer | Workflow |
 |---|---|---|---|
-| `explainer` (default) | 8+ minute animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | `.github/workflows/explainer.yml`, daily 03:17 UTC |
+| `explainer` (default) | ~5.5 minute animated explainer on a free, open-source AI tool, plus a vertical Short of its opening | Remotion (`video/explainer/`) | `.github/workflows/explainer.yml`, daily 03:17 UTC |
 | `kids` | 2–3 minute "Explained Like You're 5" story video | pycairo (`agents/kids/`) | `.github/workflows/kids_explainer.yml`, daily 03:47 UTC |
 
 Everything runs on free tiers and open-source software: Gemini and Groq free tiers, Kokoro TTS,

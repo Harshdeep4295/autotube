@@ -257,17 +257,43 @@ def _counts(items) -> Dict[str, int]:
     return out
 
 
-def hashtags_for(title: str) -> str:
+NOT_A_TOOL = {"how", "why", "what", "free", "the", "a", "an", "best", "your", "this", "local", "localai", "opensource"}
+
+
+def _alnum(text: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "", text)
+
+
+def tool_name(title: str, repo: str = "") -> str:
+    """The tool's name for a hashtag. With the topic's GitHub repo ('oobabooga/text-generation-webui'),
+    the title words that spell the repo name are used ('Text Generation WebUI' → 'TextGenerationWebUI'),
+    else the repo name itself. Without a repo, a capitalised first word of the title, or ''."""
+    head = re.sub(r"^(run|install|use|understanding|build|try)\s+", "", title.split(":")[0].strip(), flags=re.I)
+    words = head.split()
+    name = repo.strip("/").split("/")[-1] if repo else ""
+    if name:
+        key = _alnum(name).lower()
+        for i in range(len(words)):
+            for j in range(i + 1, len(words) + 1):
+                if _alnum("".join(words[i:j])).lower() == key:
+                    return _alnum("".join(words[i:j]))
+        if any(c.isupper() for c in name):
+            return _alnum(name)
+        return "".join(p[:1].upper() + p[1:] for p in re.split(r"[-_.]+", name) if p)
+    first = _alnum(words[0]) if words else ""
+    return first if first[:1].isupper() and first.lower() not in NOT_A_TOOL else ""
+
+
+def hashtags_for(title: str, repo: str = "") -> str:
     """Three hashtags (YouTube shows the first three above the title): the tool's name, then
     #LocalAI #OpenSource. 'Run Kokoro: Free…' → '#Kokoro #LocalAI #OpenSource'."""
-    head = re.sub(r"^(run|install|use|understanding|build)\s+", "", title.split(":")[0].strip(), flags=re.I)
-    words = head.split()
-    tool = re.sub(r"[^A-Za-z0-9]", "", words[0]) if words else ""
-    tags = [f"#{tool}"] if tool and tool[0].isupper() and tool.lower() not in {"localai", "opensource"} else []
+    tool = tool_name(title, repo)
+    tags = [f"#{tool}"] if tool and tool.lower() not in {"localai", "opensource"} else []
     return " ".join(tags + ["#LocalAI", "#OpenSource"])
 
 
-def description_with_chapters(description: str, chapters: List[Dict], sources: List[Dict], title: str = "") -> str:
+def description_with_chapters(description: str, chapters: List[Dict], sources: List[Dict], title: str = "",
+                              repo: str = "") -> str:
     """Append chapter timestamps, sources and three hashtags to the YouTube description."""
     parts = [description.strip()]
     if chapters:
@@ -275,9 +301,9 @@ def description_with_chapters(description: str, chapters: List[Dict], sources: L
     if sources:
         parts.append("Sources:\n" + "\n".join(f"- {s.get('title', '')} {s.get('url', '')}".strip() for s in sources[:8]))
     parts.append("Narration voice is AI-generated (Kokoro TTS). Visuals are animated graphics.")
-    parts.append(hashtags_for(title))
-    text = "\n\n".join(p for p in parts if p)
-    return re.sub(r"[<>]", "", text)[:4900]
+    tags = hashtags_for(title, repo)
+    text = re.sub(r"[<>]", "", "\n\n".join(p for p in parts if p))
+    return text[:4900 - len(tags) - 2] + "\n\n" + tags   # the hashtags survive the length cut
 
 
 def main() -> None:

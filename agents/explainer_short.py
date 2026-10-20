@@ -98,8 +98,8 @@ def build_ass(title: str, channel: str, captions: List[Tuple[float, float, str]]
         # Name, size, primary colour, outline colour, back colour, bold, border style, outline, alignment, marginV
         ("Channel", 42, _colour(CYAN), _colour(NAVY), _colour(NAVY), -1, 1, 0, 8, 150),
         ("Title", 82, _colour(YELLOW), _colour(NAVY), _colour(NAVY), -1, 1, 3, 8, 250),
-        ("Caption", 66, _colour(WHITE), "&H00000000", "&H00000000", -1, 1, 5, 8, 1230),
-        ("Footer", 46, _colour(NAVY), _colour(YELLOW), _colour(YELLOW), -1, 3, 22, 2, 430),   # above the Shorts player overlay
+        ("Caption", 66, _colour(WHITE), "&H00000000", "&H00000000", -1, 1, 5, 8, 1175),
+        ("Footer", 46, _colour(NAVY), _colour(YELLOW), _colour(YELLOW), -1, 3, 22, 2, 490),   # clear of the Shorts title and channel overlay
     ]
     head = [
         "[Script Info]", "ScriptType: v4.00+", f"PlayResX: {SW}", f"PlayResY: {SH}", "WrapStyle: 0",

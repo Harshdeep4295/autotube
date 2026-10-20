@@ -10,6 +10,20 @@ import re
 from typing import Dict, Iterable, List, Set
 
 NUM_RE = re.compile(r"(?<![\w.])\$?\d[\d,]*(?:\.\d+)?%?")
+# Spelled-out shares and multipliers ("seventy percent", "thirty-five percent", "twelve times faster"):
+# the model writes them out in narration, which the digit pattern alone would miss.
+UNITS = "one two three four five six seven eight nine".split()
+TEENS = "ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
+TENS = "twenty thirty forty fifty sixty seventy eighty ninety".split()
+WORD_RE = re.compile(r"\b(?:(" + "|".join(TENS) + r")(?:[- ](" + "|".join(UNITS) + r"))?|(" + "|".join(TEENS) + r"))"
+                     r"\s+(?:percent|per cent|times)\b", re.I)
+
+
+def _word_value(m: "re.Match") -> str:
+    tens, unit, teen = (g.lower() if g else "" for g in m.groups())
+    if teen:
+        return str(10 + TEENS.index(teen))
+    return str(20 + 10 * TENS.index(tens) + (UNITS.index(unit) + 1 if unit else 0))
 
 
 def _norm(tok: str) -> str:
@@ -20,7 +34,8 @@ def _norm(tok: str) -> str:
 
 
 def numbers_in(text: str) -> Set[str]:
-    return {_norm(m.group()) for m in NUM_RE.finditer(text or "")}
+    found = {_norm(m.group()) for m in NUM_RE.finditer(text or "")}
+    return found | {_word_value(m) for m in WORD_RE.finditer(text or "")}
 
 
 def _scene_numbers(scene: Dict) -> Iterable[str]:

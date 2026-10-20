@@ -1,5 +1,49 @@
 # Growth plan — Run It Local
 
+## Review 2026-10-20 (evening): what the numbers say and what to do next
+
+Same data (through 2026-10-17), broken down further:
+
+| Kind | Videos | Views | Median views | Average watched | Subs gained |
+|---|---|---|---|---|---|
+| Kids Shorts | 18 | 3,272 | **10** | 50% | 6 |
+| Explainers | 13 | 682 | **49** | 14% | 3 |
+| Kids long videos | 16 | 46 | **2** | 43% | 0 |
+
+Traffic: Shorts feed 3,107 views; YouTube search 525; **suggested next to other videos 246 views
+and 295 minutes**, the most watch time of any source; subscribers' feeds 38.
+
+1. **Shorts are a lottery, not a stream.** Four of 18 kids Shorts took 95% of their views (three
+   stopped near 950, which looks like one round of testing in the feed). Median: 10 views. Two of
+   the four were about AI ("How does AI learn?", "AI safety rules").
+2. **Explainers are the dependable part.** Median 49 views, found by search on the tool's name
+   ("comfyui", "ollama", "open webui", "gpt4all", "jan ai", "wan2gp") and suggested beside other
+   local-AI videos. Long-tail searches show intent: "comfyui low vram", "whisper local",
+   "free ai models".
+3. **Kids long videos do nothing** (median 2 views, 0 subscribers).
+4. **No bridge between the two audiences.** People who watch a Short about gasoline prices are not
+   looking for Ollama. vidIQ's study of 200,000 new channels (May 2026): long-form channels reach
+   1,000 subscribers in a median of 46 uploads, Shorts-only in 90, and mixed channels *without a
+   bridge between Shorts and long videos* in 108, the slowest. YouTube's own guide (July 2026):
+   set a "Related video" on every Short and open the long video with exactly what the Short promised.
+
+What to do, in order:
+1. **Make the Shorts point at the explainers.** Every explainer already makes a Short of its
+   opening. Kids Shorts should lean to AI and tech ideas ("How does AI learn?" type), which do
+   well and lead naturally into "run it yourself". Owner: set each Short's Related video.
+2. **Stop publishing the kids long video** (keep rendering it as the Short's source, upload only the
+   Short), or move kids finance topics to their own channel. Three uploads a day instead of four,
+   same audience.
+3. **Follow search demand in the topic bank.** Add model and hardware topics people search for
+   now: "best local model for 8 / 16 / 24 GB", "Ollama vs LM Studio vs llama.cpp", "run Gemma 4
+   locally", "run Qwen 3.6 locally", "run gpt-oss-20b". Trending tools (findarepo, 2026-10-20):
+   WhisperX, local-deep-research, nanobot, llamafile.
+4. **Show the tool working** (Phase 2, item 1) for the text and terminal tools the free runner can
+   run (whisper.cpp, llama.cpp with a small model, MarkItDown, Docling, Aider). Image and video
+   tools need a GPU the free runner does not have.
+5. **Watch these, weekly:** explainer average watched (goal 20%+ at 5.5 min), subscribers per 1,000
+   views per kind, Shorts → explainer views.
+
 ## Status 2026-10-20 (read this first)
 
 Numbers from the daily channel report (`channel_report.yml`, YouTube data through 2026-10-17):

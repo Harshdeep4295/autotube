@@ -56,7 +56,7 @@ sudo apt-get install ffmpeg fonts-liberation fontconfig libcairo2-dev pkg-config
 .venv/bin/python orchestrator.py --style kids --dry-run [--topic "What is interest?"]
 
 # QA any video
-.venv/bin/python scripts/qa_video.py path/to/video.mp4 --expected 512.3 --min 480
+.venv/bin/python scripts/qa_video.py path/to/video.mp4 --expected 342.0 --min 240
 ```
 
 **Omitting `--dry-run` uploads to the real channel.** Always dry-run unless the user asks for an upload.
@@ -78,7 +78,8 @@ research_agent          topic bank (data/explainer_topics.json: one open-source 
 source_fetcher          text of the source article (grounding)
 explainer_script_agent  outline + one LLM call per chapter; repairs, salvage, top-up of short chapters
 scene_schema            validate / repair every scene (unknown or broken → key_point)
-fact_check              flags numbers not found in the source → script.json "fact_flags"
+fact_check              numbers not found in the source (digits or "seventy percent"): one LLM rewrite of those shots,
+                        then the shot is dropped if still unsupported; leftovers → script.json "fact_flags"
 kokoro_voice            one WAV per shot (shot length = narration length)
 word_timing             faster-whisper word times for captions (falls back to proportional)
 video/explainer         Remotion render, 1920×1080 @ 30 fps, progress streamed to the log

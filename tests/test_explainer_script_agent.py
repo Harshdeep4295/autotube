@@ -25,13 +25,17 @@ class ScriptedLLM:
         return self.responses.pop(0)
 
 
+def tag(i):
+    return "".join(chr(97 + int(d)) for d in str(i))   # letters, not digits: digits would trip the number check
+
+
 def line(i):
-    return f"This is narration line number {i} with enough words to count properly here."
+    return f"This is narration line number {tag(i)} with enough words to count properly here."
 
 
 def chapter(n, first=0, cta=False):
     shots = [{"text": line(first + k), "emphasis": ["narration line"],
-              "scene": {"type": "key_point", "props": {"text": f"Point {first + k}"}}} for k in range(n)]
+              "scene": {"type": "key_point", "props": {"text": f"Point {tag(first + k)}"}}} for k in range(n)]
     if cta:
         shots[-1]["scene"] = {"type": "cta_end", "props": {"question": "Which will you try?"}}
     return json.dumps({"shots": shots})
@@ -84,7 +88,7 @@ def test_parse_json_obj_accepts_list_shapes():
 def test_salvage_shots_from_cut_off_answer():
     full = json.loads(chapter(3))["shots"]
     text = json.dumps({"shots": full})
-    cut = text[: text.index("narration line number 2") + 10]   # third shot cut mid-string
+    cut = text[: text.index("narration line number c") + 10]   # third shot cut mid-string
     assert esa.salvage_shots(cut) == full[:2]
 
 
@@ -102,3 +106,21 @@ def test_script_shorter_than_min_seconds_fails_before_render(monkeypatch):
     llm = ScriptedLLM([OUTLINE, chapter(4), chapter(4, 4), chapter(4, 8, cta=True)])
     with pytest.raises(RuntimeError, match="script too short"):
         ExplainerScriptAgent(llm).generate({"topic": "Local LLMs"})
+
+
+def test_invented_numbers_are_rewritten_or_dropped(monkeypatch):
+    monkeypatch.setattr(esa, "fetch_text", lambda url: "Kokoro is a small voice model with 82 million parameters. " * 10)
+    ch2 = json.loads(chapter(4, 4))
+    ch2["shots"][1]["text"] = "During streaming VRAM usage stays below seventy percent leaving plenty of headroom for you."
+    ch2["shots"][2]["text"] = "Quantized models cut memory by 30% while keeping most of the quality for your work."
+    ch2["shots"][3]["text"] = "The model has 82 million parameters, small enough for an ordinary laptop at home."
+    fix = json.dumps({"shots": {"5": {"text": "During streaming VRAM usage stays well below the limit, leaving headroom for you.",
+                                      "scene": {"type": "key_point", "props": {"text": "Leaves headroom"}}}}})
+    llm = ScriptedLLM([OUTLINE, chapter(4), json.dumps(ch2), chapter(4, 8, cta=True), fix])
+    script = ExplainerScriptAgent(llm).generate({"topic": "Kokoro", "url": "https://github.com/hexgrad/kokoro"})
+    texts = [s["text"] for s in script["shots"]]
+    assert "well below the limit" in " ".join(texts)                 # rewritten
+    assert not any("30%" in t for t in texts)                         # not fixed by the model → dropped
+    assert any("82 million" in t for t in texts)                       # in the source → kept
+    assert script["fact_flags"] == [] and len(script["shots"]) == 11
+    assert "seventy" not in " ".join(texts) and "70" in llm.prompts[-1] and "30" in llm.prompts[-1]

@@ -116,3 +116,19 @@ MIDDLE_RULE = "This is a middle chapter: do not greet or say goodbye."
 
 REPAIR_USER = """Your previous answer could not be used: {error}
 Return the corrected JSON only, following the same format and rules."""
+
+FIX_NUMBERS_USER = """These shots of the video "{title}" use numbers that are NOT in the source text, so they may be
+invented: {numbers}. Rewrite each shot so it keeps its meaning without any number that is not in the
+SOURCE: say it in words ("much less memory", "a few seconds") or use the exact figure the source gives.
+Keep each shot's scene type and keep its props consistent with the new narration. A port, version or
+command that the source does not show must go too. Do not add new facts.
+
+SHOTS (index → shot JSON):
+{shots}
+
+SOURCE (the only place specific facts may come from):
+<<<
+{source}
+>>>
+
+Return JSON: {{"shots": {{"<index>": {{"text": "...", "emphasis": ["..."], "scene": {{"type": "...", "props": {{...}}}}}}}}}}"""
