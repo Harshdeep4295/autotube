@@ -272,6 +272,44 @@ class ExplainerScriptAgent:
         shots[0]["chapter"] = ch.get("title", "")
         return shots
 
+    def fix_numbers(self, script: Dict, source: str, min_words: int) -> Dict:
+        """Numbers not found in the source are likely invented. One LLM call rewrites those shots
+        without them; a shot that still has one is dropped (never a chapter start or the closing
+        question, and never below `min_words`). Whatever is left stays in fact_flags for review."""
+        flags = unsupported_numbers(script, source)
+        if not flags:
+            return script
+        shots = script["shots"]
+        idx = sorted({f["shot"] for f in flags})
+        numbers = ", ".join(sorted({f["number"] for f in flags}))
+        logger.info(f"[script] {len(flags)} number(s) not in the source ({numbers}) — rewriting {len(idx)} shot(s)")
+        try:
+            text = self.llm.complete(self.system, P.FIX_NUMBERS_USER.format(
+                title=script.get("title", ""), numbers=numbers,
+                shots=json.dumps({str(i): {k: shots[i].get(k) for k in ("text", "emphasis", "scene")} for i in idx},
+                                 ensure_ascii=False),
+                source=source or "(no source text)"), max_tokens=4000)
+            got = parse_json_obj(text).get("shots") or {}
+            for k, v in (got.items() if isinstance(got, dict) else []):
+                i = int(k) if str(k).isdigit() else -1
+                if i in idx and isinstance(v, dict) and str(v.get("text", "")).strip() and isinstance(v.get("scene"), dict):
+                    shots[i] = {**shots[i], "text": str(v["text"]).strip(), "emphasis": v.get("emphasis") or [],
+                                "scene": v["scene"]}
+            script, _ = validate_and_repair(script)
+        except Exception as e:  # noqa: BLE001 — fall through to dropping
+            logger.warning(f"[script] number rewrite failed ({str(e)[:160]})")
+        still = sorted({f["shot"] for f in unsupported_numbers(script, source)}, reverse=True)
+        budget = word_count(script["shots"]) - min_words
+        for i in still:
+            s = script["shots"][i]
+            w = len(str(s.get("text", "")).split())
+            if i == 0 or s.get("chapter") or (s.get("scene") or {}).get("type") == "cta_end" or w > budget:
+                continue
+            budget -= w
+            del script["shots"][i]
+            logger.info(f"[script] dropped shot {i}: a number in it is not in the source")
+        return script
+
     def generate(self, topic: Dict) -> Dict:
         source = self.source_for(topic)
         logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars)")
@@ -299,6 +337,7 @@ class ExplainerScriptAgent:
             logger.info(f"[script] dropped {len(shots) - len(tidy)} repeated shot(s)")
             script["shots"] = tidy
         script, repairs = validate_and_repair(script)
+        script = self.fix_numbers(script, source, floor)
         words = word_count(script["shots"])
         est = estimated_seconds(words)
         script["estimated_seconds"] = round(est)

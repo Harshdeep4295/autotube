@@ -44,6 +44,12 @@ def setup_logging(run_id: str) -> logging.Logger:
     return logging.getLogger("orchestrator")
 
 
+def _github_repo(topic: Dict) -> str:
+    """'owner/name' of a topic-bank topic (its url is the GitHub project), else ''."""
+    url = str(topic.get("url", ""))
+    return url.split("github.com/", 1)[1].strip("/") if "github.com/" in url else ""
+
+
 def next_utc_time(hhmm: str, now: Optional[datetime] = None, min_lead_minutes: int = 30) -> str:
     """ISO-8601 UTC for the next "HH:MM" at least `min_lead_minutes` from now (YouTube needs a future time)."""
     from datetime import timedelta
@@ -138,7 +144,8 @@ class Orchestrator:
             upload_script = {
                 "title": script["title"],
                 "description": description_with_chapters(script.get("description", ""), rendered["chapters"],
-                                                          script.get("sources", []), script.get("title", "")),
+                                                          script.get("sources", []), script.get("title", ""),
+                                                          _github_repo(topic)),
                 "tags": script.get("tags", []),
             }
             if self.dry_run:
