@@ -95,6 +95,8 @@ jobs:
           name: explainer-${{ github.run_number }}
           path: |
             outputs/*/video.mp4
+            outputs/*/short.mp4
+            outputs/*/short_qa.json
             outputs/*/thumbnail.jpg
             outputs/*/captions.srt
             outputs/*/script.json

@@ -160,6 +160,11 @@ class Orchestrator:
                 self.logger.info("Step 5/5: Recording topic as used")
                 if not topic.get("script"):
                     self.research.mark_used([topic])
+                if rendered.get("short_path"):
+                    from agents.explainer_short import short_meta as explainer_short_meta
+                    result["short"] = self._upload_short(
+                        uploader, rendered["short_path"], explainer_short_meta(upload_script, up.get("url", "")),
+                        config.EXPLAINER_SHORT_PUBLISH_AT_UTC or config.EXPLAINER_PUBLISH_AT_UTC)
             result["success"] = True
         except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
             result["error"] = str(e)
@@ -260,14 +265,16 @@ class Orchestrator:
         return result
 
     def _upload_kids_short(self, uploader, short_path: str, full: Dict, full_url: str) -> Dict:
-        """Upload the vertical cut as a second video (a YouTube Short). The full video is already
+        from agents.kids_agent import short_meta
+
+        return self._upload_short(uploader, short_path, short_meta(full, full_url),
+                                  config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC)
+
+    def _upload_short(self, uploader, short_path: str, short: Dict, when: str) -> Dict:
+        """Upload a vertical cut as a second video (a YouTube Short). The full video is already
         up, so a failure here is logged and reported but never fails the run."""
         try:
-            from agents.kids_agent import short_meta
-
-            when = config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC
             publish_at = next_utc_time(when) if when else None
-            short = short_meta(full, full_url)
             self.logger.info(f"Uploading the Short ({'public at ' + publish_at if publish_at else config.VIDEO_PRIVACY})…")
             up = uploader.publish(short_path, None, short, publish_at=publish_at)
             if up.get("success") is False:

@@ -1,5 +1,47 @@
 # Growth plan — Run It Local
 
+## Status 2026-10-20 (read this first)
+
+Numbers from the daily channel report (`channel_report.yml`, YouTube data through 2026-10-17):
+about 4,000 views, 793 watch minutes, 11 subscribers gained and 4 lost, 47 videos.
+
+| Kind | Videos | Views | Average watched | Subs gained |
+|---|---|---|---|---|
+| Kids Shorts | 18 | 3,272 (82%) | 28% (13 s) | 6 |
+| Explainers (5–10 min) | 13 | 682 | **13%** (69 s) | 3 |
+| Kids long videos (2–3 min) | 16 | **46** | 35% (38 s) | 0 |
+
+What this says:
+1. **Shorts are the channel's discovery engine.** Three kids Shorts have about 950 views each.
+2. **Explainers are found by search** ("comfyui", "ollama", "open webui", "gpt4all", "jan ai"), so
+   the "Run X locally" topic bank works. But viewers leave after about a minute of a 9–10 minute
+   video, far below the 35% target in §5. With 13 explainers out, the §5 rule applies: shorten.
+3. **Kids long videos get almost no views.** Their value is as the source of the kids Shorts.
+4. The Gemini key still returns `402 … prepayment credits are depleted`, so every script comes from
+   Groq, and Groq's per-minute limit adds 3–5 minutes of waiting per script. Run #31 needed 59 scene
+   repairs and had 6 numbers not found in the source, and it still published automatically.
+
+Done since 2026-10-01: topic bank (`data/explainer_topics.json`), script rules for the opening and
+close (`agents/script_rules.py`), title and thumbnail rules (`agents/packaging.py`), kids Shorts,
+the analytics report.
+
+Changed on 2026-10-20:
+- Explainers target 650 words (about 5.5 minutes) in 4–5 chapters, down from 1,100 words in 5–6.
+- Every explainer also uploads a vertical Short of its opening (≤ 58 s, cut at a shot boundary)
+  that links the full video (`agents/explainer_short.py`, `EXPLAINER_SHORTS`).
+
+Next, in order:
+1. After 7 days of the shorter format, compare average watched % and views per explainer with the
+   table above. If below 25%, rework the first 3 shots before anything else.
+2. Owner: in Studio, set each explainer Short's "Related video" to its full video (the API cannot).
+3. Owner: create a Gemini key in a project with **no billing account**, so scripts stop depending
+   on one rate-limited provider.
+4. Decide the kids long videos: keep them only as the source of the Shorts (stop publishing the long
+   cut), or move the kids track to its own channel (§6.1).
+5. Hold videos with more than 3 unverified numbers for review (§2.5); not done yet.
+
+---
+
 _Written 2026-10-01, from the first two uploads, the first kids dry run, their logs and scripts._
 
 The pipeline works: it produces and uploads a QA-passing video every day at no cost. What limits

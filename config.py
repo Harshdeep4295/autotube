@@ -47,8 +47,8 @@ class Config:
     # "kids"      → "Explained Like You're 5" story video (see docs/PLAN_KIDS_EXPLAINER.md)
     VIDEO_STYLE: str = field(default_factory=lambda: os.getenv("VIDEO_STYLE", "explainer").lower())
     EXPLAINER_DIR: str = "video/explainer"
-    EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "480")))
-    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "1100")))
+    EXPLAINER_MIN_SECONDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_MIN_SECONDS", "240")))
+    EXPLAINER_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_TARGET_WORDS", "650")))
     # Auto-publish: "HH:MM" (UTC). Uploads stay Private and YouTube publishes them at the next
     # occurrence of this time — the gap is your review window (set the video back to Private in
     # Studio to stop it). Empty = stay Private until you publish by hand.
@@ -56,10 +56,15 @@ class Config:
     EXPLAINER_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("EXPLAINER_PUBLISH_AT_UTC", "").strip())
     # Narration pace incl. pauses, measured on a real run: 1426 words → 699 s ≈ 122 wpm
     # (the 89 s fixture looked faster because of its short lines). 125 keeps the estimate
-    # slightly low, so a script that passes the pre-render gate also passes the 480 s QA check.
+    # slightly low, so a script that passes the pre-render gate also passes the QA length check.
+    # Run #31 (2026-10-19) measured 1124 words → 594 s ≈ 114 wpm, so 650 words ≈ 5.7 min.
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
     # Playlist title every explainer upload is added to (created on first use). Empty = none.
     EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
+    # Vertical Short cut from each explainer's opening (≤ 58 s), uploaded as a second video that
+    # links the full one. Publish time defaults to EXPLAINER_PUBLISH_AT_UTC.
+    EXPLAINER_SHORTS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_SHORTS", "true").lower() != "false")
+    EXPLAINER_SHORT_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("EXPLAINER_SHORT_PUBLISH_AT_UTC", "").strip())
 
     # "bank" = evergreen tool topics from data/explainer_topics.json, news feeds only when the
     # bank is used up; "feed" = news feeds only (research_agent scoring).
