@@ -27,6 +27,12 @@ and 295 minutes**, the most watch time of any source; subscribers' feeds 38.
    bridge between Shorts and long videos* in 108, the slowest. YouTube's own guide (July 2026):
    set a "Related video" on every Short and open the long video with exactly what the Short promised.
 
+Decided by the owner (2026-10-20): item 1 yes (kids areas now cycle ai, tech, ai, finance;
+30 AI questions added); item 2 no, keep 4 uploads a day; item 3 yes (11 topics added after the
+next 7: model-by-GPU, Strata, Gemma 4, WhisperX, gpt-oss, Local Deep Research, OpenCode,
+ik_llama.cpp, nanobot, Qwen 3.6, Vibe). The YouTube API has no field for a Short's Related video
+(checked against discovery revision 20261019), so it stays a Studio task.
+
 What to do, in order:
 1. **Make the Shorts point at the explainers.** Every explainer already makes a Short of its
    opening. Kids Shorts should lean to AI and tech ideas ("How does AI learn?" type), which do

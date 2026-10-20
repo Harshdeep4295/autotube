@@ -1,5 +1,5 @@
 {
- "_note": "Evergreen explainer topics: one free / open-source AI tool each. 'repo' is the GitHub project; its README is the source text the script is grounded in. Add freely; used ones are skipped via data/topics_history.json.",
+ "_note": "Evergreen explainer topics: one free / open-source AI tool each. 'repo' is the GitHub project and its README is the source text the script is grounded in; topics without a repo use 'url' (a page whose text is the source). Add freely; used ones are skipped via data/topics_history.json.",
  "topics": [
   {
    "topic": "Ollama explained: run AI models on your own computer for free",
@@ -95,6 +95,57 @@
    "topic": "Perplexica: an open-source AI search engine you host yourself",
    "repo": "ItzCrazyKns/Perplexica",
    "branch": "master"
+  },
+  {
+   "topic": "Best local AI model for your graphics card: 8, 16 or 24 GB",
+   "url": "https://dreaming.press/posts/open-weight-llms-you-actually-run-locally-october-2026.html"
+  },
+  {
+   "topic": "Strata: run a 125-billion-parameter AI model on a 12 GB graphics card",
+   "repo": "Niko1221/Strata",
+   "branch": "main"
+  },
+  {
+   "topic": "Gemma 4: run Google's open model on your own computer with Ollama",
+   "url": "https://ollama.com/library/gemma4"
+  },
+  {
+   "topic": "WhisperX: free transcripts with word timestamps and who is speaking",
+   "repo": "m-bain/whisperX",
+   "branch": "main"
+  },
+  {
+   "topic": "gpt-oss: run OpenAI's open-weight model on your own PC",
+   "url": "https://ollama.com/library/gpt-oss"
+  },
+  {
+   "topic": "Local Deep Research: a private AI research assistant on your own PC",
+   "repo": "LearningCircuit/local-deep-research",
+   "branch": "main"
+  },
+  {
+   "topic": "OpenCode: a free AI coding agent that works with local models",
+   "repo": "sst/opencode",
+   "branch": "dev"
+  },
+  {
+   "topic": "ik_llama.cpp: run bigger models faster by splitting them across CPU and GPU",
+   "repo": "ikawrakow/ik_llama.cpp",
+   "branch": "main"
+  },
+  {
+   "topic": "nanobot: a tiny self-hosted AI agent for your own tools",
+   "repo": "HKUDS/nanobot",
+   "branch": "main"
+  },
+  {
+   "topic": "Qwen 3.6: run Alibaba's open model locally with Ollama",
+   "url": "https://ollama.com/library/qwen3.6"
+  },
+  {
+   "topic": "Vibe: free offline AI transcription for audio and video",
+   "repo": "thewh1teagle/vibe",
+   "branch": "main"
   },
   {
    "topic": "Continue: an open-source AI coding assistant for your editor",

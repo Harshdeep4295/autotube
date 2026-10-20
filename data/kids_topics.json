@@ -360,6 +360,118 @@
   {
    "question": "What is a GPU?",
    "area": "tech"
+  },
+  {
+   "question": "How does a chatbot answer you?",
+   "area": "ai"
+  },
+  {
+   "question": "What is an AI model?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI make pictures?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI hear your voice?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI talk out loud?",
+   "area": "ai"
+  },
+  {
+   "question": "Can AI run on your own computer?",
+   "area": "ai"
+  },
+  {
+   "question": "Why does AI need lots of memory?",
+   "area": "ai"
+  },
+  {
+   "question": "What is training data?",
+   "area": "ai"
+  },
+  {
+   "question": "Why does AI make mistakes?",
+   "area": "ai"
+  },
+  {
+   "question": "What is a prompt?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI read a photo?",
+   "area": "ai"
+  },
+  {
+   "question": "What is an AI helper agent?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI write code?",
+   "area": "ai"
+  },
+  {
+   "question": "What is open-source AI?",
+   "area": "ai"
+  },
+  {
+   "question": "Why run AI at home?",
+   "area": "ai"
+  },
+  {
+   "question": "What is a token in AI?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI pick your videos?",
+   "area": "ai"
+  },
+  {
+   "question": "How can you spot a fake photo?",
+   "area": "ai"
+  },
+  {
+   "question": "How does a robot learn to walk?",
+   "area": "ai"
+  },
+  {
+   "question": "What is a neural network?",
+   "area": "ai"
+  },
+  {
+   "question": "How does face unlock work?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI turn talk into text?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI translate words?",
+   "area": "ai"
+  },
+  {
+   "question": "Why does AI need electricity?",
+   "area": "ai"
+  },
+  {
+   "question": "What is a small AI model?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI remember a chat?",
+   "area": "ai"
+  },
+  {
+   "question": "Can AI work without internet?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI make music?",
+   "area": "ai"
   }
  ]
 }

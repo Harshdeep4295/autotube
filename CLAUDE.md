@@ -103,7 +103,7 @@ Rules:
 
 ```
 kids_topic_agent    headlines (KIDS_FEEDS) → LLM picks the evergreen idea; fallback data/kids_topics.json
-                    (90 questions, finance ↔ tech alternate)
+                    (120 questions; areas follow KIDS_AREA_CYCLE, default ai, tech, ai, finance)
 kids_script_agent   plan (one analogy) → scenes script → length guard (240–360 words) → checker + 1 fix round
 kids_agent          validate / repair → Kokoro af_heart (Piper fallback) → word timings → beat timeline
                     → pycairo frames + ffmpeg → QA (≤ 180 s) → thumbnail, SRT, contact sheet
@@ -216,6 +216,7 @@ KOKORO_VOICE = "am_michael"         # KOKORO_SPEED = 1.05; WORD_TIMINGS = "whisp
 KIDS_TARGET_WORDS = 300             # KIDS_MIN_SECONDS = 90, KIDS_MAX_SECONDS = 180, KIDS_WPM = 140
 KIDS_KOKORO_VOICE = "af_heart"      # KIDS_KOKORO_SPEED = 0.92; KIDS_TTS = "kokoro" | "piper" (+ PIPER_MODEL)
 KIDS_TOPIC_MODE = "mixed"           # "mixed" | "feed" | "bank"; KIDS_FEEDS = comma list of RSS URLs
+KIDS_AREA_CYCLE = "ai,tech,ai,finance"   # one area per day, repeating; AI ideas lead on to the explainers
 KIDS_PUBLISH_AT_UTC = ""            # KIDS_PLAYLIST = "Explained Like You're 5"
 KIDS_SHORTS = true                  # vertical cut uploaded as a Short; KIDS_SHORT_PUBLISH_AT_UTC = "" (same time as the full video)
 ```

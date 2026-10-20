@@ -197,8 +197,9 @@ def test_topic_agent_bank_alternates_and_records(tmp_path, monkeypatch):
     hist.write_text("[]")
     monkeypatch.setattr(config, "KIDS_HISTORY_FILE", str(hist))
     agent = KT.KidsTopicAgent(llm=FakeLLM([]))
+    monkeypatch.setattr(config, "KIDS_AREA_CYCLE", "ai,tech,ai,finance")
     first = agent.get_topics(1, mode="bank")[0]
-    assert first["source"] == "bank" and first["area"] == "finance"
+    assert first["source"] == "bank" and first["area"] == "ai"
     agent.mark_used([first])
     second = agent.get_topics(1, mode="bank")[0]
     assert second["area"] == "tech" and second["topic"] != first["topic"]
