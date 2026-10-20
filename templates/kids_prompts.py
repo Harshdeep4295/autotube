@@ -172,8 +172,10 @@ CONCEPT_USER = """Here are today's headlines about money and technology:
 
 Pick up to 3 BIG IDEAS behind them that a curious 5-year-old could learn in 2 minutes
 (e.g. "What is interest?", "How does the internet send a message?", "What is a chip?").
+Area "ai" is how AI works: chatbots, AI pictures and voices, how a model learns, running AI on
+your own computer. Prefer "ai" ideas whenever a headline allows one.
 Evergreen ideas only — never the news event itself, no company or person names.
 Skip anything about war, crime, disasters or death.
 
-Return JSON: {{"ideas": [{{"question": "≤33 chars, a kid's question", "area": "finance|tech",
+Return JSON: {{"ideas": [{{"question": "≤33 chars, a kid's question", "area": "ai|tech|finance",
 "why": "which headline it comes from"}}]}}"""

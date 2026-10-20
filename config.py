@@ -91,6 +91,9 @@ class Config:
     KIDS_SHORT_PUBLISH_AT_UTC: str = field(default_factory=lambda: os.getenv("KIDS_SHORT_PUBLISH_AT_UTC", "").strip())
     # "mixed" = headline→concept first, evergreen bank as fallback; "bank" = bank only; "feed" = headlines only
     KIDS_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("KIDS_TOPIC_MODE", "mixed").lower())
+    # Order of topic areas, one per day, repeating. "ai" (how AI works, AI on your own computer)
+    # leads into the explainers; the two AI kids Shorts were among the four that took off (2026-10).
+    KIDS_AREA_CYCLE: str = field(default_factory=lambda: os.getenv("KIDS_AREA_CYCLE", "ai,tech,ai,finance").lower())
     KIDS_TOPICS_FILE: str = "data/kids_topics.json"
     KIDS_HISTORY_FILE: str = "data/kids_topics_history.json"
 

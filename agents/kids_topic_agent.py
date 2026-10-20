@@ -3,7 +3,8 @@ Kids topic agent: today's finance/tech headlines → the evergreen idea behind t
 ("RBI cuts repo rate" → "What is interest?"), with a curated bank as fallback.
 
 Modes (KIDS_TOPIC_MODE): mixed (default) = headline ideas first, bank fallback;
-feed = headlines only; bank = bank only. Areas alternate finance ↔ tech day to day.
+feed = headlines only; bank = bank only. Areas follow KIDS_AREA_CYCLE day by day
+(default ai, tech, ai, finance: AI ideas lead viewers on to the explainers).
 Topics are recorded in KIDS_HISTORY_FILE only after a successful upload (mark_used).
 """
 
@@ -102,8 +103,8 @@ class KidsTopicAgent:
 
     # ── public ───────────────────────────────────────────────────────────────
     def next_area(self, hist: List[Dict]) -> str:
-        last = next((h.get("area") for h in reversed(hist) if h.get("area") in ("finance", "tech")), "tech")
-        return "finance" if last == "tech" else "tech"
+        cycle = [a.strip() for a in config.KIDS_AREA_CYCLE.split(",") if a.strip()] or ["tech", "finance"]
+        return cycle[len(hist) % len(cycle)]
 
     def get_topics(self, count: int = 1, mode: Optional[str] = None) -> List[Dict]:
         mode = (mode or config.KIDS_TOPIC_MODE).lower()
