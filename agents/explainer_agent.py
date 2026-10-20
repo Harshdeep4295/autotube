@@ -257,14 +257,25 @@ def _counts(items) -> Dict[str, int]:
     return out
 
 
-def description_with_chapters(description: str, chapters: List[Dict], sources: List[Dict]) -> str:
-    """Append chapter timestamps and sources to the YouTube description."""
+def hashtags_for(title: str) -> str:
+    """Three hashtags (YouTube shows the first three above the title): the tool's name, then
+    #LocalAI #OpenSource. 'Run Kokoro: Free…' → '#Kokoro #LocalAI #OpenSource'."""
+    head = re.sub(r"^(run|install|use|understanding|build)\s+", "", title.split(":")[0].strip(), flags=re.I)
+    words = head.split()
+    tool = re.sub(r"[^A-Za-z0-9]", "", words[0]) if words else ""
+    tags = [f"#{tool}"] if tool and tool[0].isupper() and tool.lower() not in {"localai", "opensource"} else []
+    return " ".join(tags + ["#LocalAI", "#OpenSource"])
+
+
+def description_with_chapters(description: str, chapters: List[Dict], sources: List[Dict], title: str = "") -> str:
+    """Append chapter timestamps, sources and three hashtags to the YouTube description."""
     parts = [description.strip()]
     if chapters:
         parts.append("Chapters:\n" + "\n".join(f"{fmt_ts(c['t'])} {c['title']}" for c in chapters))
     if sources:
         parts.append("Sources:\n" + "\n".join(f"- {s.get('title', '')} {s.get('url', '')}".strip() for s in sources[:8]))
     parts.append("Narration voice is AI-generated (Kokoro TTS). Visuals are animated graphics.")
+    parts.append(hashtags_for(title))
     text = "\n\n".join(p for p in parts if p)
     return re.sub(r"[<>]", "", text)[:4900]
 

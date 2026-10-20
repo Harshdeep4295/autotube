@@ -1,4 +1,4 @@
-from agents.explainer_agent import chapters_from, description_with_chapters, fmt_ts
+from agents.explainer_agent import chapters_from, description_with_chapters, fmt_ts, hashtags_for
 
 
 def shots(marks, total=600):
@@ -24,3 +24,12 @@ def test_description_has_chapters_sources_and_disclosure():
                                   [{"title": "Ollama", "url": "https://github.com/ollama/ollama"}])
     assert "0:00 Intro" in d and "1:15 How" in d and "https://github.com/ollama/ollama" in d
     assert "AI-generated" in d and fmt_ts(3725) == "1:02:05"
+
+
+def test_hashtags_name_the_tool():
+    assert hashtags_for("Run Kokoro: Free Open-Source Voice Model") == "#Kokoro #LocalAI #OpenSource"
+    assert hashtags_for("Understanding llama.cpp: The Engine") == "#LocalAI #OpenSource"      # lower-case name skipped
+    assert hashtags_for("Run a ChatGPT-like AI Locally") == "#LocalAI #OpenSource"
+    assert hashtags_for("Run LocalAI: Free API") == "#LocalAI #OpenSource"                     # no duplicate
+    d = description_with_chapters("About.", [], [], "Run Jan Offline: Open-Source Chat")
+    assert d.endswith("#Jan #LocalAI #OpenSource")
