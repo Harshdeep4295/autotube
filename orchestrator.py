@@ -138,7 +138,7 @@ class Orchestrator:
             upload_script = {
                 "title": script["title"],
                 "description": description_with_chapters(script.get("description", ""), rendered["chapters"],
-                                                          script.get("sources", [])),
+                                                          script.get("sources", []), script.get("title", "")),
                 "tags": script.get("tags", []),
             }
             if self.dry_run:
