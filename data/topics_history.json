@@ -103,5 +103,12 @@
     "timestamp": "2026-10-19T09:40:00.401283",
     "used_at": "2026-10-19T09:40:00.401283",
     "source": "bank"
+  },
+  {
+    "topic": "Kokoro: a tiny open-source AI voice model that sounds human",
+    "normalized_topic": "kokoro a tiny opensource ai voice model ",
+    "timestamp": "2026-10-20T09:22:28.964269",
+    "used_at": "2026-10-20T09:22:28.964269",
+    "source": "bank"
   }
 ]
