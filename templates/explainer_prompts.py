@@ -2,7 +2,7 @@
 Prompts for the animated-explainer script (Phase A, prompt v2).
 
 Two steps keep every request small enough for free-tier limits:
-  1. OUTLINE  — title, description, tags, thumbnail, 5-6 chapters
+  1. OUTLINE  — title, description, tags, thumbnail, 4-5 chapters
   2. CHAPTER  — the shots (narration line + scene spec) for one chapter
 The model must ground specific facts in the SOURCE text and pick scenes from the
 catalogue in agents/scene_schema.py.
@@ -39,11 +39,12 @@ Return JSON:
   "thumbnail_subtext": "0-2 words, e.g. FREE, OFFLINE, 2026",
   "thumbnail_icon": "one of: {icons}",
   "chapters": [
-    {{"title": "≤40 chars", "goal": "what this chapter explains", "key_points": ["3-5 points"], "target_words": 180}}
+    {{"title": "≤40 chars", "goal": "what this chapter explains", "key_points": ["3-5 points"], "target_words": 140}}
   ]
 }}
-Use 5-6 chapters. Chapter 1 is the hook + why it matters (~100 words). The last chapter
-is a short recap + a question for the comments (~90 words). Target words across all
+Use 4-5 chapters. Chapter 1 is the hook + why it matters (~80 words). The last chapter
+is a short recap + a question for the comments (~70 words). Every chapter earns its place:
+no warm-up, no repeating what an earlier chapter said. Target words across all
 chapters must add up to about {words}."""
 
 CHAPTER_USER = """Write chapter {index} of {count} for the video "{title}".

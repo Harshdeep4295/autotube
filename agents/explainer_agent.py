@@ -220,11 +220,34 @@ class ExplainerAgent:
             "render_seconds": round(time.time() - t0, 1), "repairs": repairs, "chapters": chapters,
             "scene_counts": _counts(s["scene"]["type"] for s in props["shots"]), "qa": qa,
         }
+        short = self.make_short(safe, out) if config.EXPLAINER_SHORTS else None
+        report["short_s"] = short["duration"] if short else None
         (out / "render_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
         logger.info(f"[explainer] ✓ {video} ({total:.0f}s) in {report['render_seconds']}s")
         shutil.rmtree(out / "shots", ignore_errors=True)
         return {"video_path": str(video), "thumbnail_path": str(thumb), "captions_path": str(out / "captions.srt"),
-                "duration": total, "chapters": chapters, "report": report, "script": safe}
+                "duration": total, "chapters": chapters, "report": report, "script": safe,
+                "short_path": short["path"] if short else None}
+
+    def make_short(self, script: Dict, out: Path) -> Optional[Dict]:
+        """Vertical Short of the opening (agents/explainer_short.py). Never fails the render."""
+        from agents import explainer_short as ES
+        from scripts.qa_video import run_qa
+
+        try:
+            short = ES.make_short(str(out), str(script.get("title", "")), config.CHANNEL_NAME)
+            if not short:
+                return None
+            qa = run_qa(short["path"], expected=short["duration"], resolution=(ES.SW, ES.SH))
+            (out / "short_qa.json").write_text(json.dumps(qa, indent=2))
+            if not qa["passed"]:
+                logger.warning("[short] failed QA: " + ", ".join(c["name"] for c in qa["checks"] if not c["ok"]))
+                return None
+            logger.info(f"[short] ✓ {short['path']} ({short['duration']:.0f}s)")
+            return short
+        except Exception as e:  # noqa: BLE001 — the long video is what matters
+            logger.warning(f"[short] not made: {str(e)[:300]}")
+            return None
 
 
 def _counts(items) -> Dict[str, int]:

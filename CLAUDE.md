@@ -5,7 +5,7 @@ run yourself). One entry point, `orchestrator.py`, with two video styles:
 
 | Style | What it makes | Renderer | State (2026-10-01) |
 |---|---|---|---|
-| `explainer` (default) | 8+ min animated explainer on a practical-AI topic | Remotion (`video/explainer/`) | **Live** again since 2026-10-09 on topic-bank topics (was paused 2026-10-04 to 2026-10-09); set repo variable `SCHEDULED_DRY_RUN=true` to pause |
+| `explainer` (default) | ~5.5 min animated explainer on a practical-AI topic, plus a vertical Short of its opening | Remotion (`video/explainer/`) | **Live** again since 2026-10-09 on topic-bank topics (was paused 2026-10-04 to 2026-10-09); set repo variable `SCHEDULED_DRY_RUN=true` to pause |
 | `kids` | 2–3 min "Explained Like You're 5" story video (finance / tech idea), plus a 30–40 s vertical Short with its own hook-first script (`script["short"]`; falls back to a cut of the story's start) | pycairo (`agents/kids/`) | **Live** since 2026-10-02: daily upload, public at 14:30 UTC |
 
 **Hard constraint: $0.** Gemini and Groq free tiers, standard GitHub Actions runner, open-source
@@ -83,6 +83,7 @@ kokoro_voice            one WAV per shot (shot length = narration length)
 word_timing             faster-whisper word times for captions (falls back to proportional)
 video/explainer         Remotion render, 1920×1080 @ 30 fps, progress streamed to the log
 scripts/qa_video.py     length / resolution / black / freeze / loudness; a failure blocks the upload
+explainer_short         vertical Short of the opening (≤ 58 s, one FFmpeg pass), QA, uploaded after the full video
 upload_agent            private upload, AI disclosure, thumbnail, captions, optional publishAt + playlist
 research.mark_used      topic recorded only after a successful upload
 ```
@@ -202,8 +203,9 @@ CHANNEL_NAME = "Run It Local"       # CHANNEL_SUBNICHE and NICHE_KEYWORDS define
 VIDEO_PRIVACY = "private"
 
 # Explainer
-EXPLAINER_TARGET_WORDS = 1100       # ≈ 8.5–9 min at EXPLAINER_WPM = 125 (measured ~122)
-EXPLAINER_MIN_SECONDS = 480
+EXPLAINER_TARGET_WORDS = 650        # ≈ 5.5 min (measured ~114 wpm); was 1100 until 2026-10-20 (13% average watched)
+EXPLAINER_MIN_SECONDS = 240
+EXPLAINER_SHORTS = true             # EXPLAINER_SHORT_PUBLISH_AT_UTC defaults to EXPLAINER_PUBLISH_AT_UTC
 EXPLAINER_PUBLISH_AT_UTC = ""       # e.g. "18:30"
 EXPLAINER_PLAYLIST = ""             # playlist title; empty = none
 EXPLAINER_TOPIC_MODE = "bank"       # bank = data/explainer_topics.json, feeds when used up; feed = news feeds only
