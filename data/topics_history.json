@@ -110,5 +110,12 @@
     "timestamp": "2026-10-20T09:22:28.964269",
     "used_at": "2026-10-20T09:22:28.964269",
     "source": "bank"
+  },
+  {
+    "topic": "whisper.cpp: fast offline transcription on any computer",
+    "normalized_topic": "whispercpp fast offline transcription on",
+    "timestamp": "2026-10-21T09:03:46.057189",
+    "used_at": "2026-10-21T09:03:46.057189",
+    "source": "bank"
   }
 ]
