@@ -72,7 +72,8 @@ def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int =
             history = []
     used = [h.get("world") or "lemonade stand" for h in history]
     last = {w["key"]: max((i for i, u in enumerate(used) if u == w["key"]), default=-1) for w in WORLDS}
-    return sorted(WORLDS, key=lambda w: (last[w["key"]], area not in w["areas"]))[:n]
+    fit = "tech" if area == "ai" else area   # AI topics suit the tech worlds
+    return sorted(WORLDS, key=lambda w: (last[w["key"]], fit not in w["areas"]))[:n]
 
 
 def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:
@@ -409,7 +410,7 @@ class KidsScriptAgent:
         if config.KIDS_PLAYLIST and (not tags or tags[0] != config.KIDS_PLAYLIST):
             tags = [config.KIDS_PLAYLIST] + [t for t in tags if t != config.KIDS_PLAYLIST][:14]
         script.update({
-            "title": title, "tags": tags, "topic": topic["topic"],
+            "title": title, "tags": tags, "topic": topic["topic"], "area": topic.get("area", ""),
             "analogy": {"world": plan.get("world", ""), "map": plan.get("map", [])},
             "backdrop": getattr(self, "world", {}).get("backdrop", "meadow"),
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],

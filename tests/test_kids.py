@@ -356,3 +356,9 @@ def test_llm_skips_a_key_without_credit_and_waits_out_the_minute_budget(monkeypa
     f._preferred = None
     assert f.complete("s", "u") == '{"ok": true}'
     assert calls.count("dead") == 1                      # the dead key is not asked again
+
+
+def test_ai_topics_get_tech_worlds_first():
+    from agents.kids_script_agent import world_options
+    opts = world_options("ai", history=[], n=3)
+    assert all("tech" in w["areas"] for w in opts)

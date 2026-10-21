@@ -26,3 +26,11 @@ def test_dry_run_job_is_never_posted(tmp_path, monkeypatch, capsys):
     post.assert_not_called()
     get.assert_not_called()
     assert "not posting" in capsys.readouterr().out
+
+
+def test_caption_hashtags_and_disclaimer_follow_the_topic_area():
+    ai = R.caption_for({"title": "How do chatbots talk? (Explained Like You're 5)", "description": "Hi", "area": "ai"})
+    assert "#artificialintelligence" in ai and "#financeforbeginners" not in ai
+    assert "financial advice" not in ai and "AI-generated" in ai
+    money = R.caption_for({"title": "Why do prices rise? (Explained Like You're 5)", "description": "Hi", "area": "finance"})
+    assert "#financeforbeginners" in money and "Not financial advice." in money

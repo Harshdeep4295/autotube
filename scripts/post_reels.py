@@ -27,16 +27,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import config  # noqa: E402
 
 GRAPH = "https://graph.facebook.com"
-HASHTAGS = "#explainedlikeyoure5 #eli5 #learnontiktok #financeforbeginners #techexplained #reels"
+HASHTAGS = {
+    "finance": "#explainedlikeyoure5 #eli5 #moneyforkids #financeforbeginners #learnoninstagram #reels",
+    "ai": "#explainedlikeyoure5 #eli5 #artificialintelligence #aiforkids #techexplained #reels",
+    "tech": "#explainedlikeyoure5 #eli5 #techexplained #howthingswork #stemforkids #reels",
+}
+GENERAL = "#explainedlikeyoure5 #eli5 #techexplained #learnoninstagram #reels"
 
 
 def caption_for(script: Dict, full_url: str = "") -> str:
     base = script.get("title", "").split(" (")[0].strip()
+    area = script.get("area", "")
     parts = [f"{base} — explained like you're 5.", script.get("description", "").strip()]
     if full_url:
         parts.append(f"Full video on YouTube ({config.CHANNEL_NAME}): {full_url}")
-    parts.append("Narration voice is AI-generated. Animation is made with code. Not financial advice.")
-    parts.append(HASHTAGS)
+    note = "Narration voice is AI-generated. Animation is made with code."
+    if area in ("finance", ""):   # older scripts have no area; keep the money disclaimer for them
+        note += " Not financial advice."
+    parts.append(note)
+    parts.append(HASHTAGS.get(area, GENERAL))
     return "\n\n".join(p for p in parts if p)[:2100]
 
 
