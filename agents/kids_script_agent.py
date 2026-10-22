@@ -60,8 +60,12 @@ WORLDS = (
 )
 
 
+RECENT_WORLDS = 4   # a world is not offered again until 4 other videos have run
+
+
 def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int = 4) -> List[Dict]:
-    """The `n` worlds used longest ago (never-used first), ones that fit the topic's area first.
+    """Up to `n` worlds not used in the last few videos, ones that fit the topic's area first,
+    then the ones used longest ago (never-used first).
     The script model picks the best fit among them, so settings rotate without forcing a world
     onto a topic it does not suit. History rows from before worlds were recorded count as the
     lemonade stand."""
@@ -73,7 +77,9 @@ def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int =
     used = [h.get("world") or "lemonade stand" for h in history]
     last = {w["key"]: max((i for i, u in enumerate(used) if u == w["key"]), default=-1) for w in WORLDS}
     fit = "tech" if area == "ai" else area   # AI topics suit the tech worlds
-    return sorted(WORLDS, key=lambda w: (last[w["key"]], fit not in w["areas"]))[:n]
+    recent = set(used[-RECENT_WORLDS:])
+    # skip the last few worlds, then worlds that fit the area, then the ones used longest ago
+    return sorted(WORLDS, key=lambda w: (w["key"] in recent, fit not in w["areas"], last[w["key"]]))[:n]
 
 
 def pick_world(area: str = "", history: Optional[List[Dict]] = None) -> Dict:

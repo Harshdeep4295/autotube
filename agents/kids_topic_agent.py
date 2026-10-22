@@ -30,6 +30,42 @@ DEFAULT_FEEDS = (
 BLOCK = re.compile(r"\b(war|kill|dead|death|shoot|attack|crash|murder|abuse|bomb|terror|suicide|crime|arrest)\w*", re.I)
 
 
+STOP = {"how", "does", "do", "did", "what", "why", "who", "when", "where", "which", "is", "are", "was", "can",
+        "could", "a", "an", "the", "to", "of", "in", "on", "for", "and", "or", "it", "its", "we", "us", "our",
+        "you", "your", "they", "them", "things", "thing", "so", "much", "more", "work", "works", "make", "get", "need", "needs"}
+SAME = {"computer": "machine", "computers": "machine", "ai": "machine", "robot": "machine", "robots": "machine",
+        "machine": "machine", "machines": "machine", "price": "cost", "prices": "cost", "costs": "cost"}
+RECENT_TOPICS = 30   # how many past topics a new one is compared with
+
+
+def key_words(q: str) -> set:
+    """The words that carry a question's meaning, with near-synonyms merged and plurals cut."""
+    out = set()
+    for w in re.sub(r"[^a-z0-9 ]", " ", q.lower()).split():
+        if w in STOP:
+            continue
+        w = SAME.get(w, w)
+        if len(w) > 4 and w.endswith("s") and not w.endswith("ss"):
+            w = w[:-1]
+        out.add(w)
+    return out
+
+
+def too_close(q: str, past: List[str]) -> bool:
+    """True when `q` asks much the same thing as a recent topic ("How does AI learn to work?" vs
+    "How does a computer learn?"): one's key words (two or more) contain the other's, or half of them are shared."""
+    a = key_words(q)
+    for p in past:
+        b = key_words(p)
+        small, big = sorted((a, b), key=len)
+        if not small:
+            continue
+        # a one-word question ("What is AI?") only clashes with the same one word
+        if small == big or (len(small) >= 2 and (small <= big or len(a & b) / len(a | b) >= 0.5)):
+            return True
+    return False
+
+
 def norm(q: str) -> str:
     return re.sub(r"[^a-z0-9 ]", "", q.lower()).replace("what is a ", "what is ").replace("what is an ", "what is ").strip()
 
@@ -84,14 +120,17 @@ class KidsTopicAgent:
         logger.info(f"[kids-topics] {len(out)} headlines from {len(feeds)} feeds")
         return out[:limit]
 
-    def ideas_from_headlines(self, heads: List[str]) -> List[Dict]:
+    def ideas_from_headlines(self, heads: List[str], recent: Optional[List[str]] = None) -> List[Dict]:
         from agents.explainer_script_agent import parse_json_obj
         from templates import kids_prompts as P
 
         if not heads:
             return []
-        text = self.llm.complete(P.SYSTEM, P.CONCEPT_USER.format(headlines="\n".join(f"- {h}" for h in heads)),
-                                 max_tokens=1500, temperature=0.5)
+        prompt = P.CONCEPT_USER.format(headlines="\n".join(f"- {h}" for h in heads))
+        if recent:
+            prompt += ("\n\nAlready made (do NOT suggest these or anything close to them; pick a different idea):\n"
+                       + "\n".join(f"- {t}" for t in recent))
+        text = self.llm.complete(P.SYSTEM, prompt, max_tokens=1500, temperature=0.5)
         ideas = parse_json_obj(text).get("ideas") or []
         out = []
         for i in ideas:
@@ -110,17 +149,20 @@ class KidsTopicAgent:
         mode = (mode or config.KIDS_TOPIC_MODE).lower()
         hist = self.history()
         used = {norm(h["topic"]) for h in hist}
+        recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
         area = self.next_area(hist)
         picks: List[Dict] = []
         if mode in ("mixed", "feed"):
             try:
-                ideas = [i for i in self.ideas_from_headlines(self.headlines()) if norm(i["topic"]) not in used]
+                ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent)
+                         if norm(i["topic"]) not in used and not too_close(i["topic"], recent)]
                 ideas.sort(key=lambda i: i["area"] != area)  # preferred area first
                 picks += ideas[:count]
             except Exception as e:  # noqa: BLE001 — the bank is always there
                 logger.warning(f"[kids-topics] headline ideas failed: {str(e)[:150]}")
         if len(picks) < count and mode in ("mixed", "bank"):
-            fresh = [b for b in self.bank() if norm(b["question"]) not in used]
+            fresh = [b for b in self.bank() if norm(b["question"]) not in used
+                     and not too_close(b["question"], recent)]
             fresh.sort(key=lambda b: b.get("area") != area)
             for b in fresh[: count - len(picks)]:
                 picks.append({"topic": b["question"], "area": b.get("area", ""), "source": "bank",

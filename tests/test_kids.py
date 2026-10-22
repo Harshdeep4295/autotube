@@ -254,7 +254,8 @@ def test_story_worlds_rotate_and_only_use_drawable_props():
     assert len(set(seen)) == 6 and "lemonade stand" not in seen
     from agents.kids_script_agent import world_options
     opts = [w["key"] for w in world_options("tech", hist)]
-    assert len(opts) == 4 and not set(opts) & set(seen) and "lemonade stand" not in opts
+    assert len(opts) == 4 and not set(opts) & set(seen[-4:])
+    assert all("tech" in w["areas"] for w in world_options("tech", hist)[:2])
 
 
 def test_swap_stand_redraws_the_stall_but_keeps_text():
@@ -362,3 +363,15 @@ def test_ai_topics_get_tech_worlds_first():
     from agents.kids_script_agent import world_options
     opts = world_options("ai", history=[], n=3)
     assert all("tech" in w["areas"] for w in opts)
+
+
+def test_near_duplicate_kids_topics_are_caught():
+    from agents.kids_topic_agent import too_close
+    past = ["How does AI learn?", "Why do we pay taxes?", "Why does AI need rules?"]
+    assert too_close("How does AI learn to work?", past)
+    assert too_close("How does a computer learn?", past)
+    assert too_close("Why do we pay so many taxes?", past)
+    assert not too_close("How do computers solve mysteries?", past)
+    assert not too_close("What is a GPU?", past)
+    assert not too_close("Why do house prices change?", past)
+    assert not too_close("What is AI?", past) and not too_close("Why does AI need electricity?", past)
