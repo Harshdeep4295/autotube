@@ -2,7 +2,8 @@ name: Channel Report
 
 # Read-only: one JSON snapshot of the channel's numbers (see scripts/channel_report.py),
 # published as the asset report.json on the release "channel-report" so the report page can
-# be refreshed from a public URL. Daily, after YouTube Analytics has usually updated.
+# be refreshed from a public URL, and as report.json on the branch report-data (read raw by the
+# report page each time it opens). Daily, after YouTube Analytics has usually updated.
 on:
   workflow_dispatch:
   schedule:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write   # release asset only; nothing is committed
+      contents: write   # release asset + the report-data branch (main is never touched)
     env:
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
       META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
@@ -35,3 +36,13 @@ jobs:
             gh release create channel-report --repo "$GITHUB_REPOSITORY" --prerelease \
               --title "Channel report data" --notes "report.json is rewritten daily by the Channel Report workflow."
           gh release upload channel-report report.json --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Publish report.json on the report-data branch
+        # The report page reads this raw file each time it opens. One orphan commit, force-pushed,
+        # so the branch never grows. [skip ci] keeps it from starting the test workflow.
+        run: |
+          mkdir /tmp/report-data && cp report.json /tmp/report-data/ && cd /tmp/report-data
+          git init -q -b report-data
+          git add report.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "Channel report $(date -u +%FT%H:%MZ) [skip ci]"
+          git push -fq "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" report-data
