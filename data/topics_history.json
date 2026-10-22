@@ -117,5 +117,12 @@
     "timestamp": "2026-10-21T09:03:46.057189",
     "used_at": "2026-10-21T09:03:46.057189",
     "source": "bank"
+  },
+  {
+    "topic": "Text Generation WebUI: the all-in-one app for running local AI language models",
+    "normalized_topic": "text generation webui the allinone app f",
+    "timestamp": "2026-10-22T09:09:21.488486",
+    "used_at": "2026-10-22T09:09:21.488486",
+    "source": "bank"
   }
 ]
