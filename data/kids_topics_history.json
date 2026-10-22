@@ -144,5 +144,12 @@
     "source": "feed",
     "world": "delivery truck",
     "date": "2026-10-21T09:02:50+00:00"
+  },
+  {
+    "topic": "How does AI learn to work?",
+    "area": "ai",
+    "source": "feed",
+    "world": "cookie bakery",
+    "date": "2026-10-22T09:04:47+00:00"
   }
 ]
