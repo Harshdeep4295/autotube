@@ -124,5 +124,12 @@
     "timestamp": "2026-10-22T09:09:21.488486",
     "used_at": "2026-10-22T09:09:21.488486",
     "source": "bank"
+  },
+  {
+    "topic": "Stable Diffusion WebUI: generate AI images on your own PC",
+    "normalized_topic": "stable diffusion webui generate ai image",
+    "timestamp": "2026-10-23T14:14:44.349021",
+    "used_at": "2026-10-23T14:14:44.349021",
+    "source": "bank"
   }
 ]
