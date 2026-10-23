@@ -17,6 +17,25 @@ from config import config
 logger = logging.getLogger(__name__)
 
 
+TAGS_MAX_CHARS = 500   # YouTube's limit on all tags together
+
+
+def fit_tags(tags, limit: int = TAGS_MAX_CHARS) -> list:
+    """Clean tags and keep as many as fit YouTube's limit. YouTube counts a tag with a space as
+    if it were quoted (+2) and a comma between tags, so 15 long tags can pass 500 and fail the
+    whole upload with "invalidTags"."""
+    out, seen, used = [], set(), 0
+    for t in tags or []:
+        t = " ".join(str(t).replace("<", "").replace(">", "").replace(",", " ").split())[:100]
+        if not t or t.lower() in seen:
+            continue
+        cost = len(t) + (2 if " " in t else 0) + (1 if out else 0)
+        if used + cost > limit:
+            continue
+        out.append(t); seen.add(t.lower()); used += cost
+    return out
+
+
 class UploadAgent:
     """Uploads videos to YouTube using the Data API v3."""
 
@@ -91,7 +110,7 @@ class UploadAgent:
             "snippet": {
                 "title": title,
                 "description": description,
-                "tags": script.get("tags", []),
+                "tags": fit_tags(script.get("tags", [])),
                 "categoryId": config.VIDEO_CATEGORY_ID,
             },
             "status": {
@@ -123,8 +142,16 @@ class UploadAgent:
         )
 
         response = None
-        while response is None:
-            _, response = request.next_chunk()
+        try:
+            while response is None:
+                _, response = request.next_chunk()
+        except Exception as e:  # noqa: BLE001
+            # Tags never justify losing the day's upload: try once more without them.
+            if "invalidTags" not in str(e) or not body["snippet"]["tags"]:
+                raise
+            logger.warning(f"YouTube refused the tags {body['snippet']['tags']} — uploading without tags")
+            body["snippet"]["tags"] = []
+            return self._upload_video(video_path, {**script, "tags": []}, publish_at)
 
         return response["id"]
 

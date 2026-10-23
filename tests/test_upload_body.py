@@ -59,3 +59,17 @@ def test_short_upload_skips_the_thumbnail(tmp_path):
         res = agent.publish(str(video), None, {"title": "t", "description": "d", "tags": []})
     assert res["success"]
     agent._set_thumbnail.assert_not_called()
+
+
+def test_tags_are_trimmed_to_youtubes_500_character_limit():
+    from agents.upload_agent import fit_tags
+    # The 2026-10-23 explainer: 15 tags that YouTube counted as 504 characters.
+    tags = ["stable diffusion webui install", "run stable diffusion locally", "stable diffusion windows guide",
+            "offline AI image generation", "stable diffusion one click script", "stable diffusion hardware requirements",
+            "stable diffusion txt2img tutorial", "stable diffusion img2img guide", "stable diffusion upscaling",
+            "stable diffusion attention syntax", "stable diffusion embeddings", "stable diffusion xformers speed",
+            "stable diffusion GPU support", "stable diffusion python setup", "stable diffusion community extensions"]
+    out = fit_tags(tags)
+    cost = sum(len(t) + (2 if " " in t else 0) for t in out) + len(out) - 1
+    assert cost <= 500 and out == tags[:len(out)] and len(out) >= 13
+    assert fit_tags(["a<b>", "A<B>", "", "x, y"]) == ["ab", "x y"]
