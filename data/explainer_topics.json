@@ -1,6 +1,67 @@
 {
- "_note": "Evergreen explainer topics: one free / open-source AI tool each. 'repo' is the GitHub project and its README is the source text the script is grounded in; topics without a repo use 'url' (a page whose text is the source). Add freely; used ones are skipped via data/topics_history.json.",
+ "_note": "Evergreen explainer topics: one free / open-source AI tool each. 'repo' is the GitHub project and its README is the source text the script is grounded in; topics without a repo use 'url' (a page whose text is the source). Add freely; used ones are skipped via data/topics_history.json. Order matters: the next unused topic is picked from the top, so tools people search for most go first.",
  "topics": [
+  {
+   "topic": "Ollama on Windows: install it and run your first local AI model",
+   "repo": "ollama/ollama",
+   "branch": "main"
+  },
+  {
+   "topic": "n8n: build AI automations yourself with an open-source workflow tool",
+   "repo": "n8n-io/n8n",
+   "branch": "master"
+  },
+  {
+   "topic": "Best local AI model for your graphics card: 8, 16 or 24 GB",
+   "url": "https://dreaming.press/posts/open-weight-llms-you-actually-run-locally-october-2026.html"
+  },
+  {
+   "topic": "ComfyUI on a low-VRAM GPU: make AI images with 6 to 8 GB",
+   "repo": "comfyanonymous/ComfyUI",
+   "branch": "master"
+  },
+  {
+   "topic": "gpt-oss: run OpenAI's open-weight model on your own PC",
+   "url": "https://ollama.com/library/gpt-oss"
+  },
+  {
+   "topic": "Gemma 4: run Google's open model on your own computer with Ollama",
+   "url": "https://ollama.com/library/gemma4"
+  },
+  {
+   "topic": "Open WebUI with Ollama: a private ChatGPT on your own PC",
+   "repo": "open-webui/open-webui",
+   "branch": "main"
+  },
+  {
+   "topic": "Qwen 3.6: run Alibaba's open model locally with Ollama",
+   "url": "https://ollama.com/library/qwen3.6"
+  },
+  {
+   "topic": "PrivateGPT: ask an AI about your files without sending them anywhere",
+   "repo": "zylon-ai/private-gpt",
+   "branch": "main"
+  },
+  {
+   "topic": "Unsloth: fine-tune your own AI model for free",
+   "repo": "unslothai/unsloth",
+   "branch": "main"
+  },
+  {
+   "topic": "faster-whisper: transcribe audio up to four times faster for free",
+   "repo": "SYSTRAN/faster-whisper",
+   "branch": "master"
+  },
+  {
+   "topic": "Continue: an open-source AI coding assistant for your editor",
+   "repo": "continuedev/continue",
+   "branch": "main"
+  },
+  {
+   "topic": "LibreChat: a free ChatGPT-style app you host yourself",
+   "repo": "danny-avila/LibreChat",
+   "branch": "main"
+  },
   {
    "topic": "Ollama explained: run AI models on your own computer for free",
    "repo": "ollama/ollama",
@@ -77,16 +138,6 @@
    "branch": "master"
   },
   {
-   "topic": "n8n: build AI automations yourself with an open-source workflow tool",
-   "repo": "n8n-io/n8n",
-   "branch": "master"
-  },
-  {
-   "topic": "PrivateGPT: ask an AI about your files without sending them anywhere",
-   "repo": "zylon-ai/private-gpt",
-   "branch": "main"
-  },
-  {
    "topic": "Tabby: a self-hosted AI coding assistant, an open alternative to Copilot",
    "repo": "TabbyML/tabby",
    "branch": "main"
@@ -97,26 +148,14 @@
    "branch": "master"
   },
   {
-   "topic": "Best local AI model for your graphics card: 8, 16 or 24 GB",
-   "url": "https://dreaming.press/posts/open-weight-llms-you-actually-run-locally-october-2026.html"
-  },
-  {
    "topic": "Strata: run a 125-billion-parameter AI model on a 12 GB graphics card",
    "repo": "Niko1221/Strata",
    "branch": "main"
   },
   {
-   "topic": "Gemma 4: run Google's open model on your own computer with Ollama",
-   "url": "https://ollama.com/library/gemma4"
-  },
-  {
    "topic": "WhisperX: free transcripts with word timestamps and who is speaking",
    "repo": "m-bain/whisperX",
    "branch": "main"
-  },
-  {
-   "topic": "gpt-oss: run OpenAI's open-weight model on your own PC",
-   "url": "https://ollama.com/library/gpt-oss"
   },
   {
    "topic": "Local Deep Research: a private AI research assistant on your own PC",
@@ -139,22 +178,8 @@
    "branch": "main"
   },
   {
-   "topic": "Qwen 3.6: run Alibaba's open model locally with Ollama",
-   "url": "https://ollama.com/library/qwen3.6"
-  },
-  {
    "topic": "Vibe: free offline AI transcription for audio and video",
    "repo": "thewh1teagle/vibe",
-   "branch": "main"
-  },
-  {
-   "topic": "Continue: an open-source AI coding assistant for your editor",
-   "repo": "continuedev/continue",
-   "branch": "main"
-  },
-  {
-   "topic": "Unsloth: fine-tune your own AI model for free",
-   "repo": "unslothai/unsloth",
    "branch": "main"
   },
   {
@@ -166,11 +191,6 @@
    "topic": "MarkItDown: convert any file to Markdown for AI tools",
    "repo": "microsoft/markitdown",
    "branch": "main"
-  },
-  {
-   "topic": "faster-whisper: transcribe audio up to four times faster for free",
-   "repo": "SYSTRAN/faster-whisper",
-   "branch": "master"
   },
   {
    "topic": "InvokeAI: a free creative studio for AI images on your own machine",
@@ -245,11 +265,6 @@
   {
    "topic": "LobeChat: an open-source AI chat app for many models",
    "repo": "lobehub/lobe-chat",
-   "branch": "main"
-  },
-  {
-   "topic": "LibreChat: a free ChatGPT-style app you host yourself",
-   "repo": "danny-avila/LibreChat",
    "branch": "main"
   },
   {
