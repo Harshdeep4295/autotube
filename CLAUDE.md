@@ -142,7 +142,8 @@ Rules:
 | `tests.yml` | every push / PR | pytest, scene overflow tests + `tsc`, end-to-end fixture render + QA |
 | `explainer.yml` | daily 03:17 UTC + manual | Scheduled runs **upload** unless repo variable `SCHEDULED_DRY_RUN=true`. Manual `dry_run` defaults to true. 90 min timeout |
 | `kids_explainer.yml` | daily 03:47 UTC + manual | Scheduled runs **upload** because repo variable `KIDS_SCHEDULED_DRY_RUN=false` is set (the workflow default is dry). 45 min timeout |
-| `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `home-section` on the YouTube channel |
+| `channel_admin.yml` | manual | `status` (read-only), `playlist-add`, `playlist-fill` (all public videos of one track), `home-section` on the YouTube channel |
+| `link_comments.yml` | daily 19:17 UTC + manual | Comments "▶ Full video: <link>" from the channel on each public Short that lacks one. Manual `dry_run` defaults to true |
 | `post_reels.yml` | manual | Posts the Short of an earlier kids run (by run ID) to Instagram and/or Facebook |
 | `youtube_stats.yml` | manual | Read-only YouTube Analytics (per-video views, watch time, share watched, traffic sources) printed in the run log |
 | `social_stats.yml` | manual | Read-only Instagram and Facebook numbers (followers, per-post views and likes) printed in the run log |
@@ -180,7 +181,8 @@ Rules:
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |
 | `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |
-| `scripts/channel_admin.py` | Channel housekeeping (status, add a video to a playlist, home page section), run via `channel_admin.yml` |
+| `scripts/channel_admin.py` | Channel housekeeping (status, add a video to a playlist, fill a playlist with one track, home page section), run via `channel_admin.yml` |
+| `scripts/link_comments.py` | Full-video link comment on each public Short, run via `link_comments.yml` |
 | `scripts/post_reels.py` | Posts each kids Short as an Instagram Reel and a Facebook Page video (Meta Graph API). Step in `kids_explainer.yml`; needs secret `META_ACCESS_TOKEN` (expires about every 60 days; issued 2026-10-05) and variables `INSTAGRAM_ACCOUNT_ID`, `FACEBOOK_PAGE_ID`. Skips dry runs, never fails the run |
 | `scripts/backfill_kids.py` | Short + current description for an already-published kids video, run via `kids_backfill.yml` |
 | `generate_youtube_token.py` | One-time OAuth token generator for the channel |

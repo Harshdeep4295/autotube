@@ -8,7 +8,7 @@ on:
       action:
         description: "What to do"
         type: choice
-        options: [status, playlist-add, home-section]
+        options: [status, playlist-add, home-section, playlist-fill]
         default: status
       video:
         description: "Video ID (playlist-add)"
@@ -18,6 +18,11 @@ on:
         description: "Playlist title (playlist-add, home-section)"
         required: false
         default: "Explained Like You're 5"
+      track:
+        description: "Track (playlist-fill)"
+        type: choice
+        options: [explainer, kids]
+        default: explainer
 
 jobs:
   admin:
@@ -38,8 +43,10 @@ jobs:
           IN_ACTION: ${{ inputs.action }}
           IN_VIDEO: ${{ inputs.video }}
           IN_PLAYLIST: ${{ inputs.playlist }}
+          IN_TRACK: ${{ inputs.track }}
         run: |
           args=("$IN_ACTION")
           if [ -n "$IN_VIDEO" ]; then args+=(--video "$IN_VIDEO"); fi
           if [ -n "$IN_PLAYLIST" ]; then args+=(--playlist "$IN_PLAYLIST"); fi
+          if [ "$IN_ACTION" = "playlist-fill" ]; then args+=(--track "${IN_TRACK:-explainer}"); fi
           python scripts/channel_admin.py "${args[@]}"

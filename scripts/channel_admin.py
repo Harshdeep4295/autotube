@@ -5,8 +5,12 @@ YouTube token; nothing else does).
     python scripts/channel_admin.py status
     python scripts/channel_admin.py playlist-add --video TdWMrNFhfig --playlist "Explained Like You're 5"
     python scripts/channel_admin.py home-section --playlist "Explained Like You're 5"
+    python scripts/channel_admin.py playlist-fill --playlist "Run AI Locally" --track explainer
 
-`status` only reads. The other two change the channel and say what they did.
+`playlist-fill` adds every public full-length video of one track (explainer or kids; never
+Shorts) that is not in the playlist yet, oldest first.
+
+`status` only reads. The others change the channel and say what they did.
 The channel trailer is not handled here: setting it means rewriting the channel's whole
 branding block (name, description, keywords, banner), which is safer done in YouTube Studio.
 """
@@ -64,11 +68,39 @@ def home_section(agent: UploadAgent, playlist: str) -> None:
     print(f"Added '{playlist}' as a home page section")
 
 
+def track_of(title: str) -> str:
+    """'kids', 'explainer' or 'short' from an upload's title."""
+    if "#shorts" in title.lower():
+        return "short"
+    return "kids" if "Explained Like You're 5" in title else "explainer"
+
+
+def playlist_fill(agent: UploadAgent, playlist: str, track: str) -> None:
+    from scripts.link_comments import channel_uploads
+    yt = agent.youtube
+    pid = agent._find_playlist(playlist) or agent._create_playlist(playlist)
+    have, token = set(), None
+    while True:
+        res = yt.playlistItems().list(part="snippet", playlistId=pid, maxResults=50, pageToken=token).execute()
+        have |= {i["snippet"]["resourceId"].get("videoId") for i in res.get("items", [])}
+        token = res.get("nextPageToken")
+        if not token:
+            break
+    _, videos = channel_uploads(yt)
+    todo = [v for v in reversed(videos)   # uploads come newest first
+            if v["privacy"] == "public" and track_of(v["title"]) == track and v["id"] not in have]
+    for v in todo:
+        agent._add_to_playlist(v["id"], pid)
+        print(f"Added {v['id']} ({v['title'][:60]}) to '{playlist}'")
+    print(f"Done: {len(todo)} added, {len(have)} were already in '{playlist}'.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("action", choices=["status", "playlist-add", "home-section"])
+    ap.add_argument("action", choices=["status", "playlist-add", "home-section", "playlist-fill"])
     ap.add_argument("--video", default="")
     ap.add_argument("--playlist", default="")
+    ap.add_argument("--track", default="explainer", choices=["explainer", "kids"])
     a = ap.parse_args()
     agent = UploadAgent()
     if a.action == "status":
@@ -77,6 +109,10 @@ def main() -> None:
         if not (a.video and a.playlist):
             sys.exit("playlist-add needs --video and --playlist")
         playlist_add(agent, a.video, a.playlist)
+    elif a.action == "playlist-fill":
+        if not a.playlist:
+            sys.exit("playlist-fill needs --playlist")
+        playlist_fill(agent, a.playlist, a.track)
     else:
         if not a.playlist:
             sys.exit("home-section needs --playlist")
