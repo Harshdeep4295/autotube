@@ -138,5 +138,12 @@
     "timestamp": "2026-10-24T08:40:16.147500",
     "used_at": "2026-10-24T08:40:16.147500",
     "source": "bank"
+  },
+  {
+    "topic": "n8n: build AI automations yourself with an open-source workflow tool",
+    "normalized_topic": "n8n build ai automations yourself with a",
+    "timestamp": "2026-10-25T08:53:40.535462",
+    "used_at": "2026-10-25T08:53:40.535462",
+    "source": "bank"
   }
 ]
