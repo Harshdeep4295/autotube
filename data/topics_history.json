@@ -145,5 +145,12 @@
     "timestamp": "2026-10-25T08:53:40.535462",
     "used_at": "2026-10-25T08:53:40.535462",
     "source": "bank"
+  },
+  {
+    "topic": "Best local AI model for your graphics card: 8, 16 or 24 GB",
+    "normalized_topic": "best local ai model for your graphics ca",
+    "timestamp": "2026-10-26T09:21:47.985390",
+    "used_at": "2026-10-26T09:21:47.985390",
+    "source": "bank"
   }
 ]
