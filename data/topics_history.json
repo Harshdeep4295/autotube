@@ -152,5 +152,12 @@
     "timestamp": "2026-10-26T09:21:47.985390",
     "used_at": "2026-10-26T09:21:47.985390",
     "source": "bank"
+  },
+  {
+    "topic": "ComfyUI on a low-VRAM GPU: make AI images with 6 to 8 GB",
+    "normalized_topic": "comfyui on a lowvram gpu make ai images ",
+    "timestamp": "2026-10-27T09:28:12.354746",
+    "used_at": "2026-10-27T09:28:12.354746",
+    "source": "bank"
   }
 ]
