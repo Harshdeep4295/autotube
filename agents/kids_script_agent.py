@@ -16,6 +16,7 @@ from agents.kids_scene_schema import PROPS, catalogue_for_prompt, validate_and_r
 from agents.llm import FreeLLM
 from agents.packaging import TITLE_MAX, packaging_problems, short_thumb
 from agents.script_rules import check_script
+from agents.kids_topic_agent import RECENT_TOPICS, too_close
 from config import config
 from templates import kids_prompts as P
 
@@ -222,6 +223,60 @@ def drop_greetings(scenes: List[Dict]) -> int:
     return n
 
 
+def set_question(scenes: List[Dict], question: str) -> None:
+    """Make the title card show and say the video's question."""
+    first = next((sc for sc in scenes if isinstance(sc, dict) and sc.get("type") == "title"), None)
+    if not first:
+        return
+    first.setdefault("props", {})["question"] = question
+    lines = first.get("lines") or []
+    if lines and isinstance(lines[0], dict):
+        lines[0]["text"] = question
+        lines[0].pop("cue", None)
+    elif not lines:
+        first["lines"] = [{"text": question}]
+
+
+def first_and_last(scenes: List[Dict]) -> tuple:
+    """The promise line after the question, and the last line of the video."""
+    lines = [ln.get("text", "") for sc in scenes if isinstance(sc, dict)
+             for ln in (sc.get("lines") or []) if isinstance(ln, dict)]
+    return (lines[1] if len(lines) > 1 else ""), (lines[-1] if lines else "")
+
+
+# Story shapes take turns, one per video (by how many kids videos exist), so the videos don't all
+# run "problem → robot helps → reveal → goodbye".
+STORY_SHAPES = [
+    "PROBLEM AND FIX: something goes wrong for a character, they try the obvious thing, it fails, "
+    "then the real idea fixes it.",
+    "MYSTERY: something strange happens; the friends follow two or three clues, and the last clue "
+    "is the grown-up idea.",
+    "RACE: two ways of doing the same job go head to head (old way vs new way); we watch which wins "
+    "and why.",
+    "BUILD IT: the friends build the thing from its parts, one part per beat, and switch it on at the end.",
+    "WHAT IF: one day the thing stops working (or never existed); we see what goes wrong, then it comes "
+    "back and we see what it was doing all along.",
+]
+
+
+def story_shape(n: int) -> str:
+    return STORY_SHAPES[n % len(STORY_SHAPES)]
+
+
+def recent_lines(history: List[Dict], n: int = 5) -> str:
+    rows = [h for h in history if h.get("opening") or h.get("ending")][-n:]
+    if not rows:
+        return "(none recorded yet)"
+    return "\n".join(f'- opened: "{h.get("opening", "")}" / ended: "{h.get("ending", "")}"' for h in rows)
+
+
+def _history() -> List[Dict]:
+    try:
+        return json.loads((Path(__file__).resolve().parent.parent / config.KIDS_HISTORY_FILE).read_text())
+    except (OSError, ValueError):
+        return []
+
+
 class KidsScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
         self.llm = llm or FreeLLM()
@@ -261,8 +316,19 @@ class KidsScriptAgent:
         opts = world_options(topic.get("area", ""))
         worlds = "\n".join(f'  - key "{w["key"]}": {w["world"]}. Main place: prop "{w["place"]}" with the sign '
                            f'"{w["label"]}". Things that fit: {w["items"]}.' for w in opts)
+        hist = _history()
+        shape = story_shape(len(hist))
+        logger.info(f"[kids-script] story shape: {shape.split(':')[0]}")
         plan = self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
-                                            worlds=worlds), check, max_tokens=3000)
+                                            worlds=worlds, shape=shape), check, max_tokens=3000)
+        # The planner may reword the question into one we made last week ("How can AI help stop
+        # disease?" became "How can AI stop germs?"). Fall back to the topic's own wording then.
+        recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
+        q = str(plan.get("question", "")).strip()
+        if q and too_close(q, recent) and len(topic["topic"]) <= QUESTION_MAX:
+            logger.warning(f"[kids-script] planned question {q!r} is too close to a recent video — "
+                           f"using the topic {topic['topic']!r}")
+            plan["question"] = topic["topic"]
         key = str(plan.get("world_key", "")).strip().lower()
         w = next((o for o in opts if o["key"] == key), opts[0])
         self.world = w
@@ -290,7 +356,8 @@ class KidsScriptAgent:
                 raise ValueError("; ".join(bad))
 
         return self._ask(P.SCRIPT_USER.format(plan=json.dumps(plan, ensure_ascii=False), min_words=lo, max_words=hi,
-                                              catalogue=catalogue_for_prompt()), check, max_tokens=12000)
+                                              catalogue=catalogue_for_prompt(),
+                                              recent_lines=recent_lines(_history())), check, max_tokens=12000)
 
     def review(self, script: Dict) -> Dict:
         lo, hi = word_bounds()
@@ -316,6 +383,12 @@ class KidsScriptAgent:
                               lambda o: validate_and_repair(o), max_tokens=12000, repairs=1)
             for k in ("title", "description", "tags", "thumbnail_text"):
                 fixed.setdefault(k, script.get(k))
+            # A backup model sometimes "fixes" a script by cutting it in half (2026-10-28: 192
+            # words, 82 s, failed QA). A short video is worse than the problems, so keep the original.
+            before, after = word_count(validate_and_repair(script)[0]), word_count(validate_and_repair(fixed)[0])
+            if after < lo <= before:
+                logger.warning(f"[kids-script] fix round cut the script to {after} words (min {lo}) — keeping the original")
+                return {"script": script, "review": {"ok": False, "problems": problems, "fixed": False}}
             return {"script": fixed, "review": {"ok": False, "problems": problems, "fixed": True}}
         except Exception as e:  # noqa: BLE001
             logger.warning(f"[kids-script] fix round failed ({str(e)[:120]}) — keeping original")
@@ -403,9 +476,11 @@ class KidsScriptAgent:
             raise RuntimeError(f"script too long: {words} words ≈ {est:.0f}s (max {config.KIDS_MAX_SECONDS}s)")
         if est < config.KIDS_MIN_SECONDS * 0.8:
             raise RuntimeError(f"script too short: {words} words ≈ {est:.0f}s (min {config.KIDS_MIN_SECONDS}s)")
-        title = str(script.get("title") or plan["question"])[:100]
-        if "like you're 5" not in title.lower() or len(title) > TITLE_MAX:
-            title = f"{plan['question'].rstrip('?')}?{TITLE_SUFFIX}"[:100]
+        # One question everywhere: the title, the title card and its first spoken line. The script's
+        # own title drifted from it before ("stop bugs" in the title, "stop germs" said aloud).
+        question = f"{plan['question'].strip().rstrip('?')}?"
+        title = f"{question.rstrip('?')}?{TITLE_SUFFIX}"[:100]
+        set_question(script["scenes"], question)
         thumb = str(script.get("thumbnail_text") or "").strip()
         if not thumb or len(thumb.split()) > 3:
             thumb = short_thumb(plan["question"])
@@ -422,6 +497,8 @@ class KidsScriptAgent:
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],
             "llm": self.llm.last_model,
         })
+        opening, ending = first_and_last(script["scenes"])
+        topic["opening"], topic["ending"] = opening, ending   # recorded in the history by mark_used
         if config.KIDS_SHORTS:
             try:
                 short = {"scenes": self.short(script)}

@@ -29,8 +29,15 @@ def tag(i):
     return "".join(chr(97 + int(d)) for d in str(i))   # letters, not digits: digits would trip the number check
 
 
+WORDS = ["apple", "brick", "cloud", "delta", "eagle", "fjord", "grape", "hotel", "igloo", "jelly", "koala",
+         "lemon", "mango", "noble", "olive", "piano", "quilt", "raven", "salsa", "tiger", "umbra", "vivid",
+         "waltz", "xenon", "yacht", "zebra"]
+
+
 def line(i):
-    return f"This is narration line number {tag(i)} with enough words to count properly here."
+    # Different content words on every line, or the near-repeat filter would (rightly) drop them.
+    w = " ".join(WORDS[(i * 6 + k) % len(WORDS)] + tag(i) for k in range(6))
+    return f"This is narration line number {tag(i)} about {w}."
 
 
 def chapter(n, first=0, cta=False):

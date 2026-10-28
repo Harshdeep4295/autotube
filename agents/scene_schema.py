@@ -185,12 +185,20 @@ class _Invalid(Exception):
     pass
 
 
+UNIT_SHORT = {"gigabytes": "GB", "gigabyte": "GB", "megabytes": "MB", "megabyte": "MB", "terabytes": "TB",
+              "terabyte": "TB", "seconds": "s", "second": "s", "milliseconds": "ms", "minutes": "min",
+              "percent": "%", "percentage": "%", "billion": "B", "million": "M", "parameters": "params",
+              "tokens per second": "tok/s", "tokens/second": "tok/s", "hours": "h", "hour": "h"}
+
+
 def _coerce(spec: P, value: Any, path: str, repairs: List[str]) -> Any:
     if spec.kind == "text":
         if value is None or str(value).strip() == "":
             if spec.required:
                 raise _Invalid(f"{path}: missing text")
             return spec.default or ""
+        if path.endswith(".unit"):   # "gigabytes" would be cut to "gigabyt…" on screen
+            value = UNIT_SHORT.get(str(value).strip().lower(), value)
         out = _trim(value, spec.max_len)
         if out != str(value).strip():
             repairs.append(f"{path}: trimmed to {spec.max_len} chars")

@@ -45,9 +45,12 @@ Return JSON:
   "world_key": "the key of the world you picked, copied exactly",
   "world": "the analogy world in a few words",
   "map": [{{"real": "grown-up word", "kid": "what it is in the story"}}],
-  "story": ["6-10 short story beats in order, each one sentence"],
+  "story": ["6-10 short story beats in order, each one sentence, following the STORY SHAPE"],
   "takeaway": "one sentence a 5-year-old could repeat"
 }}
+STORY SHAPE for this video (the channel rotates shapes so videos don't all feel the same):
+{shape}
+
 Use 2-4 map rows. If the real thing is itself in the list of things the animation can show
 (chip, phone, laptop, robot, server, cloud, lock, key, battery, bank, coin...), the story must
 show that real thing; the world's objects only help explain it. The story must reach the real idea (say the grown-up word) by the last third."""
@@ -71,7 +74,7 @@ and grown-up words).
 OPENING (the first 15 seconds decide whether anyone stays)
 - Scene 1 is "title" with 2 lines. Line 1 is the plan's question, word for word. Line 2 is a
   promise to the viewer that says "you": what they will understand, tied to the story
-  ("Mia's cookies cost more today. You will see why.").
+  ("Mia's cookies cost more today. Stay and find out why.").
 - Scene 2 starts the PROBLEM of the story in its very first line: something costs more, breaks,
   runs out, goes missing. The character is introduced by what happens to them, not by a hello.
 - No greeting and no scene-setting anywhere in scenes 1-2.
@@ -83,6 +86,12 @@ STRUCTURE
   starts "That is why", "That is how" or "Now you know" ("That is how drones find hidden fires:
   they see heat."). The viewer was promised an answer; say it plainly.
 - Never say the same sentence twice. The outro asks for nothing or for one thing, never two.
+- The outro line never describes the picture ("wave goodbye") and never just thanks the viewer:
+  it leaves them with the takeaway or one small thing to notice in their own day.
+
+FRESH WORDING: recent videos on this channel opened and ended with the lines below. Do not reuse
+their wording or their sentence pattern (e.g. if they say "You will see how…", don't):
+{recent_lines}
 - Use a "reveal" or "many"(with reveal) scene when the grown-up word is said for the first time.
 - Vary scene types; never the same type twice in a row; "talk" at most twice.
 - PICTURE MATCHES WORDS: every prop on screen must be the thing its line talks about. When a

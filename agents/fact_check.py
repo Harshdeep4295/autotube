@@ -57,18 +57,58 @@ def _scene_numbers(scene: Dict) -> Iterable[str]:
     yield from walk(props)
 
 
+# Scenes whose numbers ARE the picture (bars, dials, a big figure): a made-up "4 GB" here is as
+# wrong as a made-up "40 GB", so small numbers get no free pass.
+DATA_SCENES = {"big_number", "bar_chart", "line_trend", "meter", "compare"}
+
+
+# Everyday shell words a README needn't spell out for a command to be real.
+SHELL_WORDS = {"sudo", "python", "python3", "pip", "pip3", "install", "-u", "--upgrade", "curl", "wget", "git",
+               "clone", "cd", "ls", "npm", "npx", "node", "docker", "run", "uv", "bash", "sh", "chmod", "+x",
+               "mkdir", "source", "export", "echo", "cat", "brew", "winget", "apt", "apt-get", "-y", "-m", "-v"}
+
+
+def command_words(line: str) -> List[str]:
+    """The words of a terminal command that must appear in the source: the program, its
+    arguments and --flags ("$ ollama pull gpt-oss-20b" -> ollama, pull, gpt-oss-20b). Quoted
+    text, JSON bodies and shell syntax are skipped."""
+    line = str(line).strip()
+    if not line.startswith("$"):
+        return []
+    toks = line[1:].split()
+    out = []
+    for t in toks:
+        if t in ("sudo", "\\") or t[:1] in ("'", '"', "{", "<", "|", "&", ">") or t.startswith("-d"):
+            if t[:1] in ("'", '"', "{"):
+                break   # a quoted body follows; its words are content, not a command
+            continue
+        t = t.split("=")[0] if t.startswith("--") else t
+        if re.fullmatch(r"[A-Za-z0-9_.:/@+-]+", t) and len(t) > 1 and t.lower() not in SHELL_WORDS:
+            out.append(t)
+    return out
+
+
 def unsupported_numbers(script: Dict, source_text: str) -> List[Dict]:
-    """Return [{shot, number, where}] for numbers not found in the source."""
+    """Return [{shot, number, where}] for numbers not found in the source, and for terminal
+    commands whose program or --flag the source never shows (where = "command")."""
     allowed = numbers_in(source_text)
+    src = (source_text or "").lower()
     flags = []
     for i, shot in enumerate(script.get("shots", [])):
+        scene = shot.get("scene", {}) or {}
+        data = scene.get("type") in DATA_SCENES
         found = [(n, "narration") for n in numbers_in(shot.get("text", ""))]
-        found += [(n, "scene") for n in _scene_numbers(shot.get("scene", {}))]
+        found += [(n, "scene") for n in _scene_numbers(scene)]
         for n, where in found:
             try:
-                small = float(n) <= 10
+                small = float(n) <= 10 and not (data and where == "scene")
             except ValueError:
                 small = False
             if not small and n not in allowed:
                 flags.append({"shot": i, "number": n, "where": where})
+        if src and scene.get("type") == "terminal":
+            for line in (scene.get("props") or {}).get("lines", []) or []:
+                for w in command_words(line):
+                    if w.lower() not in src:
+                        flags.append({"shot": i, "number": w, "where": "command"})
     return flags
