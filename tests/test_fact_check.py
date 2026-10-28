@@ -36,3 +36,12 @@ def test_invented_terminal_commands_are_flagged():
     flags = unsupported_numbers(script, src)
     assert [(f["shot"], f["number"], f["where"]) for f in flags] == [
         (1, "comfyui", "command"), (1, "--stream-weights", "command")]
+
+
+def test_command_arguments_are_checked_but_everyday_shell_words_are_not():
+    from agents.fact_check import command_words
+    assert command_words("$ ollama pull gpt-oss-20b") == ["ollama", "pull", "gpt-oss-20b"]
+    assert command_words("$ pip install -U open-webui") == ["open-webui"]
+    assert command_words("$ curl -d '{\"model\": \"x\"}' http://x") == []
+    script = {"shots": [{"text": "Pull it.", "scene": {"type": "terminal", "props": {"lines": ["$ ollama pull gpt-oss-20b"]}}}]}
+    assert [f["number"] for f in unsupported_numbers(script, "Run: ollama pull gpt-oss:20b")] == ["gpt-oss-20b"]

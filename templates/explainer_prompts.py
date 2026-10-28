@@ -108,17 +108,17 @@ Return JSON:
 # video with the same "Want to … free, with X?" sentence. Each one is still a hook the viewer
 # recognises as their own situation; none may invent a fact the source doesn't give.
 HOOK_STYLES = [
-    ("question", "a QUESTION the viewer has, said to them with \"you\" and naming the tool "
+    ("question", "a QUESTION about what the viewer wants, said to them with \"you\" and naming the tool "
                  "(\"Want to turn speech into text on your own PC, free, with Whisper?\")"),
-    ("problem", "the PROBLEM the viewer has right now, in one blunt sentence, then the tool as the way "
-                "out (\"Your graphics card has 8 GB and every image model wants more. ComfyUI has a way around that.\")"),
-    ("result", "the RESULT first: what the viewer will have running at the end, stated plainly as if it is "
-               "already done, naming the tool (\"This is a private chatbot answering from my own documents, "
-               "running on a laptop with AnythingLLM.\") — only results the source supports"),
-    ("myth", "a common BELIEF the source shows is wrong, then the correction, naming the tool (\"You don't "
-             "need a cloud account to automate your apps with AI. n8n runs on your own machine.\")"),
-    ("steps", "a direct promise of how FEW steps it takes, naming the tool (\"Three commands, and Ollama is "
-              "running a model on your Windows PC.\") — use the real number of steps you will show"),
+    ("problem", "a QUESTION that names the viewer's PROBLEM, then the tool as the way out "
+                "(\"Only 8 GB on your graphics card? ComfyUI has a way around that.\")"),
+    ("result", "a QUESTION that shows the RESULT first, then the tool that gets it "
+               "(\"What if your own laptop answered questions about your documents, privately? AnythingLLM does "
+               "that.\") — only results the source supports"),
+    ("myth", "a QUESTION that states a common BELIEF the source shows is wrong, then the correction "
+             "(\"Think you need a cloud account to automate your apps with AI? n8n runs on your own machine.\")"),
+    ("steps", "a QUESTION about how much effort it takes, answered with the real number of steps you will show "
+              "(\"How many commands does it take to run a model on Windows? With Ollama, three.\")"),
 ]
 
 

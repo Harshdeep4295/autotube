@@ -62,16 +62,30 @@ def _scene_numbers(scene: Dict) -> Iterable[str]:
 DATA_SCENES = {"big_number", "bar_chart", "line_trend", "meter", "compare"}
 
 
+# Everyday shell words a README needn't spell out for a command to be real.
+SHELL_WORDS = {"sudo", "python", "python3", "pip", "pip3", "install", "-u", "--upgrade", "curl", "wget", "git",
+               "clone", "cd", "ls", "npm", "npx", "node", "docker", "run", "uv", "bash", "sh", "chmod", "+x",
+               "mkdir", "source", "export", "echo", "cat", "brew", "winget", "apt", "apt-get", "-y", "-m", "-v"}
+
+
 def command_words(line: str) -> List[str]:
-    """The program name and --flags of a terminal line ("$ ollama run llama3 --verbose")."""
+    """The words of a terminal command that must appear in the source: the program, its
+    arguments and --flags ("$ ollama pull gpt-oss-20b" -> ollama, pull, gpt-oss-20b). Quoted
+    text, JSON bodies and shell syntax are skipped."""
     line = str(line).strip()
     if not line.startswith("$"):
         return []
     toks = line[1:].split()
-    if not toks:
-        return []
-    prog = toks[1] if toks[0] in ("sudo", "python", "python3", "pip", "npx", "uv") and len(toks) > 1 else toks[0]
-    return [prog] + [t.split("=")[0] for t in toks if t.startswith("--")]
+    out = []
+    for t in toks:
+        if t in ("sudo", "\\") or t[:1] in ("'", '"', "{", "<", "|", "&", ">") or t.startswith("-d"):
+            if t[:1] in ("'", '"', "{"):
+                break   # a quoted body follows; its words are content, not a command
+            continue
+        t = t.split("=")[0] if t.startswith("--") else t
+        if re.fullmatch(r"[A-Za-z0-9_.:/@+-]+", t) and len(t) > 1 and t.lower() not in SHELL_WORDS:
+            out.append(t)
+    return out
 
 
 def unsupported_numbers(script: Dict, source_text: str) -> List[Dict]:
