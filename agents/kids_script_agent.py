@@ -383,6 +383,12 @@ class KidsScriptAgent:
                               lambda o: validate_and_repair(o), max_tokens=12000, repairs=1)
             for k in ("title", "description", "tags", "thumbnail_text"):
                 fixed.setdefault(k, script.get(k))
+            # A backup model sometimes "fixes" a script by cutting it in half (2026-10-28: 192
+            # words, 82 s, failed QA). A short video is worse than the problems, so keep the original.
+            before, after = word_count(validate_and_repair(script)[0]), word_count(validate_and_repair(fixed)[0])
+            if after < lo <= before:
+                logger.warning(f"[kids-script] fix round cut the script to {after} words (min {lo}) — keeping the original")
+                return {"script": script, "review": {"ok": False, "problems": problems, "fixed": False}}
             return {"script": fixed, "review": {"ok": False, "problems": problems, "fixed": True}}
         except Exception as e:  # noqa: BLE001
             logger.warning(f"[kids-script] fix round failed ({str(e)[:120]}) — keeping original")

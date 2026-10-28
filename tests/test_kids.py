@@ -181,6 +181,14 @@ def test_script_agent_fix_round_and_too_long():
     s = KidsScriptAgent(llm).generate({"topic": "q"})
     assert s["review"]["fixed"] is True and s["review"]["problems"] == ["line 3 gives advice"]
 
+    # A "fix" that cuts the script below the minimum length is thrown away.
+    cut = {"scenes": fx["scenes"][:1] + fx["scenes"][-2:], "title": "t"}
+    llm = FakeLLM([json.dumps(PLAN), json.dumps(body),
+                   json.dumps({"ok": False, "problems": ["line 3 gives advice"]}), json.dumps(cut)])
+    s = KidsScriptAgent(llm).generate({"topic": "q"})
+    assert s["review"]["fixed"] is False
+    assert len(s["scenes"]) == len(fx["scenes"])
+
     long = {"scenes": fx["scenes"] * 3, "title": "t"}
     llm = FakeLLM([json.dumps(PLAN), json.dumps(long), json.dumps(long), json.dumps(long),
                    json.dumps({"ok": True, "problems": []})])
