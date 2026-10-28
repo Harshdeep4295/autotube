@@ -159,5 +159,12 @@
     "timestamp": "2026-10-27T09:28:12.354746",
     "used_at": "2026-10-27T09:28:12.354746",
     "source": "bank"
+  },
+  {
+    "topic": "gpt-oss: run OpenAI's open-weight model on your own PC",
+    "normalized_topic": "gptoss run openais openweight model on y",
+    "timestamp": "2026-10-28T10:12:46.539344",
+    "used_at": "2026-10-28T10:12:46.539344",
+    "source": "bank"
   }
 ]
