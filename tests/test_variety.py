@@ -1,5 +1,5 @@
 """Variety and accuracy guards added 2026-10-28 (repeats, openings, story shapes, title drift, units)."""
-from agents.explainer_script_agent import hook_style_for, is_repeat
+from agents.explainer_script_agent import hook_style_for, is_repeat, tidy_shots
 from agents.kids_script_agent import STORY_SHAPES, first_and_last, recent_lines, set_question, story_shape
 from agents.scene_schema import validate_and_repair
 from templates.explainer_prompts import HOOK_STYLES, first_rule
@@ -46,3 +46,10 @@ def test_spelled_out_units_are_shortened_not_cut_off():
         "value": 6, "unit": "gigabytes", "label": "VRAM", "decimals": "0"}}}]}
     out, _ = validate_and_repair(script)
     assert out["shots"][0]["scene"]["props"]["unit"] == "GB"
+
+
+def test_payoff_line_survives_the_repeat_filter():
+    shots = [{"text": "Install Ollama, pull the gpt-oss model, and chat with it offline.", "chapter": "Setup"},
+             {"text": "That is how you run gpt-oss: install Ollama, pull the model, and chat with it offline."},
+             {"text": "Which model will you try first?", "scene": {"type": "cta_end"}}]
+    assert len(tidy_shots(shots, 0)) == 3

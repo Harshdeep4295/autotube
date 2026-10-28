@@ -157,7 +157,8 @@ def tidy_shots(shots: List[Dict], min_words: int) -> List[Dict]:
     last_cta = max((i for i, s in enumerate(shots) if (s.get("scene") or {}).get("type") == "cta_end"), default=-1)
     drop = []
     for i, s in enumerate(shots):
-        if s.get("chapter"):
+        # Chapter starts and the payoff ("That is how…", a summary by design) are never repeats.
+        if s.get("chapter") or re.match(r"\s*(that is (how|why)|that's (how|why)|now you know)", str(s.get("text", "")), re.I):
             continue
         cta = (s.get("scene") or {}).get("type") == "cta_end"
         if (cta and i != last_cta) or (not cta and any(
