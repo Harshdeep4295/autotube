@@ -186,5 +186,14 @@
     "source": "feed",
     "world": "pizza shop",
     "date": "2026-10-27T09:58:22+00:00"
+  },
+  {
+    "topic": "How does a chatbot talk?",
+    "area": "ai",
+    "source": "feed",
+    "world": "robot workshop",
+    "opening": "You will see a robot learn to speak.",
+    "ending": "Notice the parts that help you talk every day!",
+    "date": "2026-10-28T10:10:51+00:00"
   }
 ]
