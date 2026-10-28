@@ -100,7 +100,8 @@ class KidsTopicAgent:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for t in topics:
             hist.append({"topic": t["topic"], "area": t.get("area", ""), "source": t.get("source", ""),
-                         "world": t.get("world", ""), "date": now})
+                         "world": t.get("world", ""), "opening": t.get("opening", ""),
+                         "ending": t.get("ending", ""), "date": now})
         (REPO / config.KIDS_HISTORY_FILE).write_text(json.dumps(hist, indent=1, ensure_ascii=False))
 
     # ── sources ──────────────────────────────────────────────────────────────

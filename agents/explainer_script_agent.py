@@ -120,16 +120,49 @@ def word_count(shots: List[Dict]) -> int:
     return sum(len(str(s.get("text", "")).split()) for s in shots)
 
 
+FILLER = {"this", "that", "with", "your", "you're", "about", "here", "from", "they", "them", "have", "will",
+          "into", "more", "then", "than", "when", "what", "which", "just", "also", "only", "each", "every",
+          "lets", "let's", "makes", "make", "using", "uses", "keep", "keeps", "even", "like", "without"}
+
+
+def _content(text: str) -> set:
+    return {w for w in re.findall(r"[a-z0-9']+", str(text).lower()) if len(w) > 3 and w not in FILLER}
+
+
+def is_repeat(a: str, b: str, share: float = 0.5) -> bool:
+    """True when two narration lines say much the same thing (same words, maybe reordered)."""
+    x, y = _content(a), _content(b)
+    if not x or not y:
+        return " ".join(str(a).lower().split()) == " ".join(str(b).lower().split())
+    return len(x & y) / min(len(x), len(y)) >= share and len(x & y) / len(x | y) >= 0.35
+
+
+def _explainers_made() -> int:
+    try:
+        with open(config.HISTORY_FILE) as f:
+            return len(json.load(f))
+    except (OSError, ValueError, AttributeError):
+        return 0
+
+
+def hook_style_for(n: int) -> str:
+    """The opening style for the n-th explainer: the styles take turns."""
+    return P.HOOK_STYLES[n % len(P.HOOK_STYLES)][0]
+
+
 def tidy_shots(shots: List[Dict], min_words: int) -> List[Dict]:
-    """Drop shots that repeat an earlier shot word for word, and every cta_end but the last (top-up
-    calls produce both). Never cuts below `min_words`, so a tidy-up cannot make the video too short."""
+    """Drop shots that repeat an earlier shot (word for word or nearly: top-up calls on a thin
+    source tend to say the same three things again), and every cta_end but the last. Never cuts
+    below `min_words`, so a tidy-up cannot make the video too short."""
     last_cta = max((i for i, s in enumerate(shots) if (s.get("scene") or {}).get("type") == "cta_end"), default=-1)
-    seen, drop = set(), []
+    drop = []
     for i, s in enumerate(shots):
-        key = " ".join(re.findall(r"[a-z0-9']+", str(s.get("text", "")).lower()))
-        if (key in seen or ((s.get("scene") or {}).get("type") == "cta_end" and i != last_cta)) and not s.get("chapter"):
+        if s.get("chapter"):
+            continue
+        cta = (s.get("scene") or {}).get("type") == "cta_end"
+        if (cta and i != last_cta) or (not cta and any(
+                is_repeat(s.get("text", ""), shots[j].get("text", "")) for j in range(i) if j not in drop)):
             drop.append(i)
-        seen.add(key)
     budget = word_count(shots) - min_words
     out = list(shots)
     for i in reversed(drop):
@@ -144,6 +177,7 @@ class ExplainerScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
         self.llm = llm or FreeLLM()
         self.system = P.SYSTEM.format(subniche=config.CHANNEL_SUBNICHE)
+        self.hook_style = hook_style_for(_explainers_made())
 
     def _ask(self, user: str, check, max_tokens: int = 6000, repairs: int = 2) -> Dict:
         """One call + up to `repairs` repair round-trips. `check(obj)` raises ValueError if unusable."""
@@ -200,7 +234,7 @@ class ExplainerScriptAgent:
         ch = chs[idx]
         target = int(ch["target_words"])
         n_shots = max(4, round(target / WORDS_PER_SHOT))
-        position = P.FIRST_RULE if idx == 0 else P.LAST_RULE if idx == len(chs) - 1 else P.MIDDLE_RULE
+        position = P.first_rule(self.hook_style) if idx == 0 else P.LAST_RULE if idx == len(chs) - 1 else P.MIDDLE_RULE
         base = dict(
             index=idx + 1, count=len(chs), title=outline["title"],
             chapter_titles=" | ".join(c.get("title", "") for c in chs), chapter_title=ch.get("title", ""),
@@ -312,7 +346,8 @@ class ExplainerScriptAgent:
 
     def generate(self, topic: Dict) -> Dict:
         source = self.source_for(topic)
-        logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars)")
+        logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars, "
+                    f"opening style: {self.hook_style})")
         outline = self.outline(topic, source)
         shots: List[Dict] = []
         for i in range(len(outline["chapters"])):

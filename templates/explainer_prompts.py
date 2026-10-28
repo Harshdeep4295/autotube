@@ -104,10 +104,33 @@ Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
              "scene": {{"type": "scene_name", "props": {{...}}}}}}]}}"""
 
-FIRST_RULE = ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is a QUESTION the viewer has, "
-              "said to them with \"you\" and naming the tool from the title (\"Want to turn speech into text on your own "
-              "PC, free, with Whisper?\"). Shot 2 says in one sentence what they will be able to do by the end. "
-              "No welcome, no \"in this video\", no channel or subscribe talk.")
+# The opening line rotates through these, one per video, so the channel doesn't open every
+# video with the same "Want to … free, with X?" sentence. Each one is still a hook the viewer
+# recognises as their own situation; none may invent a fact the source doesn't give.
+HOOK_STYLES = [
+    ("question", "a QUESTION the viewer has, said to them with \"you\" and naming the tool "
+                 "(\"Want to turn speech into text on your own PC, free, with Whisper?\")"),
+    ("problem", "the PROBLEM the viewer has right now, in one blunt sentence, then the tool as the way "
+                "out (\"Your graphics card has 8 GB and every image model wants more. ComfyUI has a way around that.\")"),
+    ("result", "the RESULT first: what the viewer will have running at the end, stated plainly as if it is "
+               "already done, naming the tool (\"This is a private chatbot answering from my own documents, "
+               "running on a laptop with AnythingLLM.\") — only results the source supports"),
+    ("myth", "a common BELIEF the source shows is wrong, then the correction, naming the tool (\"You don't "
+             "need a cloud account to automate your apps with AI. n8n runs on your own machine.\")"),
+    ("steps", "a direct promise of how FEW steps it takes, naming the tool (\"Three commands, and Ollama is "
+              "running a model on your Windows PC.\") — use the real number of steps you will show"),
+]
+
+
+def first_rule(style: str = "question") -> str:
+    how = dict(HOOK_STYLES).get(style, HOOK_STYLES[0][1])
+    return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
+            "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
+            "do not start it with \"By the end\" or \"In this video\". "
+            "No welcome, no channel or subscribe talk.")
+
+
+FIRST_RULE = first_rule()
 LAST_RULE = ("This is the LAST chapter: exactly ONE shot uses the cta_end scene, it is the final shot, and it asks one "
              "question for the comments and nothing else (no subscribe, no share). The shot before it delivers the "
              "payoff out loud and starts \"That is how\" or \"Now you know\" (\"That is how you run Whisper on your own PC: "

@@ -57,18 +57,44 @@ def _scene_numbers(scene: Dict) -> Iterable[str]:
     yield from walk(props)
 
 
+# Scenes whose numbers ARE the picture (bars, dials, a big figure): a made-up "4 GB" here is as
+# wrong as a made-up "40 GB", so small numbers get no free pass.
+DATA_SCENES = {"big_number", "bar_chart", "line_trend", "meter", "compare"}
+
+
+def command_words(line: str) -> List[str]:
+    """The program name and --flags of a terminal line ("$ ollama run llama3 --verbose")."""
+    line = str(line).strip()
+    if not line.startswith("$"):
+        return []
+    toks = line[1:].split()
+    if not toks:
+        return []
+    prog = toks[1] if toks[0] in ("sudo", "python", "python3", "pip", "npx", "uv") and len(toks) > 1 else toks[0]
+    return [prog] + [t.split("=")[0] for t in toks if t.startswith("--")]
+
+
 def unsupported_numbers(script: Dict, source_text: str) -> List[Dict]:
-    """Return [{shot, number, where}] for numbers not found in the source."""
+    """Return [{shot, number, where}] for numbers not found in the source, and for terminal
+    commands whose program or --flag the source never shows (where = "command")."""
     allowed = numbers_in(source_text)
+    src = (source_text or "").lower()
     flags = []
     for i, shot in enumerate(script.get("shots", [])):
+        scene = shot.get("scene", {}) or {}
+        data = scene.get("type") in DATA_SCENES
         found = [(n, "narration") for n in numbers_in(shot.get("text", ""))]
-        found += [(n, "scene") for n in _scene_numbers(shot.get("scene", {}))]
+        found += [(n, "scene") for n in _scene_numbers(scene)]
         for n, where in found:
             try:
-                small = float(n) <= 10
+                small = float(n) <= 10 and not (data and where == "scene")
             except ValueError:
                 small = False
             if not small and n not in allowed:
                 flags.append({"shot": i, "number": n, "where": where})
+        if src and scene.get("type") == "terminal":
+            for line in (scene.get("props") or {}).get("lines", []) or []:
+                for w in command_words(line):
+                    if w.lower() not in src:
+                        flags.append({"shot": i, "number": w, "where": "command"})
     return flags
