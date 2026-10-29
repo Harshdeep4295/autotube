@@ -157,8 +157,9 @@ class KidsTopicAgent:
             try:
                 ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent)
                          if norm(i["topic"]) not in used and not too_close(i["topic"], recent)]
-                ideas.sort(key=lambda i: i["area"] != area)  # preferred area first
-                picks += ideas[:count]
+                # Only headline ideas in today's area; with none, the bank fills it, so the
+                # rotation holds (feed ideas lean AI, which pushed finance out for weeks).
+                picks += [i for i in ideas if i["area"] == area][:count]
             except Exception as e:  # noqa: BLE001 — the bank is always there
                 logger.warning(f"[kids-topics] headline ideas failed: {str(e)[:150]}")
         if len(picks) < count and mode in ("mixed", "bank"):
