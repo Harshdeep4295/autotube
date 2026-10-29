@@ -100,8 +100,13 @@ def rank(models: List[Dict], history: List[Dict], now: Optional[datetime] = None
     return sorted(keep, key=lambda m: (not known(m), -float(m.get("trendingScore") or 0)))
 
 
+def display_name(model_id: str) -> str:
+    """'deepseek-ai/DeepSeek-V4.1-Flash-1017' → 'DeepSeek-V4.1-Flash' (date stamps read as noise in a title)."""
+    return re.sub(r"[-_.]?(\d{4}|\d{6,8})$", "", model_id.split("/")[-1]) or model_id.split("/")[-1]
+
+
 def to_topic(m: Dict) -> Dict:
-    name = m["id"].split("/")[-1]
+    name = display_name(m["id"])
     what = WHAT.get(m.get("pipeline_tag", ""), "AI model")
     return {
         "topic": f"{name}: the new {what} from {m['id'].split('/')[0]}, and can you run it at home?",

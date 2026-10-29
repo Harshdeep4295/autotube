@@ -130,7 +130,7 @@ HOOK_STYLES = [
 # daily trend check in agents/trend_agent.py).
 TITLE_RULES = {
     "tool": "Starts with the tool's name or the action ('Run', 'Install').",
-    "trend": ("Names the new model first and uses one of these shapes: 'Run <Name> Locally: <benefit>', "
+    "trend": ("Names the new model first (its plain name, no date stamp) and uses one of these shapes: 'Run <Name> Locally: <benefit>', "
               "'Can You Run <Name> at Home?', '<Name>: <what is new> in 5 Minutes'. Pick the shape the source "
               "supports (a giant model is a 'Can you run it' video)."),
     "concept": ("Names the idea and promises the understanding, e.g. 'Mixture of Experts: Why Huge AI Models "
@@ -156,6 +156,10 @@ def first_rule(style: str = "question", kind: str = "tool") -> str:
         how = ("a curiosity QUESTION, in everyday words, about something surprising the idea explains "
                "(\"How can a giant AI model answer as fast as a small one?\"), naming the idea in shot 1 or 2. "
                "Never \"Want to … free, with …\"")
+    if kind == "trend":     # a model out days ago: the news is the hook; claim nothing the source lacks
+        how = ("a QUESTION that names the new model and the one thing people want to know about it, such as "
+               "whether it runs on a normal PC or what it does better, answered only as far as the source "
+               "allows. Do not mention any other tool or app unless the source does")
     return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
             "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
             "do not start it with \"By the end\" or \"In this video\". "

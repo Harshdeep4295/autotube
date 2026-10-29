@@ -64,3 +64,12 @@ def test_trend_prompts():
 def test_front_matter_is_dropped_from_sources():
     from agents.source_fetcher import markdown_to_text
     assert markdown_to_text("---\nlicense: mit\ntags: [a]\n---\n# Model\nText.") == "# Model\nText."
+
+
+def test_trend_titles_drop_date_stamps_and_hooks_name_no_other_tool():
+    from templates import explainer_prompts as P
+    assert T.display_name("deepseek-ai/DeepSeek-V4.1-Flash-1017") == "DeepSeek-V4.1-Flash"
+    assert T.display_name("Qwen/Qwen3.8-27B") == "Qwen3.8-27B"
+    for style, _ in P.HOOK_STYLES:
+        rule = P.first_rule(style, "trend")
+        assert "names the new model" in rule and "Ollama" not in rule
