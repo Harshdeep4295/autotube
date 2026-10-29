@@ -219,6 +219,7 @@ def test_topic_agent_headline_ideas(tmp_path, monkeypatch):
     from config import config
 
     monkeypatch.setattr(config, "KIDS_HISTORY_FILE", str(tmp_path / "h.json"))
+    monkeypatch.setattr(config, "KIDS_AREA_CYCLE", "finance")
     ideas = {"ideas": [{"question": "What is interest?", "area": "finance", "why": "rate cut"},
                        {"question": "Why did the war start?", "area": "finance", "why": "x"}]}
     agent = KT.KidsTopicAgent(llm=FakeLLM([json.dumps(ideas)]))
@@ -226,6 +227,19 @@ def test_topic_agent_headline_ideas(tmp_path, monkeypatch):
     got = agent.get_topics(2, mode="mixed")
     assert got[0]["topic"] == "What is interest?" and got[0]["source"] == "feed"
     assert got[1]["source"] == "bank"          # blocked idea dropped, bank fills the gap
+
+
+def test_off_area_headline_ideas_give_way_to_the_bank(tmp_path, monkeypatch):
+    from agents import kids_topic_agent as KT
+    from config import config
+
+    monkeypatch.setattr(config, "KIDS_HISTORY_FILE", str(tmp_path / "h.json"))
+    monkeypatch.setattr(config, "KIDS_AREA_CYCLE", "finance")
+    ideas = {"ideas": [{"question": "How do robots see?", "area": "ai", "why": "x"}]}
+    agent = KT.KidsTopicAgent(llm=FakeLLM([json.dumps(ideas)]))
+    monkeypatch.setattr(agent, "headlines", lambda: ["New robot"])
+    got = agent.get_topics(1, mode="mixed")[0]
+    assert got["source"] == "bank" and got["area"] == "finance"
 
 
 # ── vertical Short ───────────────────────────────────────────────────────────
