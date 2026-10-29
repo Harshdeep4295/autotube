@@ -166,5 +166,12 @@
     "timestamp": "2026-10-28T10:12:46.539344",
     "used_at": "2026-10-28T10:12:46.539344",
     "source": "bank"
+  },
+  {
+    "topic": "DeepSeek-V4.1-Flash: the new AI model that reads images and text from deepseek-ai, and can you run it at home?",
+    "normalized_topic": "deepseekv41flash the new ai model that r",
+    "timestamp": "2026-10-29T10:27:22.950928",
+    "used_at": "2026-10-29T10:27:22.950928",
+    "source": "trend"
   }
 ]
