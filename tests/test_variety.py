@@ -53,3 +53,27 @@ def test_payoff_line_survives_the_repeat_filter():
              {"text": "That is how you run gpt-oss: install Ollama, pull the model, and chat with it offline."},
              {"text": "Which model will you try first?", "scene": {"type": "cta_end"}}]
     assert len(tidy_shots(shots, 0)) == 3
+
+
+def test_concept_topics_alternate_and_carry_their_source(tmp_path, monkeypatch):
+    import json
+    from agents.research_agent import ResearchAgent
+    from config import config
+
+    monkeypatch.setattr(config, "EXPLAINER_TOPICS_FILE", "data/explainer_topics.json")
+    picks = ResearchAgent.__new__(ResearchAgent)._from_bank(2, [])
+    kinds = [p["kind"] for p in picks]
+    assert set(kinds) <= {"tool", "concept"}
+    bank = json.load(open("data/explainer_topics.json"))["topics"]
+    for b in bank:
+        if b.get("kind") == "concept":
+            assert b["source_url"].endswith(".md") and b["url"].startswith("https://")
+
+
+def test_concept_prompts_name_the_idea_not_a_tool():
+    from templates import explainer_prompts as P
+    rule = P.first_rule("question", "concept")
+    assert "curiosity QUESTION" in rule and "naming the tool" not in rule
+    user = P.OUTLINE_USER.format(minutes=5, words=700, topic="t", source="s", icons="x",
+                                 title_rule=P.TITLE_RULES["concept"], kind_note=P.KIND_NOTES["concept"])
+    assert "HOW-IT-WORKS" in user and "Mixture of Experts" in user

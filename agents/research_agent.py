@@ -184,6 +184,14 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
+            if config.EXPLAINER_TRENDS and count == 1:
+                from agents.trend_agent import trending_topic
+                trend = trending_topic(history)
+                if trend:
+                    logger.info(f"  ✓ {trend['topic'][:70]} (trending now)")
+                    if record:
+                        self._save_to_history([trend], history)
+                    return [trend]
             banked = self._from_bank(count, history)
             if banked:
                 if record:
@@ -279,7 +287,7 @@ class ResearchAgent:
     # ── Topic bank (data/explainer_topics.json) ───────────────────────────────
 
     def _from_bank(self, count: int, history: List[Dict]) -> List[Dict]:
-        """Next unused evergreen topics. Each is one open-source tool; its README is the source."""
+        """Next unused evergreen topics: a tool (its README is the source) or a concept (an article)."""
         try:
             with open(config.EXPLAINER_TOPICS_FILE) as f:
                 bank = json.load(f).get("topics", [])
@@ -294,8 +302,10 @@ class ResearchAgent:
             repo = b.get("repo", "")
             picks.append({
                 "topic": b["topic"], "source": "bank", "summary": b.get("summary", ""),
+                "kind": b.get("kind", "tool"),
                 "url": f"https://github.com/{repo}" if repo else b.get("url", ""),
-                "source_url": f"https://raw.githubusercontent.com/{repo}/{b.get('branch', 'main')}/README.md" if repo else "",
+                "source_url": (f"https://raw.githubusercontent.com/{repo}/{b.get('branch', 'main')}/README.md"
+                               if repo else b.get("source_url", "")),
             })
             if len(picks) == count:
                 break

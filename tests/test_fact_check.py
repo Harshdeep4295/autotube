@@ -45,3 +45,15 @@ def test_command_arguments_are_checked_but_everyday_shell_words_are_not():
     assert command_words("$ curl -d '{\"model\": \"x\"}' http://x") == []
     script = {"shots": [{"text": "Pull it.", "scene": {"type": "terminal", "props": {"lines": ["$ ollama pull gpt-oss-20b"]}}}]}
     assert [f["number"] for f in unsupported_numbers(script, "Run: ollama pull gpt-oss:20b")] == ["gpt-oss-20b"]
+
+
+def test_numbers_spelled_out_in_words_are_checked_too():
+    from agents.fact_check import unsupported_numbers
+    src = "Context: 1M tokens. Set max_tokens to 256K. HLE rises from 36.8 to 42.6."
+    shot = lambda t: {"text": t, "scene": {"type": "key_point", "props": {}}}
+    script = {"shots": [shot("Your GPU needs at least forty-eight gigabytes of memory."),
+                        shot("Set max tokens to two hundred fifty-six thousand."),
+                        shot("HLE climbs to forty-two point six from thirty-six point eight."),
+                        shot("It handles one million tokens, the one thing that matters.")]}
+    flagged = [(f["shot"], f["number"]) for f in unsupported_numbers(script, src)]
+    assert flagged == [(0, "48")]

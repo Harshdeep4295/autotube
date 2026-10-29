@@ -66,7 +66,8 @@ def html_to_text(page: str, limit: int = 6000) -> str:
 
 def markdown_to_text(md: str, limit: int = 6000) -> str:
     """A README without its badges, images, HTML and link targets, so the limit is spent on prose."""
-    t = re.sub(r"<!--.*?-->", "", md, flags=re.S)
+    t = re.sub(r"\A\s*---\n.*?\n---\n", "", md, flags=re.S)   # YAML front matter (model cards, blog posts)
+    t = re.sub(r"<!--.*?-->", "", t, flags=re.S)
     t = re.sub(r"<[^>]+>", "", t)
     t = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", t)
     t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)

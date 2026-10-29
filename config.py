@@ -61,6 +61,12 @@ class Config:
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
     # Playlist title every explainer upload is added to (created on first use). Empty = none.
     EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
+    # How-it-works videos stay out of the "Run AI Locally" playlist; empty = no playlist.
+    # Daily trend check (agents/trend_agent.py): a new, popular open model beats the topic bank.
+    EXPLAINER_TRENDS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_TRENDS", "true").lower() == "true")
+    TREND_MAX_AGE_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_MAX_AGE_DAYS", "14")))
+    TREND_MIN_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_MIN_LIKES", "250")))
+    EXPLAINER_CONCEPT_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_CONCEPT_PLAYLIST", "").strip())
     # Vertical Short cut from each explainer's opening (≤ 58 s), uploaded as a second video that
     # links the full one. Publish time defaults to EXPLAINER_PUBLISH_AT_UTC.
     EXPLAINER_SHORTS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_SHORTS", "true").lower() != "false")

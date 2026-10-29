@@ -32,7 +32,7 @@ SOURCE (the only place specific facts may come from):
 
 Return JSON:
 {{
-  "title": "40-60 characters, never more. Starts with the tool's name or the action ('Run', 'Install'), not 'Understanding' or 'A guide to'. Specific and honest. No clickbait.",
+  "title": "40-60 characters, never more. {title_rule} Not 'Understanding' or 'A guide to'. Specific and honest. No clickbait.",
   "description": "120-180 words for YouTube. What the viewer will learn. No timestamps, no links.",
   "tags": ["10-15 search phrases"],
   "thumbnail_text": "2-3 words, the core promise, in words the title does NOT use",
@@ -42,7 +42,7 @@ Return JSON:
     {{"title": "≤40 chars", "goal": "what this chapter explains", "key_points": ["3-5 points"], "target_words": 140}}
   ]
 }}
-Use 4-5 chapters. Chapter 1 is the hook + why it matters (~80 words). The last chapter
+{kind_note}Use 4-5 chapters. Chapter 1 is the hook + why it matters (~80 words). The last chapter
 is a short recap + a question for the comments (~70 words). Every chapter earns its place:
 no warm-up, no repeating what an earlier chapter said. Target words across all
 chapters must add up to about {words}."""
@@ -69,7 +69,9 @@ SCENE CATALOGUE — every shot gets exactly one scene; props must match the narr
 Scene rules: vary scene types; never the same type twice in a row; use key_point for at
 most 1 in 3 shots; numbers shown in a scene must also be said in that shot's narration;
 use terminal only for real commands, chat only for example prompts/answers. Never say the
-same sentence twice, in this chapter or from the previous lines.
+same sentence twice, in this chapter or from the previous lines. Never pad a line with empty
+words (completely, instantly, seamlessly, forever, anywhere, freely) to reach the length: add a
+concrete detail, example or trade-off from the source instead.
 
 Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
@@ -90,7 +92,8 @@ The chapter so far (do NOT repeat or rephrase any of it):
 Add exactly {n_shots} NEW shots (about {missing_words} more words, 16-24 words per shot) that go
 deeper into the key points: concrete steps, examples, trade-offs, common mistakes. They must
 follow on naturally from the last line. Do not greet, recap the whole video or say goodbye.
-Every sentence must be new: never reuse a sentence from the chapter so far.
+Every sentence must be new: never reuse a sentence from the chapter so far. Never pad a line
+with empty words (completely, instantly, seamlessly, forever, anywhere, freely).
 
 SOURCE (the only place specific facts may come from):
 <<<
@@ -122,8 +125,41 @@ HOOK_STYLES = [
 ]
 
 
-def first_rule(style: str = "question") -> str:
+# Kinds of explainer: "tool" (set up one open-source app), "concept" (how an AI idea works) —
+# these two take turns in the topic bank — and "trend" (a model released days ago, from the
+# daily trend check in agents/trend_agent.py).
+TITLE_RULES = {
+    "tool": "Starts with the tool's name or the action ('Run', 'Install').",
+    "trend": ("Names the new model first (its plain name, no date stamp) and uses one of these shapes: 'Run <Name> Locally: <benefit>', "
+              "'Can You Run <Name> at Home?', '<Name>: <what is new> in 5 Minutes'. Pick the shape the source "
+              "supports (a giant model is a 'Can you run it' video)."),
+    "concept": ("Names the idea and promises the understanding, e.g. 'Mixture of Experts: Why Huge AI Models "
+                "Run Fast' or 'How AI Picks Its Next Word'."),
+}
+KIND_NOTES = {
+    "tool": "",
+    "trend": ("This is a NEW-RELEASE video about a model that came out days ago: what it is and who made "
+              "it, what is new compared with what came before, what hardware it needs (only figures from the "
+              "source), how to try it (locally if the source shows how, else say honestly that it needs "
+              "data-center hardware and what smaller option exists), and who it is for. Only facts from the "
+              "source: no benchmark numbers, sizes or dates it does not give.\n"),
+    "concept": ("This is a HOW-IT-WORKS video about an idea, not a tool tutorial: what it is, how it works "
+                "(with one everyday comparison), why it matters to people who use AI, and its limits. No "
+                "install steps or commands unless the source shows them; prefer diagrams, steps, compare and "
+                "charts over terminal scenes.\n"),
+}
+
+
+def first_rule(style: str = "question", kind: str = "tool") -> str:
     how = dict(HOOK_STYLES).get(style, HOOK_STYLES[0][1])
+    if kind == "concept":   # an idea, not an app: no "free, with X" install pitch
+        how = ("a curiosity QUESTION, in everyday words, about something surprising the idea explains "
+               "(\"How can a giant AI model answer as fast as a small one?\"), naming the idea in shot 1 or 2. "
+               "Never \"Want to … free, with …\"")
+    if kind == "trend":     # a model out days ago: the news is the hook; claim nothing the source lacks
+        how = ("a QUESTION that names the new model and the one thing people want to know about it, such as "
+               "whether it runs on a normal PC or what it does better, answered only as far as the source "
+               "allows. Do not mention any other tool or app unless the source does")
     return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
             "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
             "do not start it with \"By the end\" or \"In this video\". "
@@ -142,7 +178,8 @@ Return the corrected JSON only, following the same format and rules."""
 
 FIX_NUMBERS_USER = """These shots of the video "{title}" use numbers that are NOT in the source text, so they may be
 invented: {numbers}. Rewrite each shot so it keeps its meaning without any number that is not in the
-SOURCE: say it in words ("much less memory", "a few seconds") or use the exact figure the source gives.
+SOURCE: say it without a figure ("much less memory", "a few seconds") or use the exact figure the source gives.
+Spelling the same number out in words ("forty-eight") does not fix it: the figure must go.
 Keep each shot's scene type and keep its props consistent with the new narration. A port, version or
 command that the source does not show must go too. Do not add new facts.
 
