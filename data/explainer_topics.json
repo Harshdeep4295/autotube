@@ -230,9 +230,21 @@
    "branch": "main"
   },
   {
+   "topic": "KV cache explained: why long AI chats eat so much memory",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/kv-cache-quantization",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/kv-cache-quantization.md"
+  },
+  {
    "topic": "Local Deep Research: a private AI research assistant on your own PC",
    "repo": "LearningCircuit/local-deep-research",
    "branch": "main"
+  },
+  {
+   "topic": "LoRA explained: how to teach an AI model new tricks cheaply",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/lora",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/lora.md"
   },
   {
    "topic": "OpenCode: a free AI coding agent that works with local models",
@@ -240,9 +252,21 @@
    "branch": "dev"
   },
   {
+   "topic": "Small AI models explained: how SmolLM fits on a phone or laptop",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/smollm",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/smollm.md"
+  },
+  {
    "topic": "ik_llama.cpp: run bigger models faster by splitting them across CPU and GPU",
    "repo": "ikawrakow/ik_llama.cpp",
    "branch": "main"
+  },
+  {
+   "topic": "ggml explained: the small library that runs AI on ordinary computers",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/introduction-to-ggml",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/introduction-to-ggml.md"
   },
   {
    "topic": "nanobot: a tiny self-hosted AI agent for your own tools",
@@ -250,9 +274,21 @@
    "branch": "main"
   },
   {
+   "topic": "AI benchmarks explained: why the same AI model gets different scores",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/open-llm-leaderboard-mmlu",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/open-llm-leaderboard-mmlu.md"
+  },
+  {
    "topic": "Vibe: free offline AI transcription for audio and video",
    "repo": "thewh1teagle/vibe",
    "branch": "main"
+  },
+  {
+   "topic": "Synthetic data explained: when AI learns from data made by AI",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/synthetic-data-save-costs",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/synthetic-data-save-costs.md"
   },
   {
    "topic": "Docling: turn PDFs and documents into data an AI can read",
@@ -260,9 +296,21 @@
    "branch": "main"
   },
   {
+   "topic": "Constitutional AI explained: teaching an AI model rules instead of examples",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/constitutional_ai",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/constitutional_ai.md"
+  },
+  {
    "topic": "MarkItDown: convert any file to Markdown for AI tools",
    "repo": "microsoft/markitdown",
    "branch": "main"
+  },
+  {
+   "topic": "DPO explained: a simpler way to train AI on what people prefer",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/pref-tuning",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/pref-tuning.md"
   },
   {
    "topic": "InvokeAI: a free creative studio for AI images on your own machine",
@@ -270,9 +318,21 @@
    "branch": "main"
   },
   {
+   "topic": "8-bit AI explained: how fewer bits keep almost the same answers",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/hf-bitsandbytes-integration",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/hf-bitsandbytes-integration.md"
+  },
+  {
    "topic": "LiteLLM: one interface for every AI model, local or cloud",
    "repo": "BerriAI/litellm",
    "branch": "main"
+  },
+  {
+   "topic": "How to pick an AI embedding model: what the MTEB leaderboard measures",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/mteb",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/mteb.md"
   },
   {
    "topic": "vLLM explained: how to serve an open AI model fast",
@@ -280,9 +340,21 @@
    "branch": "main"
   },
   {
+   "topic": "Few-shot learning explained: teaching AI with a handful of examples",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/setfit",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/setfit.md"
+  },
+  {
    "topic": "MLX: run AI models natively on Apple silicon Macs",
    "repo": "ml-explore/mlx",
    "branch": "main"
+  },
+  {
+   "topic": "How Stable Diffusion turns a text prompt into an AI image",
+   "kind": "concept",
+   "url": "https://huggingface.co/blog/stable_diffusion",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/stable_diffusion.md"
   },
   {
    "topic": "llamafile: a whole AI model in one file that runs anywhere",
