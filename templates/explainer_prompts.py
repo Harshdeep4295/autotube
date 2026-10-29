@@ -32,7 +32,7 @@ SOURCE (the only place specific facts may come from):
 
 Return JSON:
 {{
-  "title": "40-60 characters, never more. Starts with the tool's name or the action ('Run', 'Install'), not 'Understanding' or 'A guide to'. Specific and honest. No clickbait.",
+  "title": "40-60 characters, never more. {title_rule} Not 'Understanding' or 'A guide to'. Specific and honest. No clickbait.",
   "description": "120-180 words for YouTube. What the viewer will learn. No timestamps, no links.",
   "tags": ["10-15 search phrases"],
   "thumbnail_text": "2-3 words, the core promise, in words the title does NOT use",
@@ -42,7 +42,7 @@ Return JSON:
     {{"title": "≤40 chars", "goal": "what this chapter explains", "key_points": ["3-5 points"], "target_words": 140}}
   ]
 }}
-Use 4-5 chapters. Chapter 1 is the hook + why it matters (~80 words). The last chapter
+{kind_note}Use 4-5 chapters. Chapter 1 is the hook + why it matters (~80 words). The last chapter
 is a short recap + a question for the comments (~70 words). Every chapter earns its place:
 no warm-up, no repeating what an earlier chapter said. Target words across all
 chapters must add up to about {words}."""
@@ -69,7 +69,9 @@ SCENE CATALOGUE — every shot gets exactly one scene; props must match the narr
 Scene rules: vary scene types; never the same type twice in a row; use key_point for at
 most 1 in 3 shots; numbers shown in a scene must also be said in that shot's narration;
 use terminal only for real commands, chat only for example prompts/answers. Never say the
-same sentence twice, in this chapter or from the previous lines.
+same sentence twice, in this chapter or from the previous lines. Never pad a line with empty
+words (completely, instantly, seamlessly, forever, anywhere, freely) to reach the length: add a
+concrete detail, example or trade-off from the source instead.
 
 Return JSON:
 {{"shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
@@ -90,7 +92,8 @@ The chapter so far (do NOT repeat or rephrase any of it):
 Add exactly {n_shots} NEW shots (about {missing_words} more words, 16-24 words per shot) that go
 deeper into the key points: concrete steps, examples, trade-offs, common mistakes. They must
 follow on naturally from the last line. Do not greet, recap the whole video or say goodbye.
-Every sentence must be new: never reuse a sentence from the chapter so far.
+Every sentence must be new: never reuse a sentence from the chapter so far. Never pad a line
+with empty words (completely, instantly, seamlessly, forever, anywhere, freely).
 
 SOURCE (the only place specific facts may come from):
 <<<
@@ -122,8 +125,26 @@ HOOK_STYLES = [
 ]
 
 
-def first_rule(style: str = "question") -> str:
+# Two kinds of explainer take turns in the topic bank: "tool" (set up one open-source app) and
+# "concept" (how an AI idea works, so the channel is not only install guides).
+TITLE_RULES = {
+    "tool": "Starts with the tool's name or the action ('Run', 'Install').",
+    "concept": ("Names the idea and promises the understanding, e.g. 'Mixture of Experts: Why Huge AI Models "
+                "Run Fast' or 'How AI Picks Its Next Word'."),
+}
+KIND_NOTES = {
+    "tool": "",
+    "concept": ("This is a HOW-IT-WORKS video about an idea, not a tool tutorial: what it is, how it works "
+                "(with one everyday comparison), why it matters to people who use AI, and its limits. No "
+                "install steps or commands unless the source shows them; prefer diagrams, steps, compare and "
+                "charts over terminal scenes.\n"),
+}
+
+
+def first_rule(style: str = "question", kind: str = "tool") -> str:
     how = dict(HOOK_STYLES).get(style, HOOK_STYLES[0][1])
+    if kind == "concept":
+        how = how.replace("naming the tool", "naming the idea").replace("then the tool", "then the idea")
     return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
             "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
             "do not start it with \"By the end\" or \"In this video\". "

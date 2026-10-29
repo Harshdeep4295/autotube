@@ -145,6 +145,10 @@ def _explainers_made() -> int:
         return 0
 
 
+def topic_kind(topic: Dict) -> str:
+    return "concept" if topic.get("kind") == "concept" else "tool"
+
+
 def hook_style_for(n: int) -> str:
     """The opening style for the n-th explainer: the styles take turns."""
     return P.HOOK_STYLES[n % len(P.HOOK_STYLES)][0]
@@ -179,6 +183,7 @@ class ExplainerScriptAgent:
         self.llm = llm or FreeLLM()
         self.system = P.SYSTEM.format(subniche=config.CHANNEL_SUBNICHE)
         self.hook_style = hook_style_for(_explainers_made())
+        self.kind = "tool"
 
     def _ask(self, user: str, check, max_tokens: int = 6000, repairs: int = 2) -> Dict:
         """One call + up to `repairs` repair round-trips. `check(obj)` raises ValueError if unusable."""
@@ -218,7 +223,9 @@ class ExplainerScriptAgent:
             if bad and tries <= 2:   # ask twice for a tighter title + thumbnail, then take what there is
                 raise ValueError("; ".join(bad))
 
+        kind = topic_kind(topic)
         user = P.OUTLINE_USER.format(minutes=round(words / config.EXPLAINER_WPM), words=words, topic=topic["topic"],
+                                     title_rule=P.TITLE_RULES[kind], kind_note=P.KIND_NOTES[kind],
                                      source=source or "(no source text available — use only general knowledge)",
                                      icons=", ".join(ICONS))
         o = self._ask(user, check, max_tokens=6000)
@@ -235,7 +242,7 @@ class ExplainerScriptAgent:
         ch = chs[idx]
         target = int(ch["target_words"])
         n_shots = max(4, round(target / WORDS_PER_SHOT))
-        position = P.first_rule(self.hook_style) if idx == 0 else P.LAST_RULE if idx == len(chs) - 1 else P.MIDDLE_RULE
+        position = P.first_rule(self.hook_style, self.kind) if idx == 0 else P.LAST_RULE if idx == len(chs) - 1 else P.MIDDLE_RULE
         base = dict(
             index=idx + 1, count=len(chs), title=outline["title"],
             chapter_titles=" | ".join(c.get("title", "") for c in chs), chapter_title=ch.get("title", ""),
@@ -346,9 +353,12 @@ class ExplainerScriptAgent:
         return script
 
     def generate(self, topic: Dict) -> Dict:
+        self.kind = topic_kind(topic)
+        if self.kind == "concept" and self.hook_style == "steps":
+            self.hook_style = "question"   # "how many commands" makes no sense for an idea
         source = self.source_for(topic)
         logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars, "
-                    f"opening style: {self.hook_style})")
+                    f"kind: {self.kind}, opening style: {self.hook_style})")
         outline = self.outline(topic, source)
         shots: List[Dict] = []
         for i in range(len(outline["chapters"])):
@@ -365,6 +375,7 @@ class ExplainerScriptAgent:
             "thumbnail_icon": outline.get("thumbnail_icon", "lightbulb") if outline.get("thumbnail_icon") in ICONS else "lightbulb",
             "sources": [{"title": topic["topic"], "url": topic.get("url", "")}] if topic.get("url") else [],
             "topic": topic["topic"],
+            "kind": self.kind,
             "shots": shots,
         }
         floor = max(round(config.EXPLAINER_TARGET_WORDS * 0.8), round((config.EXPLAINER_MIN_SECONDS + 20) / 60 * config.EXPLAINER_WPM))

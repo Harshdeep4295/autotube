@@ -160,7 +160,9 @@ class Orchestrator:
                 if publish_at:
                     self.logger.info(f"  scheduled to go public at {publish_at} (private until then — review it in Studio)")
                 up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script,
-                                      publish_at=publish_at, playlist=config.EXPLAINER_PLAYLIST)
+                                      publish_at=publish_at,
+                                      playlist=(config.EXPLAINER_CONCEPT_PLAYLIST if topic.get("kind") == "concept"
+                                                else config.EXPLAINER_PLAYLIST))
                 result.update(up)
                 if up.get("success") is False:
                     raise RuntimeError(f"upload failed: {up.get('error', '')}")

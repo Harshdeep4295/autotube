@@ -61,6 +61,8 @@ class Config:
     EXPLAINER_WPM: int = field(default_factory=lambda: int(os.getenv("EXPLAINER_WPM", "125")))
     # Playlist title every explainer upload is added to (created on first use). Empty = none.
     EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
+    # How-it-works videos stay out of the "Run AI Locally" playlist; empty = no playlist.
+    EXPLAINER_CONCEPT_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_CONCEPT_PLAYLIST", "").strip())
     # Vertical Short cut from each explainer's opening (≤ 58 s), uploaded as a second video that
     # links the full one. Publish time defaults to EXPLAINER_PUBLISH_AT_UTC.
     EXPLAINER_SHORTS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_SHORTS", "true").lower() != "false")
