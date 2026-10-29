@@ -192,3 +192,44 @@ SOURCE (the only place specific facts may come from):
 >>>
 
 Return JSON: {{"shots": {{"<index>": {{"text": "...", "emphasis": ["..."], "scene": {{"type": "...", "props": {{...}}}}}}}}}}"""
+
+# One-call version for Claude (agents/claude_writer.py): the same rules as the outline and
+# chapter prompts above, for the whole video at once.
+CLAUDE_USER = """{system}
+
+Write a complete ~{minutes}-minute explainer video script (about {words} words of narration in total).
+
+TOPIC: {topic}
+
+{kind_note}TITLE: 40-60 characters, never more. {title_rule} Not 'Understanding' or 'A guide to'. No clickbait.
+THUMBNAIL: thumbnail_text is 2-3 words, the core promise, in words the title does NOT use;
+thumbnail_subtext is 0-2 words; thumbnail_icon is one of: {icons}.
+DESCRIPTION: 120-180 words for YouTube, what the viewer will learn, no timestamps or links.
+TAGS: 10-15 search phrases a real person would type.
+
+STRUCTURE: 4-5 chapters. Chapter 1 is the hook and why it matters (~80 words). The last chapter is a
+short recap plus one question for the comments (~70 words). Every chapter earns its place: no warm-up,
+no saying the same thing twice anywhere in the video (one fact, one time).
+FIRST CHAPTER: {first_rule}
+LAST CHAPTER: {last_rule}
+SHOTS: each shot is 1-2 spoken sentences of 16-24 words, with exactly one scene. Vary scene types,
+never the same type twice in a row, key_point for at most 1 in 3 shots. Numbers shown in a scene must
+be said in that shot's narration. terminal only for commands the source shows, chat only for example
+prompts/answers. No filler words to pad length. Numbers as digits, units spelled out.
+Only figures, sizes, benchmarks, commands and requirements that appear in the SOURCE. If the source does
+not say something the viewer would want (for example the hardware needed), say plainly that the source
+does not say, rather than guessing.
+
+SCENE CATALOGUE (props must match the narration):
+{catalogue}
+
+SOURCE (the only place specific facts may come from):
+<<<
+{source}
+>>>
+
+Return ONLY this JSON, nothing before or after it:
+{{"title": "...", "description": "...", "tags": ["..."], "thumbnail_text": "...", "thumbnail_subtext": "...",
+  "thumbnail_icon": "...",
+  "chapters": [{{"title": "≤40 chars", "shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
+                                                 "scene": {{"type": "scene_name", "props": {{...}}}}}}]}}]}}"""

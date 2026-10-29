@@ -47,6 +47,10 @@ jobs:
       EXPLAINER_PLAYLIST: ${{ vars.EXPLAINER_PLAYLIST || '' }}
       EXPLAINER_TOPIC_MODE: ${{ vars.EXPLAINER_TOPIC_MODE || 'bank' }}
       GROQ_FREE_MODELS: ${{ vars.GROQ_FREE_MODELS || 'openai/gpt-oss-120b,qwen/qwen3-32b' }}
+      # Claude writes the script on the owner's subscription when this secret is set (no API bill);
+      # without it the free models write it.
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CLAUDE_SCRIPT_MODEL: ${{ vars.CLAUDE_SCRIPT_MODEL || 'claude-opus-5-5' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,6 +69,9 @@ jobs:
       - name: Node packages + browser
         working-directory: video/explainer
         run: npm ci --no-audit --no-fund && npx remotion browser ensure
+      - name: Claude Code CLI (script writer)
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        run: npm install -g @anthropic-ai/claude-code --no-audit --no-fund && claude --version
       - name: Cache voice + whisper models
         uses: actions/cache@v4
         with:

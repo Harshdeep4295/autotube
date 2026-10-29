@@ -62,6 +62,10 @@ class Config:
     # Playlist title every explainer upload is added to (created on first use). Empty = none.
     EXPLAINER_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_PLAYLIST", "").strip())
     # How-it-works videos stay out of the "Run AI Locally" playlist; empty = no playlist.
+    # Explainer scripts written by Claude through the Claude Code CLI on the owner's subscription
+    # (needs the CLAUDE_CODE_OAUTH_TOKEN secret); without it the free models write them.
+    CLAUDE_SCRIPTS: bool = field(default_factory=lambda: os.getenv("CLAUDE_SCRIPTS", "true").lower() == "true")
+    CLAUDE_SCRIPT_MODEL: str = field(default_factory=lambda: os.getenv("CLAUDE_SCRIPT_MODEL", "claude-opus-5-5"))
     # Daily trend check (agents/trend_agent.py): a new, popular open model beats the topic bank.
     EXPLAINER_TRENDS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_TRENDS", "true").lower() == "true")
     TREND_MAX_AGE_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_MAX_AGE_DAYS", "14")))

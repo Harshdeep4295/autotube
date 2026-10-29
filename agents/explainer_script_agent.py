@@ -352,6 +352,29 @@ class ExplainerScriptAgent:
             logger.info(f"[script] dropped shot {i}: a number in it is not in the source")
         return script
 
+    def with_claude(self, topic: Dict, source: str) -> Optional[Dict]:
+        """The whole script from Claude in one call, or None (then the free models write it)."""
+        from agents import claude_writer as C
+        if not C.available():
+            return None
+        words = config.EXPLAINER_TARGET_WORDS
+        prompt = P.CLAUDE_USER.format(
+            system=self.system, minutes=round(words / config.EXPLAINER_WPM), words=words, topic=topic["topic"],
+            kind_note=P.KIND_NOTES[self.kind], title_rule=P.TITLE_RULES[self.kind], icons=", ".join(ICONS),
+            first_rule=P.first_rule(self.hook_style, self.kind), last_rule=P.LAST_RULE,
+            catalogue=catalogue_for_prompt(), source=source or "(no source text — general knowledge only)")
+        try:
+            o = parse_json_obj(C.ask(prompt))
+            shots = C.flatten(o.get("chapters") or [])
+            if not str(o.get("title", "")).strip() or word_count(shots) < words * 0.75:
+                raise ValueError(f"title missing or too short ({word_count(shots)} words)")
+        except Exception as e:  # noqa: BLE001 — the free models are the fallback
+            logger.warning(f"[script] Claude could not write it ({str(e)[:200]}) — using the free models")
+            return None
+        logger.info(f"[script] written by Claude ({config.CLAUDE_SCRIPT_MODEL}): {len(shots)} shots, {word_count(shots)} words")
+        self.llm.last_model = f"claude:{config.CLAUDE_SCRIPT_MODEL}"
+        return {**o, "shots": shots}
+
     def generate(self, topic: Dict) -> Dict:
         self.kind = topic_kind(topic)
         if self.kind == "concept" and self.hook_style == "steps":
@@ -359,12 +382,17 @@ class ExplainerScriptAgent:
         source = self.source_for(topic)
         logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars, "
                     f"kind: {self.kind}, opening style: {self.hook_style})")
-        outline = self.outline(topic, source)
-        shots: List[Dict] = []
-        for i in range(len(outline["chapters"])):
-            new = self.chapter(outline, i, source, [s.get("text", "") for s in shots if isinstance(s, dict)])
-            shots += new
-            logger.info(f"[script] chapter {i+1}/{len(outline['chapters'])}: {len(new)} shots, {word_count(new)} words")
+        outline = self.with_claude(topic, source)
+        writer = "claude" if outline else "free models"
+        if outline:
+            shots = outline["shots"]
+        else:
+            outline = self.outline(topic, source)
+            shots = []
+            for i in range(len(outline["chapters"])):
+                new = self.chapter(outline, i, source, [s.get("text", "") for s in shots if isinstance(s, dict)])
+                shots += new
+                logger.info(f"[script] chapter {i+1}/{len(outline['chapters'])}: {len(new)} shots, {word_count(new)} words")
 
         script = {
             "title": str(outline["title"])[:100],
@@ -376,6 +404,7 @@ class ExplainerScriptAgent:
             "sources": [{"title": topic["topic"], "url": topic.get("url", "")}] if topic.get("url") else [],
             "topic": topic["topic"],
             "kind": self.kind,
+            "writer": writer,
             "shots": shots,
         }
         floor = max(round(config.EXPLAINER_TARGET_WORDS * 0.8), round((config.EXPLAINER_MIN_SECONDS + 20) / 60 * config.EXPLAINER_WPM))
