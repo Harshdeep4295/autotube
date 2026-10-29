@@ -184,6 +184,14 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
+            if config.EXPLAINER_TRENDS and count == 1:
+                from agents.trend_agent import trending_topic
+                trend = trending_topic(history)
+                if trend:
+                    logger.info(f"  ✓ {trend['topic'][:70]} (trending now)")
+                    if record:
+                        self._save_to_history([trend], history)
+                    return [trend]
             banked = self._from_bank(count, history)
             if banked:
                 if record:

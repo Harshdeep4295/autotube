@@ -73,7 +73,8 @@ for kids. `outputs/` and `logs/` are gitignored.
 ## Explainer pipeline (default)
 
 ```
-research_agent          topic bank (data/explainer_topics.json: one open-source tool each, README as source);
+research_agent          daily trend check first (trend_agent: newest popular open model on Hugging Face),
+                        then the topic bank (data/explainer_topics.json: tool and how-it-works topics alternate);
                         news feeds (HN / Dev.to / Lobsters / Reddit / RSS, NICHE_KEYWORDS) once the bank is used up
 source_fetcher          text of the source article (grounding)
 explainer_script_agent  outline + one LLM call per chapter; repairs, salvage, top-up of short chapters
@@ -176,8 +177,9 @@ Rules:
 | `agents/kokoro_voice.py`, `agents/word_timing.py` | Voice and caption timing (shared) |
 | `agents/kids_agent.py`, `agents/kids_script_agent.py`, `agents/kids_topic_agent.py`, `templates/kids_prompts.py` | Kids render, script, topics, prompts |
 | `agents/kids_scene_schema.py`, `agents/kids/` | Kids catalogue and pycairo renderer (draw, cast, props, scenes, timeline, render, voice, music) |
-| `agents/research_agent.py` | Explainer topics: bank first (`EXPLAINER_TOPIC_MODE=bank`), news feeds as fallback; history |
-| `data/explainer_topics.json` | Evergreen explainer topic bank (topic + GitHub repo); add entries freely |
+| `agents/research_agent.py` | Explainer topics: trend check, then bank (`EXPLAINER_TOPIC_MODE=bank`), news feeds as fallback; history |
+| `agents/trend_agent.py` | Daily trend check: Hugging Face trending, original releases ≤ `TREND_MAX_AGE_DAYS`, ≥ `TREND_MIN_LIKES`, known labs first; `EXPLAINER_TRENDS=false` turns it off |
+| `data/explainer_topics.json` | Evergreen explainer topic bank: tool topics (GitHub repo) alternate with how-it-works topics (`kind: concept`, `url` + `source_url`); add entries freely |
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |
 | `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |

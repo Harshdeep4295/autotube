@@ -125,15 +125,24 @@ HOOK_STYLES = [
 ]
 
 
-# Two kinds of explainer take turns in the topic bank: "tool" (set up one open-source app) and
-# "concept" (how an AI idea works, so the channel is not only install guides).
+# Kinds of explainer: "tool" (set up one open-source app), "concept" (how an AI idea works) —
+# these two take turns in the topic bank — and "trend" (a model released days ago, from the
+# daily trend check in agents/trend_agent.py).
 TITLE_RULES = {
     "tool": "Starts with the tool's name or the action ('Run', 'Install').",
+    "trend": ("Names the new model first and uses one of these shapes: 'Run <Name> Locally: <benefit>', "
+              "'Can You Run <Name> at Home?', '<Name>: <what is new> in 5 Minutes'. Pick the shape the source "
+              "supports (a giant model is a 'Can you run it' video)."),
     "concept": ("Names the idea and promises the understanding, e.g. 'Mixture of Experts: Why Huge AI Models "
                 "Run Fast' or 'How AI Picks Its Next Word'."),
 }
 KIND_NOTES = {
     "tool": "",
+    "trend": ("This is a NEW-RELEASE video about a model that came out days ago: what it is and who made "
+              "it, what is new compared with what came before, what hardware it needs (only figures from the "
+              "source), how to try it (locally if the source shows how, else say honestly that it needs "
+              "data-center hardware and what smaller option exists), and who it is for. Only facts from the "
+              "source: no benchmark numbers, sizes or dates it does not give.\n"),
     "concept": ("This is a HOW-IT-WORKS video about an idea, not a tool tutorial: what it is, how it works "
                 "(with one everyday comparison), why it matters to people who use AI, and its limits. No "
                 "install steps or commands unless the source shows them; prefer diagrams, steps, compare and "

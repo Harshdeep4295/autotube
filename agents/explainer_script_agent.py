@@ -146,7 +146,7 @@ def _explainers_made() -> int:
 
 
 def topic_kind(topic: Dict) -> str:
-    return "concept" if topic.get("kind") == "concept" else "tool"
+    return topic.get("kind") if topic.get("kind") in ("concept", "trend") else "tool"
 
 
 def hook_style_for(n: int) -> str:
