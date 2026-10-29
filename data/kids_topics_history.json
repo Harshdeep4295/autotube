@@ -195,5 +195,14 @@
     "opening": "You will see a robot learn to speak.",
     "ending": "Notice the parts that help you talk every day!",
     "date": "2026-10-28T10:10:51+00:00"
+  },
+  {
+    "topic": "How does the internet work?",
+    "area": "tech",
+    "source": "bank",
+    "world": "letters to grandma",
+    "opening": "You will see a letter road deliver messages.",
+    "ending": "Notice the letters traveling in your own day!",
+    "date": "2026-10-29T10:33:24+00:00"
   }
 ]
