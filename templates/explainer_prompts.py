@@ -152,8 +152,10 @@ KIND_NOTES = {
 
 def first_rule(style: str = "question", kind: str = "tool") -> str:
     how = dict(HOOK_STYLES).get(style, HOOK_STYLES[0][1])
-    if kind == "concept":
-        how = how.replace("naming the tool", "naming the idea").replace("then the tool", "then the idea")
+    if kind == "concept":   # an idea, not an app: no "free, with X" install pitch
+        how = ("a curiosity QUESTION, in everyday words, about something surprising the idea explains "
+               "(\"How can a giant AI model answer as fast as a small one?\"), naming the idea in shot 1 or 2. "
+               "Never \"Want to … free, with …\"")
     return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
             "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
             "do not start it with \"By the end\" or \"In this video\". "

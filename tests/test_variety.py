@@ -73,7 +73,7 @@ def test_concept_topics_alternate_and_carry_their_source(tmp_path, monkeypatch):
 def test_concept_prompts_name_the_idea_not_a_tool():
     from templates import explainer_prompts as P
     rule = P.first_rule("question", "concept")
-    assert "naming the idea" in rule and "naming the tool" not in rule
+    assert "curiosity QUESTION" in rule and "naming the tool" not in rule
     user = P.OUTLINE_USER.format(minutes=5, words=700, topic="t", source="s", icons="x",
                                  title_rule=P.TITLE_RULES["concept"], kind_note=P.KIND_NOTES["concept"])
     assert "HOW-IT-WORKS" in user and "Mixture of Experts" in user
