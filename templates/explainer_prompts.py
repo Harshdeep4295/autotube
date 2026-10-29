@@ -178,7 +178,8 @@ Return the corrected JSON only, following the same format and rules."""
 
 FIX_NUMBERS_USER = """These shots of the video "{title}" use numbers that are NOT in the source text, so they may be
 invented: {numbers}. Rewrite each shot so it keeps its meaning without any number that is not in the
-SOURCE: say it in words ("much less memory", "a few seconds") or use the exact figure the source gives.
+SOURCE: say it without a figure ("much less memory", "a few seconds") or use the exact figure the source gives.
+Spelling the same number out in words ("forty-eight") does not fix it: the figure must go.
 Keep each shot's scene type and keep its props consistent with the new narration. A port, version or
 command that the source does not show must go too. Do not add new facts.
 

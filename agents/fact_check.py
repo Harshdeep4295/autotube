@@ -33,9 +33,68 @@ def _norm(tok: str) -> str:
     return t
 
 
+SMALL = {w: i for i, w in enumerate(["zero"] + UNITS)}
+SMALL.update({w: 10 + i for i, w in enumerate(TEENS)})
+SMALL.update({w: 20 + 10 * i for i, w in enumerate(TENS)})
+SCALES = {"thousand": 1_000, "million": 1_000_000, "billion": 1_000_000_000, "trillion": 10 ** 12}
+NUM_WORD = re.compile(r"[a-z]+", re.I)
+
+
+def _fmt(v: float) -> str:
+    return _norm(f"{v:.6f}") if v != int(v) else str(int(v))
+
+
+def spelled_numbers(text: str) -> Set[str]:
+    """Numbers written as words anywhere ("forty-eight gigabytes", "two hundred fifty-six thousand",
+    "forty-two point six"): narration is told to use digits, so a number in words is often a
+    rewrite that hid an invented figure from the digit check."""
+    out: Set[str] = set()
+    words = [w.lower() for w in NUM_WORD.findall((text or "").replace("-", " "))]
+    i = 0
+    while i < len(words):
+        if words[i] not in SMALL:
+            i += 1
+            continue
+        total, cur, j = 0, 0, i
+        while j < len(words) and (words[j] in SMALL or words[j] in SCALES or words[j] == "hundred"
+                                  or (words[j] == "and" and j + 1 < len(words) and words[j + 1] in SMALL)):
+            w = words[j]
+            if w in SMALL:
+                cur += SMALL[w]
+            elif w == "hundred":
+                cur = (cur or 1) * 100
+            elif w in SCALES:
+                total += (cur or 1) * SCALES[w]
+                cur = 0
+            j += 1
+        value = float(total + cur)
+        if j + 1 < len(words) and words[j] == "point" and words[j + 1] in SMALL:
+            digits = ""
+            j += 1
+            while j < len(words) and words[j] in SMALL and SMALL[words[j]] < 10:
+                digits += str(SMALL[words[j]])
+                j += 1
+            value = float(f"{int(value)}.{digits}") if digits else value
+        out.add(_fmt(value))
+        i = max(j, i + 1)
+    return out
+
+
 def numbers_in(text: str) -> Set[str]:
     found = {_norm(m.group()) for m in NUM_RE.finditer(text or "")}
-    return found | {_word_value(m) for m in WORD_RE.finditer(text or "")}
+    return found | {_word_value(m) for m in WORD_RE.finditer(text or "")} | spelled_numbers(text)
+
+
+SCALED = re.compile(r"(?<![\w.])(\d[\d,]*(?:\.\d+)?)\s*(k|m|b|thousand|million|billion)\b", re.I)
+SCALE_OF = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "billion": 1e9}
+
+
+def source_numbers(text: str) -> Set[str]:
+    """Numbers in the source, plus "256K" / "1M" / "8 billion" written out in full."""
+    out = numbers_in(text)
+    for m in SCALED.finditer(text or ""):
+        out.add(_fmt(float(m.group(1).replace(",", "")) * SCALE_OF[m.group(2).lower()]))
+    return out
 
 
 def _scene_numbers(scene: Dict) -> Iterable[str]:
@@ -91,7 +150,7 @@ def command_words(line: str) -> List[str]:
 def unsupported_numbers(script: Dict, source_text: str) -> List[Dict]:
     """Return [{shot, number, where}] for numbers not found in the source, and for terminal
     commands whose program or --flag the source never shows (where = "command")."""
-    allowed = numbers_in(source_text)
+    allowed = source_numbers(source_text)
     src = (source_text or "").lower()
     flags = []
     for i, shot in enumerate(script.get("shots", [])):
