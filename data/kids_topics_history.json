@@ -204,5 +204,14 @@
     "opening": "You will see a letter road deliver messages.",
     "ending": "Notice the letters traveling in your own day!",
     "date": "2026-10-29T10:33:24+00:00"
+  },
+  {
+    "topic": "How does AI pick ads?",
+    "area": "ai",
+    "source": "feed",
+    "world": "book swap",
+    "opening": "You’ll see why a robot chooses the right picture book.",
+    "ending": "Notice the robot helper picking the right book.",
+    "date": "2026-10-30T10:38:19+00:00"
   }
 ]
