@@ -173,5 +173,12 @@
     "timestamp": "2026-10-29T10:27:22.950928",
     "used_at": "2026-10-29T10:27:22.950928",
     "source": "trend"
+  },
+  {
+    "topic": "LFM3-1.7B: the new AI language model from LiquidAI, and can you run it at home?",
+    "normalized_topic": "lfm317b the new ai language model from l",
+    "timestamp": "2026-10-30T10:28:42.962902",
+    "used_at": "2026-10-30T10:28:42.962902",
+    "source": "trend"
   }
 ]
