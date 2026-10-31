@@ -180,5 +180,12 @@
     "timestamp": "2026-10-30T10:28:42.962902",
     "used_at": "2026-10-30T10:28:42.962902",
     "source": "trend"
+  },
+  {
+    "topic": "Unlimited-OCR-2: the new AI model that reads images and text from baidu, and can you run it at home?",
+    "normalized_topic": "unlimitedocr2 the new ai model that read",
+    "timestamp": "2026-10-31T09:58:51.506390",
+    "used_at": "2026-10-31T09:58:51.506390",
+    "source": "trend"
   }
 ]
