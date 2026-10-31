@@ -213,5 +213,14 @@
     "opening": "You’ll see why a robot chooses the right picture book.",
     "ending": "Notice the robot helper picking the right book.",
     "date": "2026-10-30T10:38:19+00:00"
+  },
+  {
+    "topic": "What is cryptocurrency?",
+    "area": "finance",
+    "source": "feed",
+    "world": "piggy bank",
+    "opening": "You will find a treasure inside a piggy bank.",
+    "ending": "That is why you keep your magic safe.",
+    "date": "2026-10-31T10:09:15+00:00"
   }
 ]
