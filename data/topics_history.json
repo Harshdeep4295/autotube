@@ -187,5 +187,12 @@
     "timestamp": "2026-10-31T09:58:51.506390",
     "used_at": "2026-10-31T09:58:51.506390",
     "source": "trend"
+  },
+  {
+    "topic": "LFM3-Omni-2B: the new AI model for text, images and audio from LiquidAI, and can you run it at home?",
+    "normalized_topic": "lfm3omni2b the new ai model for text ima",
+    "timestamp": "2026-11-01T10:48:26.391023",
+    "used_at": "2026-11-01T10:48:26.391023",
+    "source": "trend"
   }
 ]
