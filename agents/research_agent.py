@@ -184,7 +184,10 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
-            if config.EXPLAINER_TRENDS and count == 1:
+            last = history[-1].get("source") if history else ""
+            if config.EXPLAINER_TRENDS and count == 1 and config.TREND_ALTERNATE and last == "trend":
+                logger.info("  yesterday was a trend video — today comes from the topic bank")
+            elif config.EXPLAINER_TRENDS and count == 1:
                 from agents.trend_agent import trending_topic
                 trend = trending_topic(history)
                 if trend:
@@ -545,6 +548,7 @@ class ResearchAgent:
                 "timestamp": now,
                 "used_at": now,
                 "source": t.get("source", ""),
+                **({"theme": t["theme"]} if t.get("theme") else {}),
             }
             for t in selected
         ]

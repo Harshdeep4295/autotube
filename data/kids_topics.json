@@ -472,6 +472,90 @@
   {
    "question": "How does AI make music?",
    "area": "ai"
+  },
+  {
+   "question": "Why does AI sometimes make things up?",
+   "area": "ai"
+  },
+  {
+   "question": "How does a self-driving car see the road?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI understand my voice?",
+   "area": "ai"
+  },
+  {
+   "question": "Can AI feel happy or sad?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI play chess so well?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI help doctors read X-rays?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI guess the weather?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI clean up blurry photos?",
+   "area": "ai"
+  },
+  {
+   "question": "What is a deepfake?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI help animals in the wild?",
+   "area": "ai"
+  },
+  {
+   "question": "Why does AI need so many examples?",
+   "area": "ai"
+  },
+  {
+   "question": "How does a robot vacuum find its way?",
+   "area": "ai"
+  },
+  {
+   "question": "Who checks that AI is telling the truth?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI spot spam emails?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI suggest the next word I type?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI find lost pets?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI help people who cannot see?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI catch cheaters in games?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI plan the fastest route?",
+   "area": "ai"
+  },
+  {
+   "question": "How does AI help stop forest fires?",
+   "area": "ai"
+  },
+  {
+   "question": "Why do AI answers change each time?",
+   "area": "ai"
   }
  ]
 }

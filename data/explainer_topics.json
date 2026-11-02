@@ -420,6 +420,72 @@
    "topic": "RAGFlow: answer questions from your documents with open-source RAG",
    "repo": "infiniflow/ragflow",
    "branch": "main"
+  },
+  {
+   "topic": "Browser Use: let a local AI agent click through websites for you",
+   "repo": "browser-use/browser-use",
+   "branch": "main"
+  },
+  {
+   "topic": "Chat templates explained: why the same AI model answers worse in the wrong app",
+   "url": "https://huggingface.co/blog/chat-templates",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/chat-templates.md",
+   "kind": "concept"
+  },
+  {
+   "topic": "BitNet: run a 1-bit AI model on your CPU, no GPU needed",
+   "repo": "microsoft/BitNet",
+   "branch": "main"
+  },
+  {
+   "topic": "How AI image generators went from 50 steps to 4",
+   "url": "https://huggingface.co/blog/lcm_lora",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/lcm_lora.md",
+   "kind": "concept"
+  },
+  {
+   "topic": "WebLLM: run an AI chatbot inside your web browser, no install",
+   "repo": "mlc-ai/web-llm",
+   "branch": "main"
+  },
+  {
+   "topic": "ControlNet explained: how AI image tools follow your sketch",
+   "url": "https://huggingface.co/blog/controlnet",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/controlnet.md",
+   "kind": "concept"
+  },
+  {
+   "topic": "LLaMA-Factory: fine-tune your own AI model on one GPU",
+   "repo": "hiyouga/LLaMA-Factory",
+   "branch": "main"
+  },
+  {
+   "topic": "Why AI models keep getting bigger, and what it costs",
+   "url": "https://huggingface.co/blog/large-language-models",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/large-language-models.md",
+   "kind": "concept"
+  },
+  {
+   "topic": "Fish Speech: clone a voice with free local AI",
+   "repo": "fishaudio/fish-speech",
+   "branch": "main"
+  },
+  {
+   "topic": "Binary embeddings explained: how AI search gets 32 times cheaper",
+   "url": "https://huggingface.co/blog/embedding-quantization",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/embedding-quantization.md",
+   "kind": "concept"
+  },
+  {
+   "topic": "Piper: fast offline AI text-to-speech for any PC",
+   "repo": "OHF-Voice/piper1-gpl",
+   "branch": "main"
+  },
+  {
+   "topic": "How AI chatbots answer fast: the memory tricks behind them",
+   "url": "https://huggingface.co/blog/optimize-llm",
+   "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/optimize-llm.md",
+   "kind": "concept"
   }
  ]
 }
