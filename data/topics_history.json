@@ -194,5 +194,12 @@
     "timestamp": "2026-11-01T10:48:26.391023",
     "used_at": "2026-11-01T10:48:26.391023",
     "source": "trend"
+  },
+  {
+    "topic": "MiniCPM-OCR-1.0: the new AI model that reads images and text from openbmb, and can you run it at home?",
+    "normalized_topic": "minicpmocr10 the new ai model that reads",
+    "timestamp": "2026-11-02T11:43:33.355508",
+    "used_at": "2026-11-02T11:43:33.355508",
+    "source": "trend"
   }
 ]
