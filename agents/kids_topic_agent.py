@@ -32,7 +32,10 @@ BLOCK = re.compile(r"\b(war|kill|dead|death|shoot|attack|crash|murder|abuse|bomb
 
 STOP = {"how", "does", "do", "did", "what", "why", "who", "when", "where", "which", "is", "are", "was", "can",
         "could", "a", "an", "the", "to", "of", "in", "on", "for", "and", "or", "it", "its", "we", "us", "our",
-        "you", "your", "they", "them", "things", "thing", "so", "much", "more", "work", "works", "make", "get", "need", "needs"}
+        "you", "your", "they", "them", "things", "thing", "so", "much", "more", "work", "works", "make", "get", "need", "needs",
+        # everyday verbs: they say nothing about the subject ("change the ads we see" = "pick ads")
+        "see", "change", "pick", "choose", "use", "help", "know", "tell", "show", "decide", "find",
+        "come", "go", "happen", "happens", "mean", "means", "keep", "give", "let", "have", "has", "be"}
 SAME = {"computer": "machine", "computers": "machine", "ai": "machine", "robot": "machine", "robots": "machine",
         "machine": "machine", "machines": "machine", "price": "cost", "prices": "cost", "costs": "cost"}
 RECENT_TOPICS = 30   # how many past topics a new one is compared with

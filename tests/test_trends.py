@@ -73,3 +73,41 @@ def test_trend_titles_drop_date_stamps_and_hooks_name_no_other_tool():
     for style, _ in P.HOOK_STYLES:
         rule = P.first_rule(style, "trend")
         assert "names the new model" in rule and "Ollama" not in rule
+
+
+def test_model_themes():
+    assert T.model_theme(m("baidu/Unlimited-OCR-2", 2, tag="image-text-to-text")) == "ocr"
+    assert T.model_theme(m("LiquidAI/LFM3-Omni-2B", 2, tag="any-to-any")) == "omni"
+    assert T.model_theme(m("Qwen/Qwen4-Coder-30B", 2)) == "coding"
+    assert T.model_theme(m("lab/Some-Encoder", 2, tag="feature-extraction")) == "embedding"   # not coding
+    assert T.model_theme(m("deepseek-ai/DeepSeek-V4.1-Flash", 2, tag="image-text-to-text")) == "vision"
+    assert T.model_theme(m("LiquidAI/LFM3-1.7B", 2)) == "language"
+    # past topics without a stored theme are read from their text
+    assert T.theme("MiniCPM-OCR-1.0: the new AI model that reads images and text from openbmb") == "ocr"
+
+
+def test_same_kind_of_model_is_skipped_for_a_week():
+    hist = [{"topic": "Unlimited-OCR-2: the new AI model that reads images and text from baidu, and can you run it at home?",
+             "source": "trend", "used_at": "2026-10-27T10:00:00"}]
+    models = [m("openbmb/MiniCPM-OCR-1.0", 2, tag="image-text-to-text", score=900), m("Qwen/Qwen4-8B", 2, score=100)]
+    with mock.patch.object(config, "TREND_MAX_AGE_DAYS", 14), mock.patch.object(config, "TREND_MIN_LIKES", 250), \
+            mock.patch.object(config, "TREND_THEME_DAYS", 7):
+        assert [x["id"] for x in T.rank(models, hist, NOW)] == ["Qwen/Qwen4-8B"]
+        old = [{**hist[0], "used_at": "2026-10-10T10:00:00"}]
+        assert [x["id"] for x in T.rank(models, old, NOW)][0] == "openbmb/MiniCPM-OCR-1.0"
+    assert T.to_topic(models[0])["theme"] == "ocr"
+
+
+def test_trend_days_alternate_with_bank_days():
+    from agents.research_agent import ResearchAgent
+    r = ResearchAgent.__new__(ResearchAgent)
+    trend = T.to_topic(m("Qwen/Qwen4-8B", 2))
+    after_trend = [{"topic": "X: the new AI model", "source": "trend", "used_at": "2026-10-28T10:00:00"}]
+    after_bank = [{"topic": "Ollama on Windows", "source": "bank", "used_at": "2026-10-28T10:00:00"}]
+    for hist, want in ((after_trend, "bank"), (after_bank, "trend")):
+        with mock.patch.object(config, "EXPLAINER_TOPIC_MODE", "bank"), \
+                mock.patch.object(config, "EXPLAINER_TRENDS", True), \
+                mock.patch.object(config, "TREND_ALTERNATE", True), \
+                mock.patch.object(r, "_load_history", return_value=hist), \
+                mock.patch("agents.trend_agent.trending_topic", return_value=trend):
+            assert r.get_topics(1, record=False)[0]["source"] == want

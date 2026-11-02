@@ -397,3 +397,6 @@ def test_near_duplicate_kids_topics_are_caught():
     assert not too_close("What is a GPU?", past)
     assert not too_close("Why do house prices change?", past)
     assert not too_close("What is AI?", past) and not too_close("Why does AI need electricity?", past)
+    # everyday verbs carry no meaning: these two are the same video (10-30 and 11-01)
+    assert too_close("How does AI change the ads we see?", ["How does AI pick ads?"])
+    assert not too_close("How does AI spot spam emails?", ["How does AI pick ads?"])

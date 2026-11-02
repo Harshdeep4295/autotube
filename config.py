@@ -70,6 +70,10 @@ class Config:
     EXPLAINER_TRENDS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_TRENDS", "true").lower() == "true")
     TREND_MAX_AGE_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_MAX_AGE_DAYS", "14")))
     TREND_MIN_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_MIN_LIKES", "250")))
+    # Trend videos alternate with how-it-works / tool videos: no trend the day after a trend.
+    TREND_ALTERNATE: bool = field(default_factory=lambda: os.getenv("TREND_ALTERNATE", "true").lower() == "true")
+    # Skip a trend whose kind (OCR, voice, coding...) was covered this many days back.
+    TREND_THEME_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_THEME_DAYS", "7")))
     EXPLAINER_CONCEPT_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_CONCEPT_PLAYLIST", "").strip())
     # Vertical Short cut from each explainer's opening (≤ 58 s), uploaded as a second video that
     # links the full one. Publish time defaults to EXPLAINER_PUBLISH_AT_UTC.
