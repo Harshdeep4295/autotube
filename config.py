@@ -72,6 +72,8 @@ class Config:
     TREND_MIN_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_MIN_LIKES", "250")))
     # Trend videos alternate with how-it-works / tool videos: no trend the day after a trend.
     TREND_ALTERNATE: bool = field(default_factory=lambda: os.getenv("TREND_ALTERNATE", "true").lower() == "true")
+    # On the day after a trend, only a big release still wins: a known lab with this many likes.
+    TREND_BIG_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_BIG_LIKES", "1000")))
     # Skip a trend whose kind (OCR, voice, coding...) was covered this many days back.
     TREND_THEME_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_THEME_DAYS", "7")))
     EXPLAINER_CONCEPT_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_CONCEPT_PLAYLIST", "").strip())

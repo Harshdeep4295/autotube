@@ -101,13 +101,22 @@ def test_same_kind_of_model_is_skipped_for_a_week():
 def test_trend_days_alternate_with_bank_days():
     from agents.research_agent import ResearchAgent
     r = ResearchAgent.__new__(ResearchAgent)
-    trend = T.to_topic(m("Qwen/Qwen4-8B", 2))
-    after_trend = [{"topic": "X: the new AI model", "source": "trend", "used_at": "2026-10-28T10:00:00"}]
+    after_trend = [{"topic": "Some-OCR-1: the new AI model", "source": "trend", "used_at": "2026-10-28T10:00:00"}]
     after_bank = [{"topic": "Ollama on Windows", "source": "bank", "used_at": "2026-10-28T10:00:00"}]
-    for hist, want in ((after_trend, "bank"), (after_bank, "trend")):
+    small = [m("unknown/Cool-Model", 2, likes=5000), m("Qwen/Qwen4-8B", 2, likes=400)]
+    big = small + [m("deepseek-ai/DeepSeek-V5", 1, likes=3000, score=1)]
+    fake = mock.Mock(**{"json.return_value": None, "raise_for_status.return_value": None})
+    for hist, models, want in ((after_trend, small, "bank"), (after_trend, big, "trend"), (after_bank, small, "trend")):
+        fake.json.return_value = models
         with mock.patch.object(config, "EXPLAINER_TOPIC_MODE", "bank"), \
                 mock.patch.object(config, "EXPLAINER_TRENDS", True), \
                 mock.patch.object(config, "TREND_ALTERNATE", True), \
+                mock.patch.object(config, "TREND_BIG_LIKES", 1000), \
+                mock.patch.object(config, "TREND_MIN_LIKES", 250), \
+                mock.patch.object(config, "TREND_MAX_AGE_DAYS", 14), \
                 mock.patch.object(r, "_load_history", return_value=hist), \
-                mock.patch("agents.trend_agent.trending_topic", return_value=trend):
-            assert r.get_topics(1, record=False)[0]["source"] == want
+                mock.patch("agents.trend_agent.requests.get", return_value=fake):
+            got = r.get_topics(1, record=False)[0]
+            assert got["source"] == want, (hist, [x["id"] for x in models])
+            if want == "trend" and hist is after_trend:
+                assert "DeepSeek-V5" in got["topic"]

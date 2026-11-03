@@ -167,8 +167,14 @@ def to_topic(m: Dict) -> Dict:
     }
 
 
-def trending_topic(history: List[Dict]) -> Optional[Dict]:
-    """Today's trend topic, or None (feed down, or nothing new and strong enough)."""
+def is_big(m: Dict) -> bool:
+    """A release from a lab people search for, liked by at least TREND_BIG_LIKES."""
+    return m["id"].split("/")[0].lower() in KNOWN_LABS and int(m.get("likes") or 0) >= config.TREND_BIG_LIKES
+
+
+def trending_topic(history: List[Dict], big_only: bool = False) -> Optional[Dict]:
+    """Today's trend topic, or None (feed down, or nothing new and strong enough).
+    `big_only`: the day after a trend video, only a big release is worth another one."""
     try:
         r = requests.get(HF_TRENDING, timeout=20, headers={"User-Agent": "AutoTube/1.0"})
         r.raise_for_status()
@@ -177,9 +183,12 @@ def trending_topic(history: List[Dict]) -> Optional[Dict]:
         logger.warning(f"[trends] Hugging Face trending unavailable: {str(e)[:120]}")
         return None
     ranked = rank(models, history)
+    if big_only:
+        ranked = [m for m in ranked if is_big(m)]
     for m in ranked[:5]:
         logger.info(f"[trends] candidate {m['id']} ({m.get('likes')} likes, {age_days(m):.0f} days old, {model_theme(m)})")
     if not ranked:
-        logger.info("[trends] nothing new and strong enough today — using the topic bank")
+        logger.info("[trends] no big release today (yesterday was a trend) — using the topic bank" if big_only
+                    else "[trends] nothing new and strong enough today — using the topic bank")
         return None
     return to_topic(ranked[0])
