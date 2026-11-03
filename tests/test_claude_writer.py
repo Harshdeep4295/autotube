@@ -41,3 +41,26 @@ def test_claude_script_is_used_when_long_enough(monkeypatch):
     got = agent.with_claude({"topic": "MoE"}, "the source")
     assert got and len(got["shots"]) == 36 and got["shots"][0]["chapter"] == "c0"
     assert "the source" in seen["p"] and "HOW-IT-WORKS" in seen["p"] and config.EXPLAINER_TARGET_WORDS
+
+
+def test_a_short_claude_script_is_lengthened_once(monkeypatch):
+    from agents.explainer_script_agent import ExplainerScriptAgent, word_count
+    from config import config
+    agent = ExplainerScriptAgent(llm=mock.Mock())
+    agent.kind = "concept"
+    line = "word " * 20
+    short = [{"title": f"c{i}", "shots": [{"text": line, "scene": {"type": "key_point", "props": {}}}] * 8} for i in range(4)]
+    long_ = [{"title": f"c{i}", "shots": [{"text": line, "scene": {"type": "key_point", "props": {}}}] * 10} for i in range(4)]
+    asks = mock.Mock(side_effect=[json.dumps({"title": "T", "chapters": short}),
+                                  json.dumps({"title": "T", "chapters": long_})])
+    monkeypatch.setattr(C, "available", lambda: True)
+    monkeypatch.setattr(C, "ask", asks)
+    monkeypatch.setattr(config, "CLAUDE_TARGET_WORDS", 760)
+    monkeypatch.setattr(config, "CLAUDE_MIN_WORDS", 680)
+    got = agent.with_claude({"topic": "MoE"}, "src")
+    assert asks.call_count == 2 and word_count(got["shots"]) == 800
+    assert "640 words" in asks.call_args_list[1][0][0]
+    # a failed second call keeps the first script (640 words is still above 75% of the target)
+    asks2 = mock.Mock(side_effect=[json.dumps({"title": "T", "chapters": short}), RuntimeError("timeout")])
+    monkeypatch.setattr(C, "ask", asks2)
+    assert word_count(agent.with_claude({"topic": "MoE"}, "src")["shots"]) == 640

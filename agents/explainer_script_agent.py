@@ -357,7 +357,7 @@ class ExplainerScriptAgent:
         from agents import claude_writer as C
         if not C.available():
             return None
-        words = config.EXPLAINER_TARGET_WORDS
+        words = config.CLAUDE_TARGET_WORDS
         prompt = P.CLAUDE_USER.format(
             system=self.system, minutes=round(words / config.EXPLAINER_WPM), words=words, topic=topic["topic"],
             kind_note=P.KIND_NOTES[self.kind], title_rule=P.TITLE_RULES[self.kind], icons=", ".join(ICONS),
@@ -366,6 +366,8 @@ class ExplainerScriptAgent:
         try:
             o = parse_json_obj(C.ask(prompt))
             shots = C.flatten(o.get("chapters") or [])
+            if word_count(shots) < config.CLAUDE_MIN_WORDS:
+                o, shots = self.claude_longer(o, shots, source)
             if not str(o.get("title", "")).strip() or word_count(shots) < words * 0.75:
                 raise ValueError(f"title missing or too short ({word_count(shots)} words)")
         except Exception as e:  # noqa: BLE001 — the free models are the fallback
@@ -374,6 +376,24 @@ class ExplainerScriptAgent:
         logger.info(f"[script] written by Claude ({config.CLAUDE_SCRIPT_MODEL}): {len(shots)} shots, {word_count(shots)} words")
         self.llm.last_model = f"claude:{config.CLAUDE_SCRIPT_MODEL}"
         return {**o, "shots": shots}
+
+    def claude_longer(self, o: Dict, shots: List[Dict], source: str):
+        """Ask Claude once to lengthen a script that came back short; keep the original if that fails."""
+        from agents import claude_writer as C
+        have = word_count(shots)
+        logger.info(f"[script] Claude wrote {have} words (< {config.CLAUDE_MIN_WORDS}) — asking for a longer version")
+        try:
+            prompt = P.CLAUDE_LONGER_USER.format(have=have, words=config.CLAUDE_TARGET_WORDS,
+                                                 more=config.CLAUDE_TARGET_WORDS - have, source=source or "(none)",
+                                                 script=json.dumps({k: v for k, v in o.items() if k != "shots"}))
+            o2 = parse_json_obj(C.ask(prompt))
+            shots2 = C.flatten(o2.get("chapters") or [])
+            if word_count(shots2) > have and str(o2.get("title", "")).strip():
+                return o2, shots2
+            logger.warning(f"[script] longer version was not longer ({word_count(shots2)} words) — keeping the first")
+        except Exception as e:  # noqa: BLE001 — the first script still stands
+            logger.warning(f"[script] could not lengthen it ({str(e)[:150]}) — keeping the first")
+        return o, shots
 
     def generate(self, topic: Dict) -> Dict:
         self.kind = topic_kind(topic)
