@@ -233,3 +233,18 @@ Return ONLY this JSON, nothing before or after it:
   "thumbnail_icon": "...",
   "chapters": [{{"title": "≤40 chars", "shots": [{{"text": "narration line", "emphasis": ["1-2 short phrases copied exactly from text"],
                                                  "scene": {{"type": "scene_name", "props": {{...}}}}}}]}}]}}"""
+
+
+CLAUDE_LONGER_USER = """This explainer script has {have} words of narration; it needs at least {words} or the video
+comes out too short. Return the SAME JSON with the same title, description, tags and thumbnail, and
+the same opening and closing shots, but with more shots added inside the middle chapters: about
+{more} more words in total. Each new shot adds something new from the source (a step, an example, a
+reason, a comparison), never a repeat or a summary of what was already said, and invents no numbers.
+Keep the same shot format. Return only the JSON.
+
+Source text:
+{source}
+
+Script:
+{script}
+"""

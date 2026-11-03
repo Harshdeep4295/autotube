@@ -66,6 +66,11 @@ class Config:
     # (needs the CLAUDE_CODE_OAUTH_TOKEN secret); without it the free models write them.
     CLAUDE_SCRIPTS: bool = field(default_factory=lambda: os.getenv("CLAUDE_SCRIPTS", "true").lower() == "true")
     CLAUDE_SCRIPT_MODEL: str = field(default_factory=lambda: os.getenv("CLAUDE_SCRIPT_MODEL", "claude-opus-5-5"))
+    # Claude's tight lines are read fast (measured 125-153 wpm, 601 words came out at 235 s, under
+    # EXPLAINER_MIN_SECONDS), so it is asked for more words, and asked once to lengthen a script
+    # that comes back under CLAUDE_MIN_WORDS (680 words ≈ 4.4 min even at 153 wpm).
+    CLAUDE_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("CLAUDE_TARGET_WORDS", "760")))
+    CLAUDE_MIN_WORDS: int = field(default_factory=lambda: int(os.getenv("CLAUDE_MIN_WORDS", "680")))
     # Daily trend check (agents/trend_agent.py): a new, popular open model beats the topic bank.
     EXPLAINER_TRENDS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_TRENDS", "true").lower() == "true")
     TREND_MAX_AGE_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_MAX_AGE_DAYS", "14")))
