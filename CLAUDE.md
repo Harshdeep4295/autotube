@@ -178,7 +178,7 @@ Rules:
 | `agents/kids_agent.py`, `agents/kids_script_agent.py`, `agents/kids_topic_agent.py`, `templates/kids_prompts.py` | Kids render, script, topics, prompts |
 | `agents/kids_scene_schema.py`, `agents/kids/` | Kids catalogue and pycairo renderer (draw, cast, props, scenes, timeline, render, voice, music) |
 | `agents/research_agent.py` | Explainer topics: trend check, then bank (`EXPLAINER_TOPIC_MODE=bank`), news feeds as fallback; history |
-| `agents/trend_agent.py` | Daily trend check: Hugging Face trending, original releases ≤ `TREND_MAX_AGE_DAYS`, ≥ `TREND_MIN_LIKES`, known labs first; every other day (`TREND_ALTERNATE`); skips a model kind (OCR, voice, coding…) covered in the last `TREND_THEME_DAYS`; `EXPLAINER_TRENDS=false` turns it off |
+| `agents/trend_agent.py` | Daily trend check: Hugging Face trending, original releases ≤ `TREND_MAX_AGE_DAYS`, ≥ `TREND_MIN_LIKES`, known labs first; checked daily; the day after a trend only a big release (known lab, `TREND_BIG_LIKES`) wins (`TREND_ALTERNATE`); skips a model kind (OCR, voice, coding…) covered in the last `TREND_THEME_DAYS`; `EXPLAINER_TRENDS=false` turns it off |
 | `data/explainer_topics.json` | Evergreen explainer topic bank: tool topics (GitHub repo) alternate with how-it-works topics (`kind: concept`, `url` + `source_url`); add entries freely |
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |

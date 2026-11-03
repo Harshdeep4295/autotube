@@ -184,12 +184,12 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
-            last = history[-1].get("source") if history else ""
-            if config.EXPLAINER_TRENDS and count == 1 and config.TREND_ALTERNATE and last == "trend":
-                logger.info("  yesterday was a trend video — today comes from the topic bank")
-            elif config.EXPLAINER_TRENDS and count == 1:
+            if config.EXPLAINER_TRENDS and count == 1:
+                # Checked every day; the day after a trend video only a big release
+                # (known lab, TREND_BIG_LIKES+) gets another, else a how-it-works / tool topic.
+                after_trend = config.TREND_ALTERNATE and bool(history) and history[-1].get("source") == "trend"
                 from agents.trend_agent import trending_topic
-                trend = trending_topic(history)
+                trend = trending_topic(history, big_only=after_trend)
                 if trend:
                     logger.info(f"  ✓ {trend['topic'][:70]} (trending now)")
                     if record:
