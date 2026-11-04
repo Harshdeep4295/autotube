@@ -208,5 +208,12 @@
     "timestamp": "2026-11-03T15:38:59.635688",
     "used_at": "2026-11-03T15:38:59.635688",
     "source": "bank"
+  },
+  {
+    "topic": "Gemma 4: run Google's open model on your own computer with Ollama",
+    "normalized_topic": "gemma 4 run googles open model on your o",
+    "timestamp": "2026-11-04T11:28:04.456687",
+    "used_at": "2026-11-04T11:28:04.456687",
+    "source": "bank"
   }
 ]
