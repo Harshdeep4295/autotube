@@ -69,6 +69,8 @@ class Config:
     # Claude's tight lines are read fast (measured 125-153 wpm, 601 words came out at 235 s, under
     # EXPLAINER_MIN_SECONDS), so it is asked for more words, and asked once to lengthen a script
     # that comes back under CLAUDE_MIN_WORDS (680 words ≈ 4.4 min even at 153 wpm).
+    # Kids scripts too (each step: plan, script, review, length, Short); off → free models only.
+    CLAUDE_KIDS: bool = field(default_factory=lambda: os.getenv("CLAUDE_KIDS", "true").lower() == "true")
     CLAUDE_TARGET_WORDS: int = field(default_factory=lambda: int(os.getenv("CLAUDE_TARGET_WORDS", "760")))
     CLAUDE_MIN_WORDS: int = field(default_factory=lambda: int(os.getenv("CLAUDE_MIN_WORDS", "680")))
     # Daily trend check (agents/trend_agent.py): a new, popular open model beats the topic bank.

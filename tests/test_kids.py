@@ -400,3 +400,31 @@ def test_near_duplicate_kids_topics_are_caught():
     # everyday verbs carry no meaning: these two are the same video (10-30 and 11-01)
     assert too_close("How does AI change the ads we see?", ["How does AI pick ads?"])
     assert not too_close("How does AI spot spam emails?", ["How does AI pick ads?"])
+
+
+def test_short_hook_must_name_the_real_subject():
+    from agents.kids_script_agent import names_subject
+    assert not names_subject("Why do rockets pick my favorite star?", "How does AI change the ads we see?")
+    assert not names_subject("How does a truck see without eyes?", "How do driverless cars see?")
+    assert names_subject("Why do ads know what you like?", "How does AI change the ads we see?")
+    assert names_subject("Can a driverless car really see?", "How do driverless cars see?")
+
+
+def test_kids_steps_use_claude_and_fall_back_to_free_models(monkeypatch):
+    from unittest import mock
+    from agents import claude_writer as C
+    from agents.kids_script_agent import KidsScriptAgent
+    from config import config
+    monkeypatch.setattr(C, "available", lambda: True)
+    monkeypatch.setattr(config, "CLAUDE_KIDS", True)
+    free = mock.Mock(last_model="groq:x")
+    free.complete.return_value = '{"ok": 2}'
+    agent = KidsScriptAgent(llm=free)
+    monkeypatch.setattr(C, "ask", mock.Mock(return_value='{"ok": 1}'))
+    assert agent._ask("p", lambda o: None) == {"ok": 1} and agent.writer.startswith("claude:")
+    assert not free.complete.called
+    monkeypatch.setattr(C, "ask", mock.Mock(side_effect=RuntimeError("limit reached")))
+    assert agent._ask("p", lambda o: None) == {"ok": 2} and agent.writer == "groq:x"
+    assert agent.use_claude is False                        # the rest of this video stays on the free models
+    monkeypatch.setattr(config, "CLAUDE_KIDS", False)
+    assert KidsScriptAgent(llm=free).use_claude is False
