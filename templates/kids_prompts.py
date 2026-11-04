@@ -124,6 +124,10 @@ RULES
 - The very first line is the HOOK: a QUESTION of at most 10 words, ending in "?", that makes
   someone stop scrolling ("How can a tiny chip think so fast?"). No greeting, no "today we
   learn", no "look at". Do NOT use the "title" scene type.
+- The hook NAMES THE REAL SUBJECT of this video in plain words. The video's question is:
+  "{question}". Say the real thing (ads, self-driving cars, the internet, taxes), never only
+  the story's stand-in for it (no "rockets" for ads, no "truck" for a self-driving car).
+  Good: "How does a car with no driver see the road?" Bad: "How does a truck see without eyes?"
 - The second line starts the answer inside the story: what goes wrong or what is strange
   ("Mia's cookies cost more today."). Never a hello, never a description of the picture.
 - Then tell the ONE core idea, in the same world and with the same characters and props as the

@@ -16,7 +16,7 @@ from agents.kids_scene_schema import PROPS, catalogue_for_prompt, validate_and_r
 from agents.llm import FreeLLM
 from agents.packaging import TITLE_MAX, packaging_problems, short_thumb
 from agents.script_rules import check_script
-from agents.kids_topic_agent import RECENT_TOPICS, too_close
+from agents.kids_topic_agent import RECENT_TOPICS, key_words, too_close
 from config import config
 from templates import kids_prompts as P
 
@@ -143,6 +143,12 @@ def strip_filler(script: Dict) -> int:
 
 def is_hook(text: str) -> bool:
     return text.strip().endswith("?") and len(text.split()) <= 12
+
+
+def names_subject(hook: str, question: str) -> bool:
+    """True when the Short's hook shares a meaning word with the video's question, so a viewer
+    knows what it is about ("rockets pick my favorite star" does not say "ads")."""
+    return bool(key_words(hook) & key_words(question))
 
 
 def finish_short(scenes: List[Dict], hook: str = "") -> List[Dict]:
@@ -279,12 +285,31 @@ def _history() -> List[Dict]:
 
 class KidsScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
+        from agents import claude_writer as C
         self.llm = llm or FreeLLM()
+        # Claude (owner's subscription) writes every step when available; the first failed call
+        # switches the rest of this video to the free models.
+        self.use_claude = C.available() and config.CLAUDE_KIDS
+        self.writer = ""
+
+    def _complete(self, prompt: str, max_tokens: int) -> str:
+        if self.use_claude:
+            from agents import claude_writer as C
+            try:
+                text = C.ask(P.SYSTEM + "\n\n" + prompt, timeout=600)
+                self.writer = f"claude:{config.CLAUDE_SCRIPT_MODEL}"
+                return text
+            except Exception as e:  # noqa: BLE001 — the free models take over
+                logger.warning(f"[kids-script] Claude call failed ({str(e)[:150]}) — the free models write the rest")
+                self.use_claude = False
+        text = self.llm.complete(P.SYSTEM, prompt, max_tokens=max_tokens, temperature=0.7)
+        self.writer = self.llm.last_model
+        return text
 
     def _ask(self, user: str, check, max_tokens: int = 6000, repairs: int = 2) -> Dict:
         prompt = user
         for attempt in range(repairs + 1):
-            text = self.llm.complete(P.SYSTEM, prompt, max_tokens=max_tokens, temperature=0.7)
+            text = self._complete(prompt, max_tokens)
             try:
                 obj = parse_json_obj(text)
                 check(obj)
@@ -426,19 +451,29 @@ class KidsScriptAgent:
             if w < 40:
                 raise ValueError(f"only {w} words, need {SHORT_WORDS[0]}-{SHORT_WORDS[1]}")
             first = next((sc for sc in o["scenes"] if isinstance(sc, dict) and sc.get("type") != "title" and sc.get("lines")), {})
-            if not is_hook(str((first.get("lines") or [{}])[0].get("text", ""))):
+            hook = str((first.get("lines") or [{}])[0].get("text", ""))
+            if not is_hook(hook):
                 raise ValueError('the first line must be a question of at most 10 words ending in "?"')
+            if not names_subject(hook, question) and tries <= 2:
+                raise ValueError(f'the hook "{hook}" does not name the real subject of "{question}" — '
+                                 "say the real thing, not the story's stand-in")
             body = [sc for sc in o["scenes"] if isinstance(sc, dict) and sc.get("type") != "title"]
             bad = [p for p in opening_problems(body) if "greets" in p]
             if bad and tries <= 2:
                 raise ValueError("weak opening: " + "; ".join(bad))
 
+        question = str(script.get("title", "")).split(TITLE_SUFFIX)[0].strip() or str(script.get("topic", ""))
         full = {"title": script.get("title", ""), "scenes": script.get("scenes", [])}
         o = self._ask(P.SHORT_USER.format(script=json.dumps(full, ensure_ascii=False), min_words=SHORT_WORDS[0],
+                                          question=question,
                                           max_words=SHORT_WORDS[1], catalogue=catalogue_for_prompt()),
                       check, max_tokens=6000, repairs=2)
         scenes = finish_short(o["scenes"])
         drop_greetings(scenes)
+        first = next((sc for sc in scenes if sc.get("type") not in ("title", "outro") and sc.get("lines")), None)
+        if first and not names_subject(str(first["lines"][0].get("text", "")), question) and is_hook(question):
+            logger.info(f"[kids-script] short hook {first['lines'][0]['text']!r} hides the subject — using {question!r}")
+            first["lines"][0]["text"] = question
         return scenes
 
     def generate(self, topic: Dict) -> Dict:
@@ -495,7 +530,7 @@ class KidsScriptAgent:
             "analogy": {"world": plan.get("world", ""), "map": plan.get("map", [])},
             "backdrop": getattr(self, "world", {}).get("backdrop", "meadow"),
             "estimated_seconds": round(est), "script_repairs": repairs, "review": reviewed["review"],
-            "llm": self.llm.last_model,
+            "llm": self.writer or self.llm.last_model,
         })
         opening, ending = first_and_last(script["scenes"])
         topic["opening"], topic["ending"] = opening, ending   # recorded in the history by mark_used
