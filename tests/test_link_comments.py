@@ -24,3 +24,29 @@ def test_track_of_upload_titles():
     assert track_of("How does AI learn? | Explained Like You're 5 #Shorts") == "short"
     assert track_of("How does AI learn? (Explained Like You're 5)") == "kids"
     assert track_of("Run Wan2GP: Free AI Video on Low-VRAM GPUs") == "explainer"
+
+
+def test_one_failing_video_does_not_stop_the_run(monkeypatch, capsys):
+    from unittest import mock
+    import sys
+    import scripts.link_comments as L
+    link = "Watch the full video: https://youtube.com/watch?v=full1"
+    videos = [{"id": f"s{i}", "title": f"Short {i} #Shorts", "description": link, "privacy": "public"} for i in range(3)]
+    monkeypatch.setattr(L, "channel_uploads", lambda yt: ("me", videos))
+    monkeypatch.setattr(L.time, "sleep", lambda s: None)
+    calls = []
+
+    def check(yt, vid, ch):
+        calls.append(vid)
+        if vid == "s1":
+            raise RuntimeError("HttpError 400: The API server failed to successfully process the request")
+        return False
+    monkeypatch.setattr(L, "has_channel_comment", check)
+    fake_agent = mock.Mock()
+    monkeypatch.setitem(sys.modules, "agents.upload_agent", mock.Mock(UploadAgent=lambda: fake_agent))
+    monkeypatch.setattr(sys, "argv", ["link_comments.py"])
+    L.main()
+    out = capsys.readouterr().out
+    assert calls.count("s1") == 2                     # retried once
+    assert "Commented on s0" in out and "Commented on s2" in out
+    assert "posted 2" in out and "could not check 1" in out
