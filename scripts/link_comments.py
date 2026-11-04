@@ -13,6 +13,7 @@ is left alone. Private or scheduled Shorts are skipped and picked up on a later 
 import argparse
 import re
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -61,6 +62,17 @@ def has_channel_comment(yt, video_id: str, channel_id: str) -> bool:
     return False
 
 
+def checked(call, tries: int = 2, wait: float = 5.0):
+    """Run a YouTube API call, retrying once: its 400/500 'failed to process' errors are often transient."""
+    for n in range(tries):
+        try:
+            return call()
+        except Exception:  # noqa: BLE001
+            if n == tries - 1:
+                raise
+            time.sleep(wait)
+
+
 def to_comment(videos: list) -> list:
     """Public Shorts that point to a full video: [(video, link)]."""
     out = []
@@ -82,8 +94,15 @@ def main() -> None:
     yt = UploadAgent().youtube
     channel_id, videos = channel_uploads(yt)
     posted = skipped = 0
+    failed = 0
     for v, link in to_comment(videos):
-        if has_channel_comment(yt, v["id"], channel_id):
+        try:
+            done = checked(lambda: has_channel_comment(yt, v["id"], channel_id))
+        except Exception as e:  # noqa: BLE001 — one bad video must not stop the rest
+            print(f"Could not check {v['id']} ({v['title'][:60]}), skipping it today: {str(e)[:200]}")
+            failed += 1
+            continue
+        if done:
             skipped += 1
             continue
         if a.dry_run:
@@ -104,7 +123,7 @@ def main() -> None:
         print(f"Commented on {v['id']} ({v['title'][:60]}): {comment_text(link)}")
         posted += 1
     verb = "would post" if a.dry_run else "posted"
-    print(f"Done: {verb} {posted}, already had a channel comment {skipped}.")
+    print(f"Done: {verb} {posted}, already had a channel comment {skipped}, could not check {failed}.")
 
 
 if __name__ == "__main__":
