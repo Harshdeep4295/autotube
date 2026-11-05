@@ -215,5 +215,13 @@
     "timestamp": "2026-11-04T11:28:04.456687",
     "used_at": "2026-11-04T11:28:04.456687",
     "source": "bank"
+  },
+  {
+    "topic": "Kimi-K3.1-Pro: the new AI model that reads images and text from moonshotai, and can you run it at home?",
+    "normalized_topic": "kimik31pro the new ai model that reads i",
+    "timestamp": "2026-11-05T11:26:21.524945",
+    "used_at": "2026-11-05T11:26:21.524945",
+    "source": "trend",
+    "theme": "vision"
   }
 ]
