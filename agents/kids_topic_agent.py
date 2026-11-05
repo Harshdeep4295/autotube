@@ -152,14 +152,17 @@ class KidsTopicAgent:
     def get_topics(self, count: int = 1, mode: Optional[str] = None) -> List[Dict]:
         mode = (mode or config.KIDS_TOPIC_MODE).lower()
         hist = self.history()
-        used = {norm(h["topic"]) for h in hist}
+        from agents.published import channel_titles, kids_questions
+        published = kids_questions(channel_titles())   # the channel itself: also videos from before the history
+        used = {norm(h["topic"]) for h in hist} | {norm(q) for q in published}
         recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
+        everything = list(dict.fromkeys(recent + published))
         area = self.next_area(hist)
         picks: List[Dict] = []
         if mode in ("mixed", "feed"):
             try:
                 ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent)
-                         if norm(i["topic"]) not in used and not too_close(i["topic"], recent)]
+                         if norm(i["topic"]) not in used and not too_close(i["topic"], everything)]
                 # Only headline ideas in today's area; with none, the bank fills it, so the
                 # rotation holds (feed ideas lean AI, which pushed finance out for weeks).
                 picks += [i for i in ideas if i["area"] == area][:count]
@@ -167,7 +170,7 @@ class KidsTopicAgent:
                 logger.warning(f"[kids-topics] headline ideas failed: {str(e)[:150]}")
         if len(picks) < count and mode in ("mixed", "bank"):
             fresh = [b for b in self.bank() if norm(b["question"]) not in used
-                     and not too_close(b["question"], recent)]
+                     and not too_close(b["question"], everything)]
             fresh.sort(key=lambda b: b.get("area") != area)
             for b in fresh[: count - len(picks)]:
                 picks.append({"topic": b["question"], "area": b.get("area", ""), "source": "bank",

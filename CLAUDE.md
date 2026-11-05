@@ -73,7 +73,7 @@ for kids. `outputs/` and `logs/` are gitignored.
 ## Explainer pipeline (default)
 
 ```
-research_agent          daily trend check first (trend_agent: newest popular open model on Hugging Face),
+research_agent          skips topics already on the channel (agents/published.py); daily trend check first (trend_agent: newest popular open model on Hugging Face),
                         then the topic bank (data/explainer_topics.json: tool and how-it-works topics alternate);
                         news feeds (HN / Dev.to / Lobsters / Reddit / RSS, NICHE_KEYWORDS) once the bank is used up
 source_fetcher          text of the source article (grounding)

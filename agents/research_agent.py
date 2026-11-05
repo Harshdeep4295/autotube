@@ -298,9 +298,14 @@ class ResearchAgent:
             logger.warning(f"Topic bank unreadable: {e}")
             return []
         used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}
+        from agents.published import channel_titles, explainer_published
+        titles = channel_titles()
         picks = []
         for b in bank:
             if self._normalize(b["topic"]) in used:
+                continue
+            if explainer_published(b["topic"], titles):
+                logger.info(f"  – already on the channel, skipped: {b['topic'][:70]}")
                 continue
             repo = b.get("repo", "")
             picks.append({
@@ -552,13 +557,7 @@ class ResearchAgent:
             }
             for t in selected
         ]
-        cutoff = datetime.utcnow() - timedelta(days=90)
-        kept = [
-            h for h in existing
-            if datetime.fromisoformat(
-                h.get("used_at") or h.get("timestamp", "2000-01-01")
-            ) > cutoff
-        ]
+        kept = list(existing)   # never pruned: it is the record of what was already made
         with open(config.HISTORY_FILE, "w") as f:
             json.dump(kept + new_entries, f, indent=2)
 
