@@ -128,6 +128,9 @@ def covered(model_id: str, history: List[Dict]) -> bool:
     fam = family(model_id)
     if not fam:
         return True
+    from agents.published import alnum, channel_titles
+    if any(alnum(fam) in alnum(t) for t in channel_titles()):
+        return True
     for h in history:
         text = re.sub(r"[^a-z0-9]+", " ", str(h.get("topic", "")).lower().replace(".", ""))
         if f" {fam} " in f" {text} ":

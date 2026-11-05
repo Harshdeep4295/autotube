@@ -1,5 +1,11 @@
 [
   {
+    "topic": "How does the stock market work?",
+    "area": "finance",
+    "source": "poc",
+    "date": "2026-09-28T00:00:00+00:00"
+  },
+  {
     "topic": "What is a pension?",
     "area": "finance",
     "source": "feed",

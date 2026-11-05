@@ -428,3 +428,23 @@ def test_kids_steps_use_claude_and_fall_back_to_free_models(monkeypatch):
     assert agent.use_claude is False                        # the rest of this video stays on the free models
     monkeypatch.setattr(config, "CLAUDE_KIDS", False)
     assert KidsScriptAgent(llm=free).use_claude is False
+
+
+def test_topics_already_on_the_channel_are_skipped(monkeypatch):
+    from unittest import mock
+    from agents import published
+    from agents.kids_topic_agent import KidsTopicAgent
+    from agents.published import explainer_published, kids_questions
+    titles = ["What are data centers? (Explained Like You're 5)", "How does AI learn? | Explained Like You're 5 #Shorts",
+              "Run a ChatGPT-like AI Locally with Open WebUI – Free & Offline", "Run Gemma 4 Locally with Ollama"]
+    assert kids_questions(titles) == ["How does AI learn?", "What are data centers?"]
+    assert explainer_published("Open WebUI with Ollama: a private ChatGPT on your own PC", titles)
+    assert explainer_published("Gemma 4: run Google's open model on your own computer with Ollama", titles)
+    assert not explainer_published("ik_llama.cpp: run bigger models faster", titles)
+    assert not explainer_published("How Stable Diffusion turns a text prompt into an AI image", titles)
+    monkeypatch.setattr(published, "channel_titles", lambda: titles)
+    agent = KidsTopicAgent(llm=mock.Mock())
+    monkeypatch.setattr(agent, "history", lambda: [])
+    monkeypatch.setattr(agent, "bank", lambda: [{"question": "What is a data center?", "area": "tech"},
+                                               {"question": "What is a password?", "area": "tech"}])
+    assert [t["topic"] for t in agent.get_topics(1, mode="bank")] == ["What is a password?"]
