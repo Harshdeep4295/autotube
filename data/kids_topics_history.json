@@ -273,5 +273,14 @@
     "opening": "Leo's books won't fit, and you'll learn where Mia's books go.",
     "ending": "Each saved picture takes a little walk to a faraway box.",
     "date": "2026-11-05T11:42:23+00:00"
+  },
+  {
+    "topic": "What is an AI assistant?",
+    "area": "ai",
+    "source": "feed",
+    "world": "rocket club",
+    "opening": "Piece by piece, you get to build one with Leo's club.",
+    "ending": "Every helper guesses a little, so a quick check keeps rockets flying.",
+    "date": "2026-11-06T11:43:11+00:00"
   }
 ]
