@@ -223,5 +223,12 @@
     "used_at": "2026-11-05T11:26:21.524945",
     "source": "trend",
     "theme": "vision"
+  },
+  {
+    "topic": "How AI picks its next word: greedy, beam search and sampling",
+    "normalized_topic": "how ai picks its next word greedy beam s",
+    "timestamp": "2026-11-06T11:25:44.176220",
+    "used_at": "2026-11-06T11:25:44.176220",
+    "source": "bank"
   }
 ]
