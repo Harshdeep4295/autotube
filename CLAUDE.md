@@ -185,7 +185,7 @@ Rules:
 | `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |
 | `scripts/channel_admin.py` | Channel housekeeping (status, add a video to a playlist, fill a playlist with one track, home page section), run via `channel_admin.yml` |
 | `scripts/link_comments.py` | Full-video link comment on each public Short, run via `link_comments.yml` |
-| `scripts/post_reels.py` | Posts each kids Short as an Instagram Reel and a Facebook Page video (Meta Graph API). Step in `kids_explainer.yml`; needs secret `META_ACCESS_TOKEN` (expires about every 60 days; issued 2026-10-05) and variables `INSTAGRAM_ACCOUNT_ID`, `FACEBOOK_PAGE_ID`. Skips dry runs, never fails the run |
+| `scripts/post_reels.py` | Posts each kids Short as an Instagram Reel and a Facebook Reel (Meta Graph API; falls back to a Page video). Step in `kids_explainer.yml`; needs secret `META_ACCESS_TOKEN` (expires about every 60 days; issued 2026-10-05) and variables `INSTAGRAM_ACCOUNT_ID`, `FACEBOOK_PAGE_ID`. Skips dry runs, never fails the run |
 | `scripts/backfill_kids.py` | Short + current description for an already-published kids video, run via `kids_backfill.yml` |
 | `generate_youtube_token.py` | One-time OAuth token generator for the channel |
 | `video/explainer/` | Remotion 4 project: `src/scenes/`, `src/brand/`, `Thumbnail.tsx`, `test/scenes.test.mjs` |

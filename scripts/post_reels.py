@@ -1,5 +1,5 @@
 """
-Post a kids Short (the vertical cut) as an Instagram Reel and a Facebook Page video.
+Post a kids Short (the vertical cut) as an Instagram Reel and a Facebook Reel.
 Runs as a step of the kids workflow after the YouTube upload; free Meta Graph API.
 
     python scripts/post_reels.py                 # newest outputs/*/short.mp4
@@ -127,13 +127,33 @@ def page_token_for(page_id: str, token: str) -> str:
 
 
 def post_facebook(video: Path, title: str, caption: str, page_id: str, token: str) -> str:
-    """Upload as a Page video with the Page's own token. Returns the video id."""
+    """Post as a Facebook Reel (shown in the Reels feed). Falls back to a plain Page video."""
+    pt = page_token_for(page_id, token)
+    try:
+        return post_facebook_reel(video, caption, page_id, pt)
+    except Exception as e:  # noqa: BLE001 — a Page video is still better than nothing
+        print(f"Facebook: Reel upload failed ({e}) — posting as a Page video instead")
     with open(video, "rb") as f:
         done = _check(requests.post(f"https://graph-video.facebook.com/{page_id}/videos", timeout=900,
-                                    data={"title": title[:250], "description": caption,
-                                          "access_token": page_token_for(page_id, token)},
+                                    data={"title": title[:250], "description": caption, "access_token": pt},
                                     files={"source": (video.name, f, "video/mp4")}))
     return done["id"]
+
+
+def post_facebook_reel(video: Path, caption: str, page_id: str, page_token: str) -> str:
+    """Reels API: start → upload the bytes → finish with PUBLISHED. Returns the video id."""
+    start = _check(requests.post(f"{GRAPH}/{page_id}/video_reels", timeout=60,
+                                 data={"upload_phase": "start", "access_token": page_token}))
+    vid = start["video_id"]
+    url = start.get("upload_url") or f"https://rupload.facebook.com/video-upload/v21.0/{vid}"
+    up = _check(requests.post(url, data=video.read_bytes(), timeout=900, headers={
+        "Authorization": f"OAuth {page_token}", "offset": "0", "file_size": str(video.stat().st_size)}))
+    if not up.get("success", True):
+        raise RuntimeError(f"upload not accepted: {up}")
+    _check(requests.post(f"{GRAPH}/{page_id}/video_reels", timeout=60, data={
+        "upload_phase": "finish", "video_id": vid, "video_state": "PUBLISHED",
+        "description": caption, "access_token": page_token}))
+    return vid
 
 
 def newest_short(root: Path) -> Optional[Path]:

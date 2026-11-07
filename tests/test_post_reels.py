@@ -34,3 +34,43 @@ def test_caption_hashtags_and_disclaimer_follow_the_topic_area():
     assert "financial advice" not in ai and "AI-generated" in ai
     money = R.caption_for({"title": "Why do prices rise? (Explained Like You're 5)", "description": "Hi", "area": "finance"})
     assert "#financeforbeginners" in money and "Not financial advice." in money
+
+
+def _resp(data, status=200):
+    r = mock.Mock(status_code=status)
+    r.json.return_value = data
+    return r
+
+
+def test_facebook_posts_a_reel_start_upload_finish(tmp_path):
+    v = tmp_path / "short.mp4"
+    v.write_bytes(b"abc")
+    calls = []
+
+    def post(url, **kw):
+        calls.append((url, kw.get("data")))
+        if url.endswith("/video_reels") and kw["data"]["upload_phase"] == "start":
+            return _resp({"video_id": "77", "upload_url": "https://rupload.example/77"})
+        return _resp({"success": True})
+
+    with mock.patch.object(R.requests, "get", return_value=_resp({"access_token": "page"})), \
+            mock.patch.object(R.requests, "post", side_effect=post):
+        assert R.post_facebook(v, "T", "caption", "123", "user") == "77"
+    assert [c[0] for c in calls] == ["https://graph.facebook.com/123/video_reels", "https://rupload.example/77",
+                                     "https://graph.facebook.com/123/video_reels"]
+    assert calls[1][1] == b"abc"
+    assert calls[2][1]["video_state"] == "PUBLISHED" and calls[2][1]["description"] == "caption"
+
+
+def test_facebook_falls_back_to_a_page_video_when_reels_fail(tmp_path):
+    v = tmp_path / "short.mp4"
+    v.write_bytes(b"abc")
+
+    def post(url, **kw):
+        if "video_reels" in url:
+            return _resp({"error": {"message": "nope"}}, 400)
+        return _resp({"id": "page-video"})
+
+    with mock.patch.object(R.requests, "get", return_value=_resp({"access_token": "page"})), \
+            mock.patch.object(R.requests, "post", side_effect=post):
+        assert R.post_facebook(v, "T", "caption", "123", "user") == "page-video"
