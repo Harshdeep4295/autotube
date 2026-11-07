@@ -230,5 +230,12 @@
     "timestamp": "2026-11-06T11:25:44.176220",
     "used_at": "2026-11-06T11:25:44.176220",
     "source": "bank"
+  },
+  {
+    "topic": "Quantization explained: how a big AI model fits on a small graphics card",
+    "normalized_topic": "quantization explained how a big ai mode",
+    "timestamp": "2026-11-07T10:43:37.388486",
+    "used_at": "2026-11-07T10:43:37.388486",
+    "source": "bank"
   }
 ]
