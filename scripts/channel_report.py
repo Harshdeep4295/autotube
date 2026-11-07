@@ -25,6 +25,9 @@ from scripts.social_stats import get  # noqa: E402
 from scripts.post_reels import page_token_for  # noqa: E402
 
 
+RETENTION_VIDEOS = 12   # long videos (most viewed first) that get a retention curve
+
+
 def rows(ya, start: str, end: str, metrics: str, **kw) -> List[List]:
     try:
         return ya.reports().query(ids="channel==MINE", startDate=start, endDate=end, metrics=metrics, **kw).execute().get("rows", [])
@@ -40,7 +43,7 @@ def youtube(days: int) -> Dict:
     tot = (rows(ya, start, end, "views,estimatedMinutesWatched,subscribersGained,subscribersLost,likes,comments,shares") or [[0] * 7])[0]
     by_day = rows(ya, start, end, "views,estimatedMinutesWatched", dimensions="day", sort="day", maxResults=200)
     vids = rows(ya, start, end, "views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes",
-                dimensions="video", sort="-views", maxResults=50)
+                dimensions="video", sort="-views", maxResults=200)
     titles = {}
     ids = [r[0] for r in vids]
     for i in range(0, len(ids), 50):
@@ -50,6 +53,12 @@ def youtube(days: int) -> Dict:
         {"name": str(r[0]), "views": r[1], "minutes": r[2], "pct": round(r[3], 1) if len(r) > 3 else None}
         for r in rows(ya, start, end, kw.pop("metrics", "views,estimatedMinutesWatched,averageViewPercentage"),
                       dimensions=dim, sort="-views", maxResults=n, **kw)]
+    retention = {}
+    for r in [r for r in vids if "#shorts" not in titles.get(r[0], "").lower()][:RETENTION_VIDEOS]:
+        curve = rows(ya, start, end, "audienceWatchRatio", dimensions="elapsedVideoTimeRatio",
+                     filters=f"video=={r[0]};audienceType==ORGANIC")
+        if curve:   # share of viewers still watching at each point (1.0 = everyone who started)
+            retention[r[0]] = [[round(x, 2), round(w, 3)] for x, w in curve[::5]]
     return {
         "start": start, "data_through": by_day[-1][0] if by_day else None,
         "totals": dict(zip(("views", "minutes", "subs_gained", "subs_lost", "likes", "comments", "shares"), tot)),
@@ -57,6 +66,7 @@ def youtube(days: int) -> Dict:
         "videos": [{"id": r[0], "title": titles.get(r[0], r[0]), "short": "#shorts" in titles.get(r[0], "").lower(),
                     "views": r[1], "minutes": r[2], "avg_seconds": r[3], "pct": round(r[4], 1), "subs": r[5], "likes": r[6]}
                    for r in vids],
+        "retention": retention,
         "sources": pair("insightTrafficSourceType"),
         "types": pair("creatorContentType"),
         "search": pair("insightTrafficSourceDetail", metrics="views,estimatedMinutesWatched",
@@ -78,7 +88,13 @@ def social() -> Dict:
         pt = page_token_for(page, token)
         p = get(page, pt, fields="name,followers_count,fan_count") or {}
         vids = (get(f"{page}/videos", pt, limit=50, fields="views") or {}).get("data", [])
-        out["facebook"] = {"name": p.get("name"), "followers": p.get("followers_count"), "posts": len(vids),
+        reels = (get(f"{page}/video_reels", pt, limit=50, fields="id") or {}).get("data", [])
+        plays = 0
+        for r in reels[:25]:   # Reel plays live in each Reel's insights, not in "views"
+            for m in (get(f"{r['id']}/video_insights", pt, metric="blue_reels_play_count") or {}).get("data", []):
+                plays += (m.get("values") or [{}])[0].get("value") or 0
+        out["facebook"] = {"name": p.get("name"), "followers": p.get("followers_count"),
+                           "posts": len(vids), "reels": len(reels), "reel_plays": plays,
                            "views": sum(v.get("views") or 0 for v in vids)}
     return out
 

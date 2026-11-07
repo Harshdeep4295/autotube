@@ -161,7 +161,10 @@ def first_rule(style: str = "question", kind: str = "tool") -> str:
                "whether it runs on a normal PC or what it does better, answered only as far as the source "
                "allows. Do not mention any other tool or app unless the source does")
     return ("This is the FIRST chapter: shot 1 must use the title_hook scene. Shot 1 is " + how + ". "
-            "Shot 2 says in one sentence what the viewer will be able to do once the video is over; "
+            "Shot 2 ANSWERS shot 1 straight away, in one short sentence, with the payoff the viewer came for "
+            "(\"Yes: with 16 GB of memory and three commands.\" or \"Short answer: it only wakes up the experts it "
+            "needs.\"), using only what the source supports; never hold the answer back for later. "
+            "Shot 3 says in one sentence what the viewer will be able to do once the video is over; "
             "do not start it with \"By the end\" or \"In this video\". "
             "No welcome, no channel or subscribe talk.")
 
