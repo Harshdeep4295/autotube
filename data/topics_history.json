@@ -237,5 +237,12 @@
     "timestamp": "2026-11-07T10:43:37.388486",
     "used_at": "2026-11-07T10:43:37.388486",
     "source": "bank"
+  },
+  {
+    "topic": "Qwen 3.6: run Alibaba's open model locally with Ollama",
+    "normalized_topic": "qwen 36 run alibabas open model locally ",
+    "timestamp": "2026-11-08T10:52:58.431706",
+    "used_at": "2026-11-08T10:52:58.431706",
+    "source": "bank"
   }
 ]
