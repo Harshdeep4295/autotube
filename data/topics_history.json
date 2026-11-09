@@ -244,5 +244,13 @@
     "timestamp": "2026-11-08T10:52:58.431706",
     "used_at": "2026-11-08T10:52:58.431706",
     "source": "bank"
+  },
+  {
+    "topic": "P-H3-Image-Comfy: the new AI image generator from PrunaAI, and can you run it at home?",
+    "normalized_topic": "ph3imagecomfy the new ai image generator",
+    "timestamp": "2026-11-09T12:00:39.343602",
+    "used_at": "2026-11-09T12:00:39.343602",
+    "source": "trend",
+    "theme": "image"
   }
 ]
