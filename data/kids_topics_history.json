@@ -309,5 +309,14 @@
     "opening": "You can help Leo solve a mystery that fits on a fingertip.",
     "ending": "Yes or no, super fast, all inside one small chip.",
     "date": "2026-11-09T12:20:10+00:00"
+  },
+  {
+    "topic": "What is a neural network?",
+    "area": "ai",
+    "source": "feed",
+    "world": "apple tree",
+    "opening": "By the end, you'll know why Mia's team of friends wins.",
+    "ending": "Every time you fix an oops, you learn like Mia's team.",
+    "date": "2026-11-10T11:56:13+00:00"
   }
 ]
