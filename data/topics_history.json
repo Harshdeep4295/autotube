@@ -252,5 +252,12 @@
     "used_at": "2026-11-09T12:00:39.343602",
     "source": "trend",
     "theme": "image"
+  },
+  {
+    "topic": "RLHF explained: how AI chatbots learned to give helpful answers",
+    "normalized_topic": "rlhf explained how ai chatbots learned t",
+    "timestamp": "2026-11-10T11:39:46.480466",
+    "used_at": "2026-11-10T11:39:46.480466",
+    "source": "bank"
   }
 ]
