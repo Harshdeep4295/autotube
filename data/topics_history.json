@@ -259,5 +259,12 @@
     "timestamp": "2026-11-10T11:39:46.480466",
     "used_at": "2026-11-10T11:39:46.480466",
     "source": "bank"
+  },
+  {
+    "topic": "PrivateGPT: ask an AI about your files without sending them anywhere",
+    "normalized_topic": "privategpt ask an ai about your files wi",
+    "timestamp": "2026-11-11T11:30:16.710135",
+    "used_at": "2026-11-11T11:30:16.710135",
+    "source": "bank"
   }
 ]
