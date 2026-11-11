@@ -111,6 +111,7 @@ def same_as(new: str, past: List[str], track: str) -> Optional[Tuple[float, str]
         score = next(s for s, c in close if c == hit)
         logger.info(f"[judge] '{new[:60]}' is the same video as '{hit[:60]}' ({score:.2f})")
         return score, hit
+    logger.info(f"[judge] '{new[:60]}' is new (closest: '{close[0][1][:50]}' {close[0][0]:.2f})")
     return None
 
 
