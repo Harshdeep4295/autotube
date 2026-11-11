@@ -400,6 +400,10 @@ def test_near_duplicate_kids_topics_are_caught():
     # everyday verbs carry no meaning: these two are the same video (10-30 and 11-01)
     assert too_close("How does AI change the ads we see?", ["How does AI pick ads?"])
     assert not too_close("How does AI spot spam emails?", ["How does AI pick ads?"])
+    # one specific subject word is the same video however it is dressed (11-09 repeated "What is a Chip?")
+    assert too_close("What is a computer chip?", ["What is a Chip?"])
+    assert too_close("What is a Chip?", ["How do computer chips think?".replace("chips", "chip")])
+    assert not too_close("What is a neural network?", ["What is AI?", "How does a computer learn?"])
 
 
 def test_short_hook_must_name_the_real_subject():

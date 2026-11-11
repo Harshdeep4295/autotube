@@ -113,7 +113,7 @@ def test_trend_days_alternate_with_bank_days():
                 mock.patch.object(config, "TREND_ALTERNATE", True), \
                 mock.patch.object(config, "TREND_BIG_LIKES", 1000), \
                 mock.patch.object(config, "TREND_MIN_LIKES", 250), \
-                mock.patch.object(config, "TREND_MAX_AGE_DAYS", 14), \
+                mock.patch.object(config, "TREND_MAX_AGE_DAYS", 10_000), \
                 mock.patch.object(r, "_load_history", return_value=hist), \
                 mock.patch("agents.trend_agent.requests.get", return_value=fake):
             got = r.get_topics(1, record=False)[0]
