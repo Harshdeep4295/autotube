@@ -278,6 +278,14 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
     return days
 
 
+def keep_other_days(days: List[Dict], today: str) -> List[Dict]:
+    """New days plus the days of the current plan that this run does not replan (today or later)."""
+    from agents.week_plan import load
+    new = {d["date"] for d in days}
+    kept = [d for d in load().get("days", []) if d.get("date", "") >= today and d["date"] not in new]
+    return sorted(kept + days, key=lambda d: d["date"])
+
+
 def start_date(text: str, today: Optional[date] = None) -> date:
     today = today or datetime.now(timezone.utc).date()
     if text == "tomorrow":
@@ -368,7 +376,7 @@ def main() -> int:
                                    "kids_bank": kids_bank})
     plan = {"made": datetime.now(timezone.utc).isoformat(timespec="minutes"), "start": dates[0],
             "writer": writer, "youtube_trends": [{k: v[k] for k in ("title", "views", "channel")} for v in yt_videos[:15]],
-            "days": days}
+            "days": keep_other_days(days, datetime.now(timezone.utc).date().isoformat())}
     print(markdown(plan))
     for d in days:
         for tr in ("explainer", "kids"):

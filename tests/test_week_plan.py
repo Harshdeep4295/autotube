@@ -170,3 +170,13 @@ def test_content_db_records_and_summary():
     assert db["videos"][0]["track"] == "kids" and db["videos"][0]["short"]
     assert content_db.subjects(db, "kids") == ["What is a Chip?"]
     assert "708 views" in content_db.summary(db)
+
+
+def test_a_new_plan_keeps_the_days_it_does_not_replan():
+    from scripts import plan_week
+    old = {"days": [{"date": "2026-11-10"}, {"date": "2026-11-14", "kids": {"topic": "old"}},
+                    {"date": "2026-11-16", "kids": {"topic": "replaced"}}]}
+    with mock.patch("agents.week_plan.load", return_value=old):
+        days = plan_week.keep_other_days([{"date": "2026-11-16", "kids": {"topic": "new"}}], "2026-11-12")
+    assert [d["date"] for d in days] == ["2026-11-14", "2026-11-16"]
+    assert days[1]["kids"]["topic"] == "new"
