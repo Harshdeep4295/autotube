@@ -24,11 +24,11 @@ def available() -> bool:
     return bool(os.getenv("CLAUDE_CODE_OAUTH_TOKEN")) and bool(shutil.which("claude")) and config.CLAUDE_SCRIPTS
 
 
-def ask(prompt: str, timeout: int = 900) -> str:
+def ask(prompt: str, timeout: int = 900, model: Optional[str] = None) -> str:
     """Claude's answer as text. Runs in an empty folder with no tools, so it can only write."""
     with tempfile.TemporaryDirectory() as cwd:
         r = subprocess.run(
-            ["claude", "-p", "--model", config.CLAUDE_SCRIPT_MODEL, "--output-format", "text", "--tools", ""],
+            ["claude", "-p", "--model", model or config.CLAUDE_SCRIPT_MODEL, "--output-format", "text", "--tools", ""],
             input=prompt, capture_output=True, text=True, timeout=timeout, cwd=cwd,
             env={**os.environ, "DISABLE_AUTOUPDATER": "1"},
         )

@@ -161,12 +161,13 @@ class KidsTopicAgent:
         recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
         everything = list(dict.fromkeys(recent + published))
         area = self.next_area(hist)
-        from agents import topic_index
+        from agents.topic_judge import same_as
 
         def new(q: str) -> bool:
             if norm(q) in used or too_close(q, everything):
+                logger.info(f"[kids-topics] '{q}' was already made (same words) — skipped")
                 return False
-            dup = topic_index.duplicate_of(q, everything)
+            dup = same_as(q, everything, "kids")
             if dup:
                 logger.info(f"[kids-topics] '{q}' is the same as '{dup[1]}' ({dup[0]:.2f}) — skipped")
             return not dup
@@ -180,16 +181,24 @@ class KidsTopicAgent:
         picks: List[Dict] = []
         if mode in ("mixed", "feed"):
             try:
-                ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent) if new(i["topic"])]
+                # The writer sees every question on the channel, not only the recent ones: an old
+                # "Why do things cost more?" came back as "Why do prices jump up?" (2026-11-11).
+                ideas = self.ideas_from_headlines(self.headlines(), everything)
                 # Only headline ideas in today's area; with none, the bank fills it, so the
                 # rotation holds (feed ideas lean AI, which pushed finance out for weeks).
-                picks += [i for i in ideas if i["area"] == area][:count]
+                for i in ideas:
+                    if len(picks) < count and i["area"] == area and new(i["topic"]):
+                        picks.append(i)
             except Exception as e:  # noqa: BLE001 — the bank is always there
                 logger.warning(f"[kids-topics] headline ideas failed: {str(e)[:150]}")
         if len(picks) < count and mode in ("mixed", "bank"):
-            fresh = [b for b in self.bank() if new(b["question"])]
-            fresh.sort(key=lambda b: b.get("area") != area)
-            for b in fresh[: count - len(picks)]:
+            bank = sorted(self.bank(), key=lambda b: b.get("area") != area)   # today's area first
+            taken = {norm(p["topic"]) for p in picks}
+            for b in bank:
+                if len(picks) >= count:
+                    break
+                if norm(b["question"]) in taken or not new(b["question"]):
+                    continue
                 picks.append({"topic": b["question"], "area": b.get("area", ""), "source": "bank",
                               "hint": b.get("hint", "")})
         for p in picks:

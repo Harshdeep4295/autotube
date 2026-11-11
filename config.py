@@ -91,6 +91,13 @@ class Config:
     # wording counts there; the same tool is already caught by name (agents/published.py)
     TOPIC_DUP_SIMILARITY: float = field(default_factory=lambda: float(os.getenv("TOPIC_DUP_SIMILARITY", "0.85")))
     EXPLAINER_DUP_SIMILARITY: float = field(default_factory=lambda: float(os.getenv("EXPLAINER_DUP_SIMILARITY", "0.93")))
+    # Between these and the lines above, a score cannot tell a repeat from a related topic ("Why do prices
+    # jump up?" vs "Why do things cost more?" 0.77 is a repeat, "Why do house prices change?" 0.79 is not),
+    # so an AI judge reads the closest past topics and decides (agents/topic_judge.py)
+    TOPIC_JUDGE: bool = field(default_factory=lambda: os.getenv("TOPIC_JUDGE", "true").lower() == "true")
+    TOPIC_JUDGE_MODEL: str = field(default_factory=lambda: os.getenv("TOPIC_JUDGE_MODEL", "claude-sonnet-5-5"))
+    KIDS_JUDGE_FROM: float = field(default_factory=lambda: float(os.getenv("KIDS_JUDGE_FROM", "0.68")))
+    EXPLAINER_JUDGE_FROM: float = field(default_factory=lambda: float(os.getenv("EXPLAINER_JUDGE_FROM", "0.78")))
     # Weekly plan (scripts/plan_week.py): the daily runs take their topic from it when it has one for today
     WEEK_PLAN: bool = field(default_factory=lambda: os.getenv("WEEK_PLAN", "true").lower() == "true")
     WEEK_PLAN_FILE: str = "data/week_plan.json"
