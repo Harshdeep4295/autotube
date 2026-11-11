@@ -296,7 +296,17 @@ class ResearchAgent:
         else:
             logger.warning(f"Quality filter removed all topics — using top {min(count, len(filtered))} anyway")
 
-        selected = filtered[:count]
+        from agents.topic_judge import same_as
+        made = self._made(history)
+        selected = []
+        for t in filtered:
+            if len(selected) == count:
+                break
+            dup = same_as(t["topic"], made, "explainer")
+            if dup:
+                logger.info(f"  – same as '{dup[1][:50]}' ({dup[0]:.2f}), skipped: {t['topic'][:60]}")
+                continue
+            selected.append(t)
 
         if record:
             self._save_to_history(selected, history)
@@ -317,12 +327,25 @@ class ResearchAgent:
         if self._normalize(t["topic"]) in used or explainer_published(t["topic"], channel_titles()):
             logger.info(f"  – week plan topic already made, skipped: {t['topic'][:70]}")
             return None
+        from agents.topic_judge import same_as
+        dup = same_as(t["topic"], self._made(history), "explainer")
+        if dup:
+            logger.info(f"  – week plan topic is the same as '{dup[1][:50]}' ({dup[0]:.2f}), skipped")
+            return None
         if t.get("model_id"):
             from agents.trend_agent import covered
             if covered(t["model_id"], history):
                 logger.info(f"  – week plan model already covered, skipped: {t['model_id']}")
                 return None
         return t
+
+    @staticmethod
+    def _made(history: List[Dict]) -> List[str]:
+        """Every explainer already made: the channel's titles (without #Shorts) and the history."""
+        from agents.content_db import subject
+        from agents.published import channel_titles
+        return list(dict.fromkeys([subject(t) for t in channel_titles() if "explained like you" not in t.lower()]
+                                  + [h["topic"] for h in history]))
 
     # ── Topic bank (data/explainer_topics.json) ───────────────────────────────
 
@@ -337,10 +360,8 @@ class ResearchAgent:
         used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}
         from agents.published import channel_titles, explainer_published
         titles = channel_titles()
-        from agents import topic_index
-        from agents.content_db import subject
-        made = list(dict.fromkeys([subject(t) for t in titles if "explained like you" not in t.lower()]
-                                  + [h["topic"] for h in history]))
+        from agents.topic_judge import same_as
+        made = self._made(history)
         picks = []
         for b in bank:
             if self._normalize(b["topic"]) in used:
@@ -348,7 +369,7 @@ class ResearchAgent:
             if explainer_published(b["topic"], titles):
                 logger.info(f"  – already on the channel, skipped: {b['topic'][:70]}")
                 continue
-            dup = topic_index.duplicate_of(b["topic"], made, config.EXPLAINER_DUP_SIMILARITY)
+            dup = same_as(b["topic"], made, "explainer")
             if dup:
                 logger.info(f"  – same as '{dup[1][:50]}' ({dup[0]:.2f}), skipped: {b['topic'][:60]}")
                 continue

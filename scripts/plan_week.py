@@ -34,6 +34,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agents import content_db, topic_index  # noqa: E402
+from agents.topic_judge import same_as  # noqa: E402
 from agents.kids_topic_agent import KidsTopicAgent, norm, too_close  # noqa: E402
 from agents.published import explainer_published  # noqa: E402
 from agents.research_agent import ResearchAgent, bank_topic  # noqa: E402
@@ -101,7 +102,7 @@ class Checker:
             from agents.trend_agent import covered
             if covered(t["model_id"], self.history):
                 return "model already covered"
-        dup = topic_index.duplicate_of(topic, self.ex_past, config.EXPLAINER_DUP_SIMILARITY)
+        dup = same_as(topic, self.ex_past, "explainer")
         if dup:
             return f"same as '{dup[1][:60]}' ({dup[0]:.2f})"
         return None
@@ -111,7 +112,7 @@ class Checker:
             return "already made"
         if too_close(q, self.kids_past):
             return "too close by words"
-        dup = topic_index.duplicate_of(q, self.kids_past)
+        dup = same_as(q, self.kids_past, "kids")
         if dup:
             return f"same as '{dup[1][:60]}' ({dup[0]:.2f})"
         return None
@@ -145,6 +146,9 @@ WHAT IS GETTING VIEWS ON YOUTUBE THIS WEEK (niche searches, last 7 days, most vi
 
 NEW OPEN MODELS TRENDING ON HUGGING FACE (ref | likes | days old)
 {models}
+
+EXPLAINERS ALREADY ON THE CHANNEL (never repeat a tool, model version or idea from this list)
+{explainers_done}
 
 UNUSED EXPLAINER TOPICS FROM THE BANK (ref | kind | topic)
 {bank}
@@ -363,6 +367,7 @@ def main() -> int:
             bank="\n".join(f"  {b['ref']} | {b['kind']} | {b['topic']}" for b in bank[:40]),
             headlines="\n".join(f"  {h}" for h in heads[:30]) or "  (not available)",
             kids_done="\n".join(f"  {q}" for q in check.kids_past[-150:]),
+            explainers_done="\n".join(f"  {t}" for t in check.ex_past[-150:]),
             days=", ".join(f"{d} {ar}" for d, ar in zip(dates, areas)))
         try:
             text, writer = ask_llm(prompt)
