@@ -1,0 +1,164 @@
+{
+ "made": "2026-11-11T07:19+00:00",
+ "start": "2026-11-12",
+ "writer": "claude (claude-opus-5-5)",
+ "youtube_trends": [
+  {
+   "title": "Not this really AI work #duckrescue #waterfall #ducklingspro #animalrescue #wildliferescue",
+   "views": 861706,
+   "channel": "TrendyBot 10"
+  },
+  {
+   "title": "I Turned My Spare Phones Into a Wireless GPU for AI Agents (It Actually Works)",
+   "views": 324118,
+   "channel": "orailnoor"
+  },
+  {
+   "title": "Democrats Won Congress  Here’s What They Can and Can’t Do — Explained Like You’re 5",
+   "views": 272320,
+   "channel": "Explained Like You´re Five"
+  },
+  {
+   "title": "What If Your Poop Never Stopped? 💩",
+   "views": 232855,
+   "channel": "TheWhyLab"
+  },
+  {
+   "title": "This Tool can Run 744B Ai models on Your Laptop 🤯 #aimodels #aitools  #opensourceai",
+   "views": 224633,
+   "channel": "Wiseversity"
+  },
+  {
+   "title": "QWEN 4 Preview IS INSANE! First Look at Qwen 4 Max &amp; 27B! Greatest Open Model Ever!",
+   "views": 207805,
+   "channel": "WorldofAI"
+  },
+  {
+   "title": "Kimi K3.1 weights OUT, open source computer use, SOTA image model, science model, Pika H3: AI NEWS",
+   "views": 171272,
+   "channel": "Matthew Berman"
+  },
+  {
+   "title": "Geoffrey Hinton: &quot;We Don&#39;t Really Understand Exactly How They Do Those Things&quot; #shorts #ai",
+   "views": 162919,
+   "channel": "Consequence AI"
+  },
+  {
+   "title": "AI Making People Work Longer",
+   "views": 147927,
+   "channel": "UFD Tech"
+  },
+  {
+   "title": "Every Law Of Physics Finally Explained Like You&#39;re 5",
+   "views": 145530,
+   "channel": "Mr Space Explainer"
+  },
+  {
+   "title": "How to Use Ollama (Free Local AI)",
+   "views": 133439,
+   "channel": "Kevin Stratvert"
+  },
+  {
+   "title": "Ripple 65B: A Chip Design Lab Just Beat Every US Open Model",
+   "views": 119898,
+   "channel": "Sam Witteveen"
+  },
+  {
+   "title": "EP460 - 你的電腦能跑什麼 AI？16GB 到 128GB 一次講完｜Ollama、LM Studio 怎麼設定，新手五個坑",
+   "views": 119465,
+   "channel": "AI懶人報"
+  },
+  {
+   "title": "Did the AI Bubble Just Burst? Explained Like You&#39;re 5",
+   "views": 92373,
+   "channel": "PENNY"
+  },
+  {
+   "title": "Get Unlimited Claude Code on Your Own Computer",
+   "views": 88626,
+   "channel": "Sharbel A."
+  }
+ ],
+ "days": [
+  {
+   "date": "2026-11-12",
+   "explainer": {
+    "topic": "OpenCode: a free AI coding agent that works with local models",
+    "source": "bank",
+    "summary": "",
+    "kind": "tool",
+    "url": "https://github.com/sst/opencode",
+    "source_url": "https://raw.githubusercontent.com/sst/opencode/dev/README.md",
+    "planned": true,
+    "why": "Free local coding agents are hot this week (Qwen + OpenCode, Claude Code with Ollama), and the channel's agent video LFM3-1.7B was a top performer."
+   },
+   "kids": {
+    "topic": "How can a busy shop still run out of money?",
+    "area": "finance",
+    "source": "plan",
+    "hint": "A lemonade stand sells cups all day, but if the lemons, cups and table rent cost more than the coins coming in, the jar still ends up empty.",
+    "why": "Ties to the news of a discount chain fighting collapse, and the surprise (busy but broke) mirrors the hook of the channel's 'Why does gasoline cost so much?'"
+   }
+  },
+  {
+   "date": "2026-11-13",
+   "explainer": {
+    "topic": "Why Llama 3.1 405B needs a data center: the memory math of giant models",
+    "source": "bank",
+    "summary": "",
+    "kind": "concept",
+    "url": "https://huggingface.co/blog/llama31",
+    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/llama31.md",
+    "planned": true,
+    "why": "This week's searches are full of 'what can your 16 to 128 GB PC run' and 'giant models on a laptop', and this video gives the math behind them."
+   },
+   "kids": {
+    "topic": "Can an AI get in trouble with the law?",
+    "area": "ai",
+    "source": "plan",
+    "hint": "If a wind-up toy robot knocks a vase off the table, nobody scolds the toy; they ask who built it, who wound it up and who let it loose.",
+    "why": "Comes from the headline about a country weighing penalties for rogue AI, and it follows the channel's best AI-rules Short (974 views) from a new angle: who is to blame."
+   }
+  },
+  {
+   "date": "2026-11-14",
+   "explainer": {
+    "topic": "Strata: run a 125-billion-parameter AI model on a 12 GB graphics card",
+    "source": "bank",
+    "summary": "",
+    "kind": "tool",
+    "url": "https://github.com/Niko1221/Strata",
+    "source_url": "https://raw.githubusercontent.com/Niko1221/Strata/main/README.md",
+    "planned": true,
+    "why": "The 'run a 744B model on your laptop' videos are huge this week, and low-VRAM setups like Wan2GP are the channel's best video."
+   },
+   "kids": {
+    "topic": "How can a game draw fewer dots but look sharper?",
+    "area": "tech",
+    "source": "plan",
+    "hint": "An artist sketches a quick rough picture, then a helper who has seen thousands of finished paintings fills in the fine details by smart guessing.",
+    "why": "Upscaling for handheld consoles is in the tech news, and gaming questions like the remakes video are the channel's best kids full video."
+   }
+  },
+  {
+   "date": "2026-11-15",
+   "explainer": {
+    "topic": "AI agents explained: models that write code to get things done",
+    "source": "bank",
+    "summary": "",
+    "kind": "concept",
+    "url": "https://huggingface.co/blog/smolagents",
+    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/smolagents.md",
+    "planned": true,
+    "why": "Agent videos are trending (offline JARVIS, phones as a GPU for agents), and it sets up Thursday's OpenCode tutorial and the channel's strong LFM3 agent Short."
+   },
+   "kids": {
+    "topic": "Why don't AI builders fully understand their AI?",
+    "area": "ai",
+    "source": "plan",
+    "hint": "A gardener plants seeds and gives them water and sun, but never places each leaf; the plant grows its own shape, and the gardener has to study it afterward.",
+    "why": "A clip about researchers saying 'we don't really understand how they do it' got 160K views this week, and the curious angle fits the channel's best AI-learning Shorts without repeating them."
+   }
+  }
+ ]
+}
