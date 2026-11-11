@@ -63,8 +63,11 @@ def too_close(q: str, past: List[str]) -> bool:
         small, big = sorted((a, b), key=len)
         if not small:
             continue
-        # a one-word question ("What is AI?") only clashes with the same one word
         if small == big or (len(small) >= 2 and (small <= big or len(a & b) / len(a | b) >= 0.5)):
+            return True
+        # one specific subject word ("What is a Chip?") clashes with any question about it ("What is a
+        # computer chip?"); a broad word like "AI" or "computer" ("What is AI?") does not
+        if len(small) == 1 and small <= big and not small <= set(SAME.values()):
             return True
     return False
 
