@@ -161,19 +161,33 @@ class KidsTopicAgent:
         recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
         everything = list(dict.fromkeys(recent + published))
         area = self.next_area(hist)
+        from agents import topic_index
+
+        def new(q: str) -> bool:
+            if norm(q) in used or too_close(q, everything):
+                return False
+            dup = topic_index.duplicate_of(q, everything)
+            if dup:
+                logger.info(f"[kids-topics] '{q}' is the same as '{dup[1]}' ({dup[0]:.2f}) — skipped")
+            return not dup
+
+        if count == 1:
+            from agents.week_plan import for_today
+            planned = for_today("kids")
+            if planned and planned.get("topic") and new(planned["topic"]):
+                logger.info(f"[kids-topics] → {planned['topic']} ({planned.get('area') or '?'}, from the week plan)")
+                return [planned]
         picks: List[Dict] = []
         if mode in ("mixed", "feed"):
             try:
-                ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent)
-                         if norm(i["topic"]) not in used and not too_close(i["topic"], everything)]
+                ideas = [i for i in self.ideas_from_headlines(self.headlines(), recent) if new(i["topic"])]
                 # Only headline ideas in today's area; with none, the bank fills it, so the
                 # rotation holds (feed ideas lean AI, which pushed finance out for weeks).
                 picks += [i for i in ideas if i["area"] == area][:count]
             except Exception as e:  # noqa: BLE001 — the bank is always there
                 logger.warning(f"[kids-topics] headline ideas failed: {str(e)[:150]}")
         if len(picks) < count and mode in ("mixed", "bank"):
-            fresh = [b for b in self.bank() if norm(b["question"]) not in used
-                     and not too_close(b["question"], everything)]
+            fresh = [b for b in self.bank() if new(b["question"])]
             fresh.sort(key=lambda b: b.get("area") != area)
             for b in fresh[: count - len(picks)]:
                 picks.append({"topic": b["question"], "area": b.get("area", ""), "source": "bank",

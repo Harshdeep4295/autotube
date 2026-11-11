@@ -6,6 +6,8 @@ data/youtube_token.json
 # Generated outputs (large files, rebuilt every run)
 outputs/
 logs/
+# embedding model download (agents/topic_index.py)
+.cache/
 
 # Python
 __pycache__/

@@ -5,6 +5,7 @@ google-genai>=1.0.0
 openai>=1.0.0  # Groq API (OpenAI-compatible)
 
 # Research
+fastembed>=0.7  # topic index: duplicate check by meaning (small ONNX model on the CPU)
 feedparser>=6.0.11
 requests>=2.31.0
 
