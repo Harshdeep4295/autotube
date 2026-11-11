@@ -53,15 +53,18 @@ def main() -> int:
     ap.add_argument("-m", "--message", required=True)
     ap.add_argument("--branch", default="main")
     ap.add_argument("--attempts", type=int, default=5)
-    ap.add_argument("files", nargs="+")
+    ap.add_argument("--replace", nargs="*", default=[],
+                    help="files written as they are (any format), replacing the remote copy")
+    ap.add_argument("files", nargs="*")
     a = ap.parse_args()
 
+    raw = {f: Path(f).read_bytes() for f in a.replace if Path(f).exists()}
     ours = {}
     for f in a.files:
         p = Path(f)
         if p.exists():
             ours[f] = load_list(p.read_text(), f)
-    if not ours:
+    if not ours and not raw:
         print("No state files to commit")
         return 0
 
@@ -72,14 +75,16 @@ def main() -> int:
             remote_text = git("show", f"origin/{a.branch}:{f}", check=False)
             remote = load_list(remote_text.stdout, f) if remote_text.returncode == 0 else []
             Path(f).write_text(json.dumps(merge_lists(remote, mine), indent=2, ensure_ascii=False) + "\n")
-        git("add", *ours.keys())
+        for f, data in raw.items():
+            Path(f).write_bytes(data)
+        git("add", *ours.keys(), *raw.keys())
         if git("diff", "--staged", "--quiet", check=False).returncode == 0:
             print("Nothing new to commit (already on remote)")
             return 0
         git("commit", "-q", "-m", a.message)
         push = git("push", "-q", "origin", f"HEAD:{a.branch}", check=False)
         if push.returncode == 0:
-            print(f"Committed state on attempt {attempt}: {', '.join(ours)}")
+            print(f"Committed state on attempt {attempt}: {', '.join([*ours, *raw])}")
             return 0
         print(f"Push rejected (attempt {attempt}/{a.attempts}): {push.stderr.strip()[-200:]}")
         time.sleep(3 * attempt)

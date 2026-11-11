@@ -148,6 +148,7 @@ Rules:
 | `post_reels.yml` | manual | Posts the Short of an earlier kids run (by run ID) to Instagram and/or Facebook |
 | `youtube_stats.yml` | manual | Read-only YouTube Analytics (per-video views, watch time, share watched, traffic sources) printed in the run log |
 | `social_stats.yml` | manual | Read-only Instagram and Facebook numbers (followers, per-post views and likes) printed in the run log |
+| `plan_week.yml` | Saturday 09:00 UTC + manual | Plans next week (`scripts/plan_week.py`): one explainer topic + one kids question per day, from the content database, YouTube + Hugging Face trends and the topic banks, written by Claude, each pick checked by words and meaning. Commits `data/week_plan.json`, `data/content_db.json`, `data/topic_index.npz`; the owner reviews it before Monday. Manual `start` = date, `tomorrow` or `next-monday` |
 | `kids_backfill.yml` | manual | Gives a published kids video a Short and the current description; needs the video ID and the ID of the run that made it (script from its artifact, kept 7 days). `dry_run` defaults to true |
 
 - Secrets in use: `GEMINI_API_KEY`, `GROQ_API_KEY`, `YOUTUBE_TOKEN_JSON`. Older secrets for paid services
@@ -180,6 +181,10 @@ Rules:
 | `agents/research_agent.py` | Explainer topics: trend check, then bank (`EXPLAINER_TOPIC_MODE=bank`), news feeds as fallback; history |
 | `agents/trend_agent.py` | Daily trend check: Hugging Face trending, original releases ≤ `TREND_MAX_AGE_DAYS`, ≥ `TREND_MIN_LIKES`, known labs first; checked daily; the day after a trend only a big release (known lab, `TREND_BIG_LIKES`) wins (`TREND_ALTERNATE`); skips a model kind (OCR, voice, coding…) covered in the last `TREND_THEME_DAYS`; `EXPLAINER_TRENDS=false` turns it off |
 | `data/explainer_topics.json` | Evergreen explainer topic bank: tool topics (GitHub repo) alternate with how-it-works topics (`kind: concept`, `url` + `source_url`); add entries freely |
+| `agents/week_plan.py`, `scripts/plan_week.py` | The week plan: today's entry for each track (daily runs take it; a big release still takes the explainer slot; a planned topic made in the meantime is skipped); the planner that writes it |
+| `agents/content_db.py` | One record per channel video with its numbers (from the Channel Report) → `data/content_db.json` |
+| `agents/topic_index.py` | Duplicate check by meaning (fastembed, BAAI/bge-small-en-v1.5, CPU): kids ≥ `TOPIC_DUP_SIMILARITY` 0.85, explainers ≥ `EXPLAINER_DUP_SIMILARITY` 0.93; vectors cached in `data/topic_index.npz`; on top of the word rules, off with `TOPIC_INDEX=false` |
+| `agents/youtube_trends.py` | Most-viewed niche videos on YouTube this week (`YT_TREND_QUERIES`, ~100 quota units per search), for the planner |
 | `agents/upload_agent.py` | YouTube Data API v3: resumable upload, thumbnail, captions, playlist |
 | `scripts/qa_video.py` | Automated video QA, also a CLI |
 | `scripts/commit_state.py` | Commits topic history / posted videos back to `main` without losing a race between workflows |

@@ -83,6 +83,21 @@ class Config:
     TREND_BIG_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_BIG_LIKES", "1000")))
     # Skip a trend whose kind (OCR, voice, coding...) was covered this many days back.
     TREND_THEME_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_THEME_DAYS", "7")))
+    # Topic index: duplicate check by meaning (agents/topic_index.py), on top of the word rules
+    TOPIC_INDEX: bool = field(default_factory=lambda: os.getenv("TOPIC_INDEX", "true").lower() == "true")
+    TOPIC_INDEX_FILE: str = "data/topic_index.npz"
+    # Measured on the channel 2026-11-11: kids repeats score 0.85+ ("chatbot answer" vs "chatbot talk" 0.92);
+    # explainer topics all sit close together (all AI tools: Unsloth vs n8n 0.88), so only near-identical
+    # wording counts there; the same tool is already caught by name (agents/published.py)
+    TOPIC_DUP_SIMILARITY: float = field(default_factory=lambda: float(os.getenv("TOPIC_DUP_SIMILARITY", "0.85")))
+    EXPLAINER_DUP_SIMILARITY: float = field(default_factory=lambda: float(os.getenv("EXPLAINER_DUP_SIMILARITY", "0.93")))
+    # Weekly plan (scripts/plan_week.py): the daily runs take their topic from it when it has one for today
+    WEEK_PLAN: bool = field(default_factory=lambda: os.getenv("WEEK_PLAN", "true").lower() == "true")
+    WEEK_PLAN_FILE: str = "data/week_plan.json"
+    CONTENT_DB_FILE: str = "data/content_db.json"
+    YT_TREND_QUERIES: str = field(default_factory=lambda: os.getenv(
+        "YT_TREND_QUERIES", "run llm locally,local ai model test,ollama,new open source ai model,"
+                            "ai explained simply,explained like you're 5,how ai works"))
     EXPLAINER_CONCEPT_PLAYLIST: str = field(default_factory=lambda: os.getenv("EXPLAINER_CONCEPT_PLAYLIST", "").strip())
     # Vertical Short cut from each explainer's opening (≤ 58 s), uploaded as a second video that
     # links the full one. Publish time defaults to EXPLAINER_PUBLISH_AT_UTC.

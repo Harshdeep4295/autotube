@@ -50,6 +50,18 @@ HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 DEVTO_URL = "https://dev.to/api/articles"
 
 
+def bank_topic(b: Dict, source: str = "bank") -> Dict:
+    """A topic-bank entry as a topic: a tool (its README is the source) or a concept (an article)."""
+    repo = b.get("repo", "")
+    return {
+        "topic": b["topic"], "source": source, "summary": b.get("summary", ""),
+        "kind": b.get("kind", "tool"),
+        "url": f"https://github.com/{repo}" if repo else b.get("url", ""),
+        "source_url": (f"https://raw.githubusercontent.com/{repo}/{b.get('branch', 'main')}/README.md"
+                       if repo else b.get("source_url", "")),
+    }
+
+
 class ResearchAgent:
     """Discovers trending topics from free sources with composite scoring."""
 
@@ -184,17 +196,24 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
+            planned = self._planned_today(history) if count == 1 else None
             if config.EXPLAINER_TRENDS and count == 1:
                 # Checked every day; the day after a trend video only a big release
                 # (known lab, TREND_BIG_LIKES+) gets another, else a how-it-works / tool topic.
+                # With a week plan for today, only a big release replaces the planned topic.
                 after_trend = config.TREND_ALTERNATE and bool(history) and history[-1].get("source") == "trend"
                 from agents.trend_agent import trending_topic
-                trend = trending_topic(history, big_only=after_trend)
+                trend = trending_topic(history, big_only=after_trend or planned is not None)
                 if trend:
                     logger.info(f"  ✓ {trend['topic'][:70]} (trending now)")
                     if record:
                         self._save_to_history([trend], history)
                     return [trend]
+            if planned:
+                logger.info(f"  ✓ {planned['topic'][:70]} (from the week plan)")
+                if record:
+                    self._save_to_history([planned], history)
+                return [planned]
             banked = self._from_bank(count, history)
             if banked:
                 if record:
@@ -287,6 +306,24 @@ class ResearchAgent:
 
         return selected
 
+    def _planned_today(self, history: List[Dict]) -> Optional[Dict]:
+        """Today's topic from the week plan, unless it was made in the meantime."""
+        from agents.week_plan import for_today
+        t = for_today("explainer")
+        if not t or not t.get("topic"):
+            return None
+        from agents.published import channel_titles, explainer_published
+        used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}
+        if self._normalize(t["topic"]) in used or explainer_published(t["topic"], channel_titles()):
+            logger.info(f"  – week plan topic already made, skipped: {t['topic'][:70]}")
+            return None
+        if t.get("model_id"):
+            from agents.trend_agent import covered
+            if covered(t["model_id"], history):
+                logger.info(f"  – week plan model already covered, skipped: {t['model_id']}")
+                return None
+        return t
+
     # ── Topic bank (data/explainer_topics.json) ───────────────────────────────
 
     def _from_bank(self, count: int, history: List[Dict]) -> List[Dict]:
@@ -300,6 +337,10 @@ class ResearchAgent:
         used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}
         from agents.published import channel_titles, explainer_published
         titles = channel_titles()
+        from agents import topic_index
+        from agents.content_db import subject
+        made = list(dict.fromkeys([subject(t) for t in titles if "explained like you" not in t.lower()]
+                                  + [h["topic"] for h in history]))
         picks = []
         for b in bank:
             if self._normalize(b["topic"]) in used:
@@ -307,14 +348,11 @@ class ResearchAgent:
             if explainer_published(b["topic"], titles):
                 logger.info(f"  – already on the channel, skipped: {b['topic'][:70]}")
                 continue
-            repo = b.get("repo", "")
-            picks.append({
-                "topic": b["topic"], "source": "bank", "summary": b.get("summary", ""),
-                "kind": b.get("kind", "tool"),
-                "url": f"https://github.com/{repo}" if repo else b.get("url", ""),
-                "source_url": (f"https://raw.githubusercontent.com/{repo}/{b.get('branch', 'main')}/README.md"
-                               if repo else b.get("source_url", "")),
-            })
+            dup = topic_index.duplicate_of(b["topic"], made, config.EXPLAINER_DUP_SIMILARITY)
+            if dup:
+                logger.info(f"  – same as '{dup[1][:50]}' ({dup[0]:.2f}), skipped: {b['topic'][:60]}")
+                continue
+            picks.append(bank_topic(b))
             if len(picks) == count:
                 break
         for p in picks:
