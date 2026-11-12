@@ -327,5 +327,14 @@
     "opening": "One cup used to cost one coin, and you can find out what changed.",
     "ending": "Next time a price jumps, ask: costs or crowds?",
     "date": "2026-11-11T11:36:57+00:00"
+  },
+  {
+    "topic": "How can a busy shop still run out of money?",
+    "area": "finance",
+    "source": "plan",
+    "world": "pizza shop",
+    "opening": "Follow the coins with Mia, and you'll catch the sneaky leak.",
+    "ending": "It wins when more coins come in than go out.",
+    "date": "2026-11-12T12:02:58+00:00"
   }
 ]
