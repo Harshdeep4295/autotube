@@ -266,5 +266,12 @@
     "timestamp": "2026-11-11T11:30:16.710135",
     "used_at": "2026-11-11T11:30:16.710135",
     "source": "bank"
+  },
+  {
+    "topic": "OpenCode: a free AI coding agent that works with local models",
+    "normalized_topic": "opencode a free ai coding agent that wor",
+    "timestamp": "2026-11-12T11:50:28.457461",
+    "used_at": "2026-11-12T11:50:28.457461",
+    "source": "bank"
   }
 ]
