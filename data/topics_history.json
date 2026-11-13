@@ -273,5 +273,12 @@
     "timestamp": "2026-11-12T11:50:28.457461",
     "used_at": "2026-11-12T11:50:28.457461",
     "source": "bank"
+  },
+  {
+    "topic": "Why Llama 3.1 405B needs a data center: the memory math of giant models",
+    "normalized_topic": "why llama 31 405b needs a data center th",
+    "timestamp": "2026-11-13T11:24:34.435330",
+    "used_at": "2026-11-13T11:24:34.435330",
+    "source": "bank"
   }
 ]
