@@ -336,5 +336,14 @@
     "opening": "Follow the coins with Mia, and you'll catch the sneaky leak.",
     "ending": "It wins when more coins come in than go out.",
     "date": "2026-11-12T12:02:58+00:00"
+  },
+  {
+    "topic": "Can an AI get in trouble with the law?",
+    "area": "ai",
+    "source": "plan",
+    "world": "robot workshop",
+    "opening": "When a robot spills, who mops up? You're about to find out.",
+    "ending": "Behind every robot is a person who can fix it.",
+    "date": "2026-11-13T11:47:56+00:00"
   }
 ]
