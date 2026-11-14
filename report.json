@@ -1,0 +1,2999 @@
+{
+ "generated": "2026-11-14T07:39+00:00",
+ "youtube": {
+  "start": "2026-08-16",
+  "data_through": "2026-11-11",
+  "totals": {
+   "views": 9656,
+   "minutes": 2631,
+   "subs_gained": 30,
+   "subs_lost": 4,
+   "likes": 62,
+   "comments": 9,
+   "shares": 13
+  },
+  "days": [
+   {
+    "day": "2026-09-29",
+    "views": 1,
+    "minutes": 1
+   },
+   {
+    "day": "2026-09-30",
+    "views": 2,
+    "minutes": 0
+   },
+   {
+    "day": "2026-10-02",
+    "views": 4,
+    "minutes": 2
+   },
+   {
+    "day": "2026-10-03",
+    "views": 10,
+    "minutes": 13
+   },
+   {
+    "day": "2026-10-04",
+    "views": 7,
+    "minutes": 13
+   },
+   {
+    "day": "2026-10-05",
+    "views": 47,
+    "minutes": 13
+   },
+   {
+    "day": "2026-10-06",
+    "views": 18,
+    "minutes": 0
+   },
+   {
+    "day": "2026-10-07",
+    "views": 15,
+    "minutes": 4
+   },
+   {
+    "day": "2026-10-08",
+    "views": 24,
+    "minutes": 3
+   },
+   {
+    "day": "2026-10-09",
+    "views": 33,
+    "minutes": 24
+   },
+   {
+    "day": "2026-10-10",
+    "views": 437,
+    "minutes": 31
+   },
+   {
+    "day": "2026-10-11",
+    "views": 115,
+    "minutes": 11
+   },
+   {
+    "day": "2026-10-12",
+    "views": 1580,
+    "minutes": 194
+   },
+   {
+    "day": "2026-10-13",
+    "views": 111,
+    "minutes": 53
+   },
+   {
+    "day": "2026-10-14",
+    "views": 102,
+    "minutes": 38
+   },
+   {
+    "day": "2026-10-15",
+    "views": 74,
+    "minutes": 27
+   },
+   {
+    "day": "2026-10-16",
+    "views": 106,
+    "minutes": 51
+   },
+   {
+    "day": "2026-10-17",
+    "views": 1313,
+    "minutes": 306
+   },
+   {
+    "day": "2026-10-18",
+    "views": 95,
+    "minutes": 69
+   },
+   {
+    "day": "2026-10-19",
+    "views": 191,
+    "minutes": 86
+   },
+   {
+    "day": "2026-10-20",
+    "views": 92,
+    "minutes": 56
+   },
+   {
+    "day": "2026-10-21",
+    "views": 117,
+    "minutes": 55
+   },
+   {
+    "day": "2026-10-22",
+    "views": 109,
+    "minutes": 43
+   },
+   {
+    "day": "2026-10-23",
+    "views": 155,
+    "minutes": 65
+   },
+   {
+    "day": "2026-10-24",
+    "views": 262,
+    "minutes": 76
+   },
+   {
+    "day": "2026-10-25",
+    "views": 250,
+    "minutes": 45
+   },
+   {
+    "day": "2026-10-26",
+    "views": 295,
+    "minutes": 61
+   },
+   {
+    "day": "2026-10-27",
+    "views": 244,
+    "minutes": 51
+   },
+   {
+    "day": "2026-10-28",
+    "views": 258,
+    "minutes": 44
+   },
+   {
+    "day": "2026-10-29",
+    "views": 354,
+    "minutes": 103
+   },
+   {
+    "day": "2026-10-30",
+    "views": 250,
+    "minutes": 52
+   },
+   {
+    "day": "2026-10-31",
+    "views": 333,
+    "minutes": 66
+   },
+   {
+    "day": "2026-11-01",
+    "views": 339,
+    "minutes": 93
+   },
+   {
+    "day": "2026-11-02",
+    "views": 171,
+    "minutes": 59
+   },
+   {
+    "day": "2026-11-03",
+    "views": 324,
+    "minutes": 80
+   },
+   {
+    "day": "2026-11-04",
+    "views": 243,
+    "minutes": 110
+   },
+   {
+    "day": "2026-11-05",
+    "views": 226,
+    "minutes": 78
+   },
+   {
+    "day": "2026-11-06",
+    "views": 161,
+    "minutes": 80
+   },
+   {
+    "day": "2026-11-07",
+    "views": 377,
+    "minutes": 116
+   },
+   {
+    "day": "2026-11-08",
+    "views": 164,
+    "minutes": 66
+   },
+   {
+    "day": "2026-11-09",
+    "views": 223,
+    "minutes": 89
+   },
+   {
+    "day": "2026-11-10",
+    "views": 179,
+    "minutes": 67
+   },
+   {
+    "day": "2026-11-11",
+    "views": 241,
+    "minutes": 114
+   }
+  ],
+  "videos": [
+   {
+    "id": "kMaSWHdDv5U",
+    "title": "How AI Safety Rules Keep Robots Safe | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 976,
+    "minutes": 55,
+    "avg_seconds": 11,
+    "pct": 49.1,
+    "subs": 3,
+    "likes": 3
+   },
+   {
+    "id": "TkuC6mrESDQ",
+    "title": "Why does gasoline cost so much? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 968,
+    "minutes": 101,
+    "avg_seconds": 16,
+    "pct": 61.4,
+    "subs": 1,
+    "likes": 10
+   },
+   {
+    "id": "VfH_NOvgrUg",
+    "title": "How does AI learn? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 950,
+    "minutes": 89,
+    "avg_seconds": 14,
+    "pct": 42.6,
+    "subs": 1,
+    "likes": 6
+   },
+   {
+    "id": "7PVVHgi-R9Q",
+    "title": "Run Wan2GP: Free AI Video on Low\u2011VRAM GPUs",
+    "short": false,
+    "views": 815,
+    "minutes": 394,
+    "avg_seconds": 77,
+    "pct": 14.8,
+    "subs": 2,
+    "likes": 2
+   },
+   {
+    "id": "glNy22_Oa-w",
+    "title": "Run LFM3-Omni-2B Locally: Text, Images and Voice",
+    "short": false,
+    "views": 342,
+    "minutes": 213,
+    "avg_seconds": 72,
+    "pct": 29.4,
+    "subs": 2,
+    "likes": 1
+   },
+   {
+    "id": "LpqvRxfE4Uw",
+    "title": "Run LFM3-1.7B Locally: An AI Agent on Your Laptop #Shorts",
+    "short": true,
+    "views": 275,
+    "minutes": 33,
+    "avg_seconds": 18,
+    "pct": 58.0,
+    "subs": 1,
+    "likes": 3
+   },
+   {
+    "id": "08eK-vMH5E4",
+    "title": "Can You Run DeepSeek-V4.1-Flash at Home? #Shorts",
+    "short": true,
+    "views": 265,
+    "minutes": 31,
+    "avg_seconds": 20,
+    "pct": 68.9,
+    "subs": 1,
+    "likes": 1
+   },
+   {
+    "id": "o0t-R5r9z8I",
+    "title": "Run ComfyUI on a 6\u20118\u202fGB GPU #Shorts",
+    "short": true,
+    "views": 241,
+    "minutes": 21,
+    "avg_seconds": 20,
+    "pct": 54.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "AYzmAwrdMfc",
+    "title": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown",
+    "short": false,
+    "views": 237,
+    "minutes": 69,
+    "avg_seconds": 71,
+    "pct": 23.3,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "h3qkeDvWL8s",
+    "title": "Run GPT4All: Private AI Chatbot on Your Laptop",
+    "short": false,
+    "views": 202,
+    "minutes": 264,
+    "avg_seconds": 112,
+    "pct": 21.2,
+    "subs": 2,
+    "likes": 5
+   },
+   {
+    "id": "WsGLem1fC8k",
+    "title": "Why do apples cost more? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 200,
+    "minutes": 20,
+    "avg_seconds": 14,
+    "pct": 47.3,
+    "subs": 1,
+    "likes": 2
+   },
+   {
+    "id": "6TStC9yKjkA",
+    "title": "Install Ollama on Windows and Run Your First Local AI Model #Shorts",
+    "short": true,
+    "views": 170,
+    "minutes": 15,
+    "avg_seconds": 20,
+    "pct": 39.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "2NYUUnWnOCs",
+    "title": "Run the Right Local LLM on 8, 16 or 24 GB GPUs #Shorts",
+    "short": true,
+    "views": 160,
+    "minutes": 14,
+    "avg_seconds": 17,
+    "pct": 52.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "1kx7hmRBNvQ",
+    "title": "Run Ollama Locally: Free AI Models on Your PC",
+    "short": false,
+    "views": 137,
+    "minutes": 43,
+    "avg_seconds": 55,
+    "pct": 9.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "HCpONr78gZc",
+    "title": "Run a ChatGPT-like AI Locally with Open WebUI \u2013 Free & Offline",
+    "short": false,
+    "views": 130,
+    "minutes": 33,
+    "avg_seconds": 54,
+    "pct": 10.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "NMK4CGlCXh8",
+    "title": "Understanding llama.cpp: The Open-Source Engine Powering Local AI Apps",
+    "short": false,
+    "views": 130,
+    "minutes": 84,
+    "avg_seconds": 70,
+    "pct": 12.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "nGEu21nWUGw",
+    "title": "Run Stable Diffusion WebUI Locally on Your PC #Shorts",
+    "short": true,
+    "views": 123,
+    "minutes": 14,
+    "avg_seconds": 19,
+    "pct": 56.3,
+    "subs": 2,
+    "likes": 3
+   },
+   {
+    "id": "Y21-paCJYsg",
+    "title": "Run LFM3-1.7B Locally: An AI Agent on Your Laptop",
+    "short": false,
+    "views": 118,
+    "minutes": 45,
+    "avg_seconds": 72,
+    "pct": 25.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "psSAqc-3e5k",
+    "title": "Run ComfyUI on a 6\u20118\u202fGB GPU",
+    "short": false,
+    "views": 118,
+    "minutes": 43,
+    "avg_seconds": 62,
+    "pct": 21.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "1kPxZuxnFYw",
+    "title": "Run AnythingLLM Locally: Chat with Your Docs",
+    "short": false,
+    "views": 113,
+    "minutes": 76,
+    "avg_seconds": 97,
+    "pct": 18.7,
+    "subs": 1,
+    "likes": 0
+   },
+   {
+    "id": "BZmkhjVTOo8",
+    "title": "Run Jan Offline: Open-Source ChatGPT Alternative",
+    "short": false,
+    "views": 105,
+    "minutes": 104,
+    "avg_seconds": 103,
+    "pct": 16.4,
+    "subs": 1,
+    "likes": 1
+   },
+   {
+    "id": "bjVBnQK1g9o",
+    "title": "Run Stable Diffusion WebUI Locally on Your PC",
+    "short": false,
+    "views": 97,
+    "minutes": 41,
+    "avg_seconds": 57,
+    "pct": 19.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "k0b18hjiTWs",
+    "title": "Run ComfyUI Locally: Build AI Images with Node Graph",
+    "short": false,
+    "views": 88,
+    "minutes": 16,
+    "avg_seconds": 45,
+    "pct": 8.3,
+    "subs": 1,
+    "likes": 0
+   },
+   {
+    "id": "E88QHNjmBOM",
+    "title": "Run Whisper Locally: Free Speech\u2011to\u2011Text on Your PC",
+    "short": false,
+    "views": 87,
+    "minutes": 51,
+    "avg_seconds": 87,
+    "pct": 16.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "S5siK0QN2io",
+    "title": "Run LFM3-Omni-2B Locally: Text, Images and Voice #Shorts",
+    "short": true,
+    "views": 86,
+    "minutes": 10,
+    "avg_seconds": 19,
+    "pct": 57.9,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "RtMgnsPzb3Y",
+    "title": "How AI Picks Its Next Word: Greedy, Beam, Sampling #Shorts",
+    "short": true,
+    "views": 83,
+    "minutes": 7,
+    "avg_seconds": 13,
+    "pct": 41.4,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "cV_Yng8twG0",
+    "title": "Run Gemma 4 Locally with Ollama: Setup and Sizes #Shorts",
+    "short": true,
+    "views": 77,
+    "minutes": 6,
+    "avg_seconds": 23,
+    "pct": 82.9,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "_uPUKPkmMZc",
+    "title": "n8n: Build Your Own AI Automations for Free #Shorts",
+    "short": true,
+    "views": 76,
+    "minutes": 3,
+    "avg_seconds": 8,
+    "pct": 16.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "cG6iwjVmNzQ",
+    "title": "Run whisper.cpp for Fast Offline Transcription on Any PC",
+    "short": false,
+    "views": 75,
+    "minutes": 39,
+    "avg_seconds": 66,
+    "pct": 20.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "pEmOQiSC_Lw",
+    "title": "How does AI change the ads we see? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 73,
+    "minutes": 6,
+    "avg_seconds": 11,
+    "pct": 47.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "BJt3GQ-1hYc",
+    "title": "What are data centers? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 68,
+    "minutes": 4,
+    "avg_seconds": 12,
+    "pct": 45.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "8HSvKnOF_yM",
+    "title": "Yann LeCun says AI extinction risk is zero \u2013 why he calls EA toxic",
+    "short": false,
+    "views": 66,
+    "minutes": 53,
+    "avg_seconds": 136,
+    "pct": 24.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "haAmI-SmCoM",
+    "title": "Run Qwen 3.6 Locally with Ollama: Setup and API",
+    "short": false,
+    "views": 66,
+    "minutes": 51,
+    "avg_seconds": 104,
+    "pct": 34.4,
+    "subs": 1,
+    "likes": 2
+   },
+   {
+    "id": "Dey0JTmY-8g",
+    "title": "Run LocalAI: Free Self\u2011Hosted OpenAI API Replacement",
+    "short": false,
+    "views": 62,
+    "minutes": 24,
+    "avg_seconds": 59,
+    "pct": 10.0,
+    "subs": 1,
+    "likes": 0
+   },
+   {
+    "id": "-GMknR8ezZo",
+    "title": "Run Qwen 3.6 Locally with Ollama: Setup and API #Shorts",
+    "short": true,
+    "views": 57,
+    "minutes": 7,
+    "avg_seconds": 23,
+    "pct": 67.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "P1IhEijxfB4",
+    "title": "Can You Run Unlimited OCR 2 at Home? The Hardware Facts #Shorts",
+    "short": true,
+    "views": 56,
+    "minutes": 6,
+    "avg_seconds": 17,
+    "pct": 54.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "MrFi7zfaYHI",
+    "title": "Quantization: How Big AI Models Fit on Small GPUs #Shorts",
+    "short": true,
+    "views": 55,
+    "minutes": 5,
+    "avg_seconds": 17,
+    "pct": 56.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "PO7LefvoFuA",
+    "title": "Why does AI need rules? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 53,
+    "minutes": 6,
+    "avg_seconds": 12,
+    "pct": 54.0,
+    "subs": 0,
+    "likes": 2
+   },
+   {
+    "id": "lexcVWxlG8c",
+    "title": "Install Ollama on Windows and Run Your First Local AI Model",
+    "short": false,
+    "views": 49,
+    "minutes": 19,
+    "avg_seconds": 79,
+    "pct": 22.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "mFRMJSFVHCk",
+    "title": "Can You Run Kimi K3.1 Pro at Home? The Honest Answer #Shorts",
+    "short": true,
+    "views": 47,
+    "minutes": 5,
+    "avg_seconds": 27,
+    "pct": 95.2,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "7JTG8s7yesk",
+    "title": "Run the Right Local LLM on 8, 16 or 24 GB GPUs",
+    "short": false,
+    "views": 46,
+    "minutes": 23,
+    "avg_seconds": 85,
+    "pct": 24.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "ZUE70e6LQTU",
+    "title": "Run P-H3-Image Locally: 8 Megapixels in 8 Steps",
+    "short": false,
+    "views": 46,
+    "minutes": 13,
+    "avg_seconds": 43,
+    "pct": 13.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "w3-8vz8PLhw",
+    "title": "Can You Run Kimi K3.1 Pro at Home? The Honest Answer",
+    "short": false,
+    "views": 43,
+    "minutes": 61,
+    "avg_seconds": 121,
+    "pct": 38.6,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "xQnLqj5Jxgw",
+    "title": "Why do we pay taxes? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 43,
+    "minutes": 4,
+    "avg_seconds": 14,
+    "pct": 51.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "l5VWN146T8s",
+    "title": "Mixture of Experts: How Big AI Models Stay Fast #Shorts",
+    "short": true,
+    "views": 43,
+    "minutes": 6,
+    "avg_seconds": 20,
+    "pct": 77.2,
+    "subs": 0,
+    "likes": 4
+   },
+   {
+    "id": "Dz0dBhPuHec",
+    "title": "What is an AI assistant? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 41,
+    "minutes": 8,
+    "avg_seconds": 31,
+    "pct": 78.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "8jgQ_62oY5w",
+    "title": "Run Aider: AI Pair Programming Directly in Your Terminal",
+    "short": false,
+    "views": 40,
+    "minutes": 31,
+    "avg_seconds": 108,
+    "pct": 22.0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "xGUajcIJSEw",
+    "title": "Run whisper.cpp for Fast Offline Transcription on Any PC #Shorts",
+    "short": true,
+    "views": 40,
+    "minutes": 3,
+    "avg_seconds": 16,
+    "pct": 41.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "EVLGRfged1w",
+    "title": "Can computers draw pictures? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 38,
+    "minutes": 3,
+    "avg_seconds": 17,
+    "pct": 58.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "RjuOw3I48xU",
+    "title": "Run Text Generation WebUI: Local AI in One App #Shorts",
+    "short": true,
+    "views": 38,
+    "minutes": 14,
+    "avg_seconds": 68,
+    "pct": 181.3,
+    "subs": 1,
+    "likes": 0
+   },
+   {
+    "id": "75fwlrlSX90",
+    "title": "Why do computers need updates? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 38,
+    "minutes": 3,
+    "avg_seconds": 9,
+    "pct": 36.5,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "0qy2IoLFJNw",
+    "title": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown #Shorts",
+    "short": true,
+    "views": 37,
+    "minutes": 2,
+    "avg_seconds": 12,
+    "pct": 41.3,
+    "subs": 0,
+    "likes": 2
+   },
+   {
+    "id": "GYSRzQLd96M",
+    "title": "Run gpt-oss Locally on Your PC #Shorts",
+    "short": true,
+    "views": 35,
+    "minutes": 7,
+    "avg_seconds": 39,
+    "pct": 93.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "4KSqYyVHW6E",
+    "title": "n8n: Build Your Own AI Automations for Free",
+    "short": false,
+    "views": 35,
+    "minutes": 10,
+    "avg_seconds": 41,
+    "pct": 13.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "AfnCPlvkpyQ",
+    "title": "Can You Run DeepSeek-V4.1-Flash at Home?",
+    "short": false,
+    "views": 35,
+    "minutes": 20,
+    "avg_seconds": 54,
+    "pct": 20.2,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "9iXf2cjFCXY",
+    "title": "What is a Data Breach? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 35,
+    "minutes": 10,
+    "avg_seconds": 33,
+    "pct": 30.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "9RfSMqnQc1Q",
+    "title": "What is an interest rate? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 34,
+    "minutes": 5,
+    "avg_seconds": 21,
+    "pct": 53.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "r95yc0MhOPI",
+    "title": "How do video game remakes work? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 33,
+    "minutes": 2,
+    "avg_seconds": 12,
+    "pct": 35.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "bHaBo0OOMu0",
+    "title": "Why do house prices change? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 31,
+    "minutes": 3,
+    "avg_seconds": 26,
+    "pct": 71.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "6EnaUsz6X2s",
+    "title": "What is cryptocurrency? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 31,
+    "minutes": 4,
+    "avg_seconds": 26,
+    "pct": 74.8,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "hQfCms0oUxY",
+    "title": "Can You Run Unlimited OCR 2 at Home? The Hardware Facts",
+    "short": false,
+    "views": 30,
+    "minutes": 27,
+    "avg_seconds": 101,
+    "pct": 37.5,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "Z7R13zsFfIA",
+    "title": "Run P-H3-Image Locally: 8 Megapixels in 8 Steps #Shorts",
+    "short": true,
+    "views": 29,
+    "minutes": 3,
+    "avg_seconds": 15,
+    "pct": 47.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "jQrxm-1Wwfg",
+    "title": "PrivateGPT: Chat With Your Files Fully Offline",
+    "short": false,
+    "views": 27,
+    "minutes": 24,
+    "avg_seconds": 96,
+    "pct": 31.5,
+    "subs": 1,
+    "likes": 0
+   },
+   {
+    "id": "52Gqck8y-vI",
+    "title": "What is a neural network? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 26,
+    "minutes": 6,
+    "avg_seconds": 94,
+    "pct": 235.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "NZjWnyE4_4Q",
+    "title": "Run Kokoro: Free Open-Source Voice Model",
+    "short": false,
+    "views": 26,
+    "minutes": 9,
+    "avg_seconds": 43,
+    "pct": 13.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "c9dJpKAKjYQ",
+    "title": "Run gpt-oss Locally on Your PC",
+    "short": false,
+    "views": 25,
+    "minutes": 18,
+    "avg_seconds": 70,
+    "pct": 20.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "7kqI69STGDc",
+    "title": "How do video game remakes work? (Explained Like You're 5)",
+    "short": false,
+    "views": 24,
+    "minutes": 4,
+    "avg_seconds": 14,
+    "pct": 14.7,
+    "subs": 1,
+    "likes": 1
+   },
+   {
+    "id": "j0XpizkKDNo",
+    "title": "What is a computer chip? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 22,
+    "minutes": 3,
+    "avg_seconds": 13,
+    "pct": 35.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "-KN4uAonIKA",
+    "title": "RLHF Explained: How Chatbots Learned to Be Helpful #Shorts",
+    "short": true,
+    "views": 22,
+    "minutes": 1,
+    "avg_seconds": 12,
+    "pct": 41.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "pndhEHjNBXQ",
+    "title": "Run Kokoro: Free Open-Source Voice Model #Shorts",
+    "short": true,
+    "views": 22,
+    "minutes": 2,
+    "avg_seconds": 16,
+    "pct": 33.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "woI0ijlXgU8",
+    "title": "What Is a Pension? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 22,
+    "minutes": 4,
+    "avg_seconds": 30,
+    "pct": 29.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "pY58f0VqUPI",
+    "title": "How can AI stop germs? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 22,
+    "minutes": 0,
+    "avg_seconds": 9,
+    "pct": 21.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "nIBfyPwBmK8",
+    "title": "How does the internet work? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 21,
+    "minutes": 1,
+    "avg_seconds": 8,
+    "pct": 28.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "5i9S_56isvo",
+    "title": "Run Gemma 4 Locally with Ollama: Setup and Sizes",
+    "short": false,
+    "views": 20,
+    "minutes": 11,
+    "avg_seconds": 66,
+    "pct": 22.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "S70CQKF5GBQ",
+    "title": "How AI Safety Rules Keep Robots Safe (Explained Like You're 5)",
+    "short": false,
+    "views": 20,
+    "minutes": 5,
+    "avg_seconds": 47,
+    "pct": 44.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "TvT_meghRpU",
+    "title": "Why does AI need so much power? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 18,
+    "minutes": 2,
+    "avg_seconds": 12,
+    "pct": 42.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "ta0Blnqh73c",
+    "title": "How does a chatbot talk? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 18,
+    "minutes": 2,
+    "avg_seconds": 13,
+    "pct": 35.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "wX-UKs9yxys",
+    "title": "What is a cloud server? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 18,
+    "minutes": 1,
+    "avg_seconds": 21,
+    "pct": 57.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "ImZST1tQq1w",
+    "title": "How do driverless cars see? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 17,
+    "minutes": 1,
+    "avg_seconds": 16,
+    "pct": 45.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "4tU1znG0LEg",
+    "title": "How does AI learn to work? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 17,
+    "minutes": 1,
+    "avg_seconds": 12,
+    "pct": 33.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "llOzzIXGsLc",
+    "title": "How do companies share work? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 16,
+    "minutes": 2,
+    "avg_seconds": 22,
+    "pct": 60.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "SrAaHHv8NZM",
+    "title": "PrivateGPT: Chat With Your Files Fully Offline #Shorts",
+    "short": true,
+    "views": 15,
+    "minutes": 1,
+    "avg_seconds": 12,
+    "pct": 37.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "_iUglykewGk",
+    "title": "Why do prices jump up? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 15,
+    "minutes": 2,
+    "avg_seconds": 36,
+    "pct": 102.0,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "LSN8thCYbfk",
+    "title": "Run Text Generation WebUI: Local AI in One App",
+    "short": false,
+    "views": 15,
+    "minutes": 1,
+    "avg_seconds": 19,
+    "pct": 6.3,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "TdWMrNFhfig",
+    "title": "What Is a Pension? (Explained Like You're 5)",
+    "short": false,
+    "views": 15,
+    "minutes": 13,
+    "avg_seconds": 63,
+    "pct": 60.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "dqqs8Co9VZE",
+    "title": "How can computers stop bugs? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 14,
+    "minutes": 1,
+    "avg_seconds": 17,
+    "pct": 44.2,
+    "subs": 0,
+    "likes": 2
+   },
+   {
+    "id": "nFRRc2BmP0k",
+    "title": "How computers help farmers grow crops | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 13,
+    "minutes": 1,
+    "avg_seconds": 13,
+    "pct": 11.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "e6rxE5jwKnE",
+    "title": "Quantization: How Big AI Models Fit on Small GPUs",
+    "short": false,
+    "views": 12,
+    "minutes": 10,
+    "avg_seconds": 87,
+    "pct": 25.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "OvJCWkzzFaQ",
+    "title": "How AI Picks Its Next Word: Greedy, Beam, Sampling",
+    "short": false,
+    "views": 12,
+    "minutes": 6,
+    "avg_seconds": 193,
+    "pct": 64.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "hWJXDsOqAsc",
+    "title": "What is a Chip? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 11,
+    "minutes": 2,
+    "avg_seconds": 38,
+    "pct": 36.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "TtpsQcoA3Tk",
+    "title": "How does broadband bring video to our homes? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 11,
+    "minutes": 1,
+    "avg_seconds": 25,
+    "pct": 24.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "RsfYUR-tTCA",
+    "title": "Why do things cost more? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 11,
+    "minutes": 0,
+    "avg_seconds": 11,
+    "pct": 30.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "vPemyJTf24Y",
+    "title": "How does AI get smarter? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 9,
+    "minutes": 2,
+    "avg_seconds": 31,
+    "pct": 71.0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "nRJB41GlRHI",
+    "title": "Why Do People Save Money? (Explained Like You're 5)",
+    "short": false,
+    "views": 9,
+    "minutes": 8,
+    "avg_seconds": 71,
+    "pct": 63.0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "MdXLPLg9vA8",
+    "title": "Why Do People Save Money? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 9,
+    "minutes": 0,
+    "avg_seconds": 11,
+    "pct": 10.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "O6ierbSvx7w",
+    "title": "GPT-6.1 Sol: High Performance at a Fifth of the Cost",
+    "short": false,
+    "views": 8,
+    "minutes": 2,
+    "avg_seconds": 24,
+    "pct": 4.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "DDEcPfbKBAM",
+    "title": "What is a Chip? (Explained Like You're 5)",
+    "short": false,
+    "views": 8,
+    "minutes": 6,
+    "avg_seconds": 63,
+    "pct": 59.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "oJOBpd3SQv0",
+    "title": "What is a Data Breach? (Explained Like You're 5)",
+    "short": false,
+    "views": 7,
+    "minutes": 2,
+    "avg_seconds": 35,
+    "pct": 32.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "50dVBDl3Zqs",
+    "title": "How does AI pick ads? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 7,
+    "minutes": 0,
+    "avg_seconds": 9,
+    "pct": 26.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "kAjTp3Bxckc",
+    "title": "Mixture of Experts: How Big AI Models Stay Fast",
+    "short": false,
+    "views": 7,
+    "minutes": 3,
+    "avg_seconds": 76,
+    "pct": 25.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "ltXvLHwWtxk",
+    "title": "Gemini 4 Argon: How Google\u2019s AI Transforms Coding, Security, Enterprise",
+    "short": false,
+    "views": 7,
+    "minutes": 1,
+    "avg_seconds": 28,
+    "pct": 5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "6NnAgha96s4",
+    "title": "What is a Scam? (Explained Like You're 5)",
+    "short": false,
+    "views": 6,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "jq60IF-WwKM",
+    "title": "What is a Scam? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 5,
+    "minutes": 0,
+    "avg_seconds": 6,
+    "pct": 18,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "N4howXq-W_Y",
+    "title": "Why Do Companies Set the Same Price? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 5,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "9sqkB_z2-nk",
+    "title": "Why does gasoline cost so much? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 6,
+    "avg_seconds": 82,
+    "pct": 80.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "2ocidQgg6tk",
+    "title": "What are data centers? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 2,
+    "avg_seconds": 70,
+    "pct": 66.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "GZ9cZFbxh80",
+    "title": "Why do apples cost more? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 0,
+    "avg_seconds": 13,
+    "pct": 10.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "RUZDEjPsSHo",
+    "title": "What is cryptocurrency? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 2,
+    "avg_seconds": 52,
+    "pct": 53.3,
+    "subs": 0,
+    "likes": 1
+   },
+   {
+    "id": "CT0ufwKrGdY",
+    "title": "What is a computer chip? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 2,
+    "avg_seconds": 32,
+    "pct": 23.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "wy799I43khM",
+    "title": "How Does Artificial Intelligence Learn? (Explained Like You're 5)",
+    "short": false,
+    "views": 5,
+    "minutes": 2,
+    "avg_seconds": 54,
+    "pct": 49.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "PQiDV7Mm10U",
+    "title": "Why do computers need updates? (Explained Like You're 5)",
+    "short": false,
+    "views": 4,
+    "minutes": 0,
+    "avg_seconds": 7,
+    "pct": 6.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "T6Uc2_dgKlc",
+    "title": "Why do prices jump up? (Explained Like You're 5)",
+    "short": false,
+    "views": 4,
+    "minutes": 1,
+    "avg_seconds": 28,
+    "pct": 20.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "vXK07Cc2Jvg",
+    "title": "How does AI pick ads? (Explained Like You're 5)",
+    "short": false,
+    "views": 4,
+    "minutes": 1,
+    "avg_seconds": 23,
+    "pct": 22.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "hww-TOumzM4",
+    "title": "How Apple Uses Homomorphic Encryption for Private AI Searches",
+    "short": false,
+    "views": 4,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "h31vkXIbB8Y",
+    "title": "Can robots apply for jobs? (Explained Like You're 5)",
+    "short": false,
+    "views": 4,
+    "minutes": 0,
+    "avg_seconds": 31,
+    "pct": 30.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "02FpjGK9gLA",
+    "title": "Why do things cost more? (Explained Like You're 5)",
+    "short": false,
+    "views": 4,
+    "minutes": 3,
+    "avg_seconds": 100,
+    "pct": 84.3,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "SCyvdBDLCVU",
+    "title": "How Does Artificial Intelligence Learn? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 4,
+    "minutes": 0,
+    "avg_seconds": 4,
+    "pct": 3.8,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "g78VPIVLWog",
+    "title": "Can robots apply for jobs? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 4,
+    "minutes": 0,
+    "avg_seconds": 12,
+    "pct": 42.2,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "OmQONGz02a8",
+    "title": "How do driverless cars see? (Explained Like You're 5)",
+    "short": false,
+    "views": 3,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "QNRjOZqLIFw",
+    "title": "How does a computer learn? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 3,
+    "minutes": 0,
+    "avg_seconds": 12,
+    "pct": 34,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "fBtAo-fBm_g",
+    "title": "Why does AI need rules? (Explained Like You're 5)",
+    "short": false,
+    "views": 3,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "7LGMg9-J8iw",
+    "title": "RLHF Explained: How Chatbots Learned to Be Helpful",
+    "short": false,
+    "views": 3,
+    "minutes": 0,
+    "avg_seconds": 22,
+    "pct": 7.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "Rn9bC4t9QsA",
+    "title": "How does AI get smarter? (Explained Like You're 5)",
+    "short": false,
+    "views": 3,
+    "minutes": 0,
+    "avg_seconds": 22,
+    "pct": 15.4,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "dhPr5iaXVgU",
+    "title": "What is a neural network? (Explained Like You're 5)",
+    "short": false,
+    "views": 3,
+    "minutes": 4,
+    "avg_seconds": 85,
+    "pct": 59.5,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "a1jJO_-P6eM",
+    "title": "How does broadband bring video to our homes? (Explained Like You're 5)",
+    "short": false,
+    "views": 2,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "M8WR9REAHGk",
+    "title": "How do computers solve mysteries? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 2,
+    "minutes": 0,
+    "avg_seconds": 7,
+    "pct": 23.0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "mKJb7Uo00g0",
+    "title": "Can computers draw pictures? (Explained Like You're 5)",
+    "short": false,
+    "views": 2,
+    "minutes": 0,
+    "avg_seconds": 21,
+    "pct": 20.6,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "TU-huYmTPUE",
+    "title": "How computers help farmers grow crops (Explained Like You're 5)",
+    "short": false,
+    "views": 2,
+    "minutes": 2,
+    "avg_seconds": 74,
+    "pct": 65.9,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "eh8qBnHcP4E",
+    "title": "How can AI stop germs? (Explained Like You're 5)",
+    "short": false,
+    "views": 2,
+    "minutes": 0,
+    "avg_seconds": 26,
+    "pct": 22.3,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "bdSl7s72Fak",
+    "title": "Why Does Borrowing Cost Extra? | Explained Like You're 5 #Shorts",
+    "short": true,
+    "views": 2,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "-4ukLGEzS7g",
+    "title": "How can computers stop bugs? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 38,
+    "pct": 35,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "o1rxCWyTitg",
+    "title": "Why do we pay taxes? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "sh_6rgcakTw",
+    "title": "What is an AI assistant? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 12,
+    "pct": 9.1,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "-qEHprnSWoQ",
+    "title": "Why Does Borrowing Cost Extra? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 1,
+    "avg_seconds": 85,
+    "pct": 78.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "iUdAzthJW-M",
+    "title": "How does a computer learn? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 4,
+    "pct": 4.3,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "IEWg0w9aPcM",
+    "title": "How does a chatbot talk? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "MBxkbH9sVSg",
+    "title": "Why Do Companies Set the Same Price? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "OkBggzMUVzo",
+    "title": "Why does AI need so much power? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 2,
+    "pct": 2.7,
+    "subs": 0,
+    "likes": 0
+   },
+   {
+    "id": "gMY10tPCEZ4",
+    "title": "How does the internet work? (Explained Like You're 5)",
+    "short": false,
+    "views": 1,
+    "minutes": 0,
+    "avg_seconds": 0,
+    "pct": 0,
+    "subs": 0,
+    "likes": 0
+   }
+  ],
+  "retention": {
+   "7PVVHgi-R9Q": [
+    [
+     0.01,
+     0.89
+    ],
+    [
+     0.06,
+     0.455
+    ],
+    [
+     0.11,
+     0.386
+    ],
+    [
+     0.16,
+     0.317
+    ],
+    [
+     0.21,
+     0.293
+    ],
+    [
+     0.26,
+     0.279
+    ],
+    [
+     0.31,
+     0.21
+    ],
+    [
+     0.36,
+     0.207
+    ],
+    [
+     0.41,
+     0.2
+    ],
+    [
+     0.46,
+     0.183
+    ],
+    [
+     0.51,
+     0.166
+    ],
+    [
+     0.56,
+     0.159
+    ],
+    [
+     0.61,
+     0.103
+    ],
+    [
+     0.66,
+     0.097
+    ],
+    [
+     0.71,
+     0.097
+    ],
+    [
+     0.76,
+     0.076
+    ],
+    [
+     0.81,
+     0.069
+    ],
+    [
+     0.86,
+     0.072
+    ],
+    [
+     0.91,
+     0.048
+    ],
+    [
+     0.96,
+     0.062
+    ]
+   ],
+   "glNy22_Oa-w": [
+    [
+     0.01,
+     0.93
+    ],
+    [
+     0.06,
+     0.626
+    ],
+    [
+     0.11,
+     0.509
+    ],
+    [
+     0.16,
+     0.468
+    ],
+    [
+     0.21,
+     0.374
+    ],
+    [
+     0.26,
+     0.439
+    ],
+    [
+     0.31,
+     0.333
+    ],
+    [
+     0.36,
+     0.357
+    ],
+    [
+     0.41,
+     0.316
+    ],
+    [
+     0.46,
+     0.304
+    ],
+    [
+     0.51,
+     0.304
+    ],
+    [
+     0.56,
+     0.304
+    ],
+    [
+     0.61,
+     0.298
+    ],
+    [
+     0.66,
+     0.275
+    ],
+    [
+     0.71,
+     0.281
+    ],
+    [
+     0.76,
+     0.257
+    ],
+    [
+     0.81,
+     0.228
+    ],
+    [
+     0.86,
+     0.222
+    ],
+    [
+     0.91,
+     0.193
+    ],
+    [
+     0.96,
+     0.199
+    ]
+   ],
+   "AYzmAwrdMfc": [
+    [
+     0.01,
+     0.944
+    ],
+    [
+     0.06,
+     0.593
+    ],
+    [
+     0.11,
+     0.556
+    ],
+    [
+     0.16,
+     0.463
+    ],
+    [
+     0.21,
+     0.407
+    ],
+    [
+     0.26,
+     0.315
+    ],
+    [
+     0.31,
+     0.296
+    ],
+    [
+     0.36,
+     0.259
+    ],
+    [
+     0.41,
+     0.204
+    ],
+    [
+     0.46,
+     0.222
+    ],
+    [
+     0.51,
+     0.167
+    ],
+    [
+     0.56,
+     0.167
+    ],
+    [
+     0.61,
+     0.148
+    ],
+    [
+     0.66,
+     0.13
+    ],
+    [
+     0.71,
+     0.167
+    ],
+    [
+     0.76,
+     0.13
+    ],
+    [
+     0.81,
+     0.111
+    ],
+    [
+     0.86,
+     0.111
+    ],
+    [
+     0.91,
+     0.093
+    ],
+    [
+     0.96,
+     0.093
+    ]
+   ],
+   "h3qkeDvWL8s": [
+    [
+     0.01,
+     0.986
+    ],
+    [
+     0.06,
+     0.561
+    ],
+    [
+     0.11,
+     0.453
+    ],
+    [
+     0.16,
+     0.36
+    ],
+    [
+     0.21,
+     0.331
+    ],
+    [
+     0.26,
+     0.302
+    ],
+    [
+     0.31,
+     0.266
+    ],
+    [
+     0.36,
+     0.223
+    ],
+    [
+     0.41,
+     0.187
+    ],
+    [
+     0.46,
+     0.194
+    ],
+    [
+     0.51,
+     0.194
+    ],
+    [
+     0.56,
+     0.209
+    ],
+    [
+     0.61,
+     0.173
+    ],
+    [
+     0.66,
+     0.158
+    ],
+    [
+     0.71,
+     0.158
+    ],
+    [
+     0.76,
+     0.158
+    ],
+    [
+     0.81,
+     0.151
+    ],
+    [
+     0.86,
+     0.144
+    ],
+    [
+     0.91,
+     0.137
+    ],
+    [
+     0.96,
+     0.115
+    ]
+   ],
+   "1kx7hmRBNvQ": [
+    [
+     0.01,
+     0.953
+    ],
+    [
+     0.06,
+     0.442
+    ],
+    [
+     0.11,
+     0.372
+    ],
+    [
+     0.16,
+     0.256
+    ],
+    [
+     0.21,
+     0.279
+    ],
+    [
+     0.26,
+     0.186
+    ],
+    [
+     0.31,
+     0.139
+    ],
+    [
+     0.36,
+     0.139
+    ],
+    [
+     0.41,
+     0.163
+    ],
+    [
+     0.46,
+     0.209
+    ],
+    [
+     0.51,
+     0.163
+    ],
+    [
+     0.56,
+     0.116
+    ],
+    [
+     0.61,
+     0.116
+    ],
+    [
+     0.66,
+     0.047
+    ],
+    [
+     0.71,
+     0.093
+    ],
+    [
+     0.76,
+     0.047
+    ],
+    [
+     0.81,
+     0.07
+    ],
+    [
+     0.86,
+     0.023
+    ],
+    [
+     0.91,
+     0.093
+    ],
+    [
+     0.96,
+     0.023
+    ]
+   ],
+   "HCpONr78gZc": [
+    [
+     0.01,
+     1
+    ],
+    [
+     0.06,
+     0.424
+    ],
+    [
+     0.11,
+     0.303
+    ],
+    [
+     0.16,
+     0.333
+    ],
+    [
+     0.21,
+     0.182
+    ],
+    [
+     0.26,
+     0.242
+    ],
+    [
+     0.31,
+     0.182
+    ],
+    [
+     0.36,
+     0.121
+    ],
+    [
+     0.41,
+     0.121
+    ],
+    [
+     0.46,
+     0.121
+    ],
+    [
+     0.51,
+     0.091
+    ],
+    [
+     0.56,
+     0.091
+    ],
+    [
+     0.61,
+     0.061
+    ],
+    [
+     0.66,
+     0.091
+    ],
+    [
+     0.71,
+     0.061
+    ],
+    [
+     0.76,
+     0.091
+    ],
+    [
+     0.81,
+     0.091
+    ],
+    [
+     0.86,
+     0.121
+    ],
+    [
+     0.91,
+     0.091
+    ],
+    [
+     0.96,
+     0.061
+    ]
+   ],
+   "NMK4CGlCXh8": [
+    [
+     0.01,
+     0.957
+    ],
+    [
+     0.06,
+     0.357
+    ],
+    [
+     0.11,
+     0.3
+    ],
+    [
+     0.16,
+     0.314
+    ],
+    [
+     0.21,
+     0.286
+    ],
+    [
+     0.26,
+     0.186
+    ],
+    [
+     0.31,
+     0.157
+    ],
+    [
+     0.36,
+     0.143
+    ],
+    [
+     0.41,
+     0.157
+    ],
+    [
+     0.46,
+     0.143
+    ],
+    [
+     0.51,
+     0.129
+    ],
+    [
+     0.56,
+     0.1
+    ],
+    [
+     0.61,
+     0.129
+    ],
+    [
+     0.66,
+     0.057
+    ],
+    [
+     0.71,
+     0.086
+    ],
+    [
+     0.76,
+     0.029
+    ],
+    [
+     0.81,
+     0.029
+    ],
+    [
+     0.86,
+     0.043
+    ],
+    [
+     0.91,
+     0.029
+    ],
+    [
+     0.96,
+     0.043
+    ]
+   ],
+   "Y21-paCJYsg": [
+    [
+     0.01,
+     0.917
+    ],
+    [
+     0.06,
+     0.556
+    ],
+    [
+     0.11,
+     0.417
+    ],
+    [
+     0.16,
+     0.444
+    ],
+    [
+     0.21,
+     0.444
+    ],
+    [
+     0.26,
+     0.306
+    ],
+    [
+     0.31,
+     0.333
+    ],
+    [
+     0.36,
+     0.333
+    ],
+    [
+     0.41,
+     0.222
+    ],
+    [
+     0.46,
+     0.222
+    ],
+    [
+     0.51,
+     0.194
+    ],
+    [
+     0.56,
+     0.25
+    ],
+    [
+     0.61,
+     0.194
+    ],
+    [
+     0.66,
+     0.194
+    ],
+    [
+     0.71,
+     0.194
+    ],
+    [
+     0.76,
+     0.222
+    ],
+    [
+     0.81,
+     0.167
+    ],
+    [
+     0.86,
+     0.194
+    ],
+    [
+     0.91,
+     0.194
+    ],
+    [
+     0.96,
+     0.111
+    ]
+   ],
+   "psSAqc-3e5k": [
+    [
+     0.01,
+     0.895
+    ],
+    [
+     0.06,
+     0.5
+    ],
+    [
+     0.11,
+     0.395
+    ],
+    [
+     0.16,
+     0.342
+    ],
+    [
+     0.21,
+     0.395
+    ],
+    [
+     0.26,
+     0.316
+    ],
+    [
+     0.31,
+     0.316
+    ],
+    [
+     0.36,
+     0.184
+    ],
+    [
+     0.41,
+     0.184
+    ],
+    [
+     0.46,
+     0.263
+    ],
+    [
+     0.51,
+     0.237
+    ],
+    [
+     0.56,
+     0.316
+    ],
+    [
+     0.61,
+     0.263
+    ],
+    [
+     0.66,
+     0.184
+    ],
+    [
+     0.71,
+     0.184
+    ],
+    [
+     0.76,
+     0.105
+    ],
+    [
+     0.81,
+     0.105
+    ],
+    [
+     0.86,
+     0.079
+    ],
+    [
+     0.91,
+     0.132
+    ],
+    [
+     0.96,
+     0.105
+    ]
+   ],
+   "1kPxZuxnFYw": [
+    [
+     0.01,
+     0.913
+    ],
+    [
+     0.06,
+     0.456
+    ],
+    [
+     0.11,
+     0.456
+    ],
+    [
+     0.16,
+     0.435
+    ],
+    [
+     0.21,
+     0.37
+    ],
+    [
+     0.26,
+     0.326
+    ],
+    [
+     0.31,
+     0.283
+    ],
+    [
+     0.36,
+     0.217
+    ],
+    [
+     0.41,
+     0.196
+    ],
+    [
+     0.46,
+     0.174
+    ],
+    [
+     0.51,
+     0.174
+    ],
+    [
+     0.56,
+     0.174
+    ],
+    [
+     0.61,
+     0.13
+    ],
+    [
+     0.66,
+     0.109
+    ],
+    [
+     0.71,
+     0.087
+    ],
+    [
+     0.76,
+     0.087
+    ],
+    [
+     0.81,
+     0.065
+    ],
+    [
+     0.86,
+     0.065
+    ],
+    [
+     0.91,
+     0.065
+    ],
+    [
+     0.96,
+     0.065
+    ]
+   ],
+   "BZmkhjVTOo8": [
+    [
+     0.01,
+     1
+    ],
+    [
+     0.06,
+     0.509
+    ],
+    [
+     0.11,
+     0.421
+    ],
+    [
+     0.16,
+     0.351
+    ],
+    [
+     0.21,
+     0.316
+    ],
+    [
+     0.26,
+     0.263
+    ],
+    [
+     0.31,
+     0.246
+    ],
+    [
+     0.36,
+     0.193
+    ],
+    [
+     0.41,
+     0.211
+    ],
+    [
+     0.46,
+     0.211
+    ],
+    [
+     0.51,
+     0.193
+    ],
+    [
+     0.56,
+     0.158
+    ],
+    [
+     0.61,
+     0.175
+    ],
+    [
+     0.66,
+     0.14
+    ],
+    [
+     0.71,
+     0.158
+    ],
+    [
+     0.76,
+     0.14
+    ],
+    [
+     0.81,
+     0.07
+    ],
+    [
+     0.86,
+     0.07
+    ],
+    [
+     0.91,
+     0.088
+    ],
+    [
+     0.96,
+     0.105
+    ]
+   ],
+   "bjVBnQK1g9o": [
+    [
+     0.01,
+     0.976
+    ],
+    [
+     0.06,
+     0.619
+    ],
+    [
+     0.11,
+     0.381
+    ],
+    [
+     0.16,
+     0.429
+    ],
+    [
+     0.21,
+     0.429
+    ],
+    [
+     0.26,
+     0.309
+    ],
+    [
+     0.31,
+     0.333
+    ],
+    [
+     0.36,
+     0.309
+    ],
+    [
+     0.41,
+     0.286
+    ],
+    [
+     0.46,
+     0.191
+    ],
+    [
+     0.51,
+     0.191
+    ],
+    [
+     0.56,
+     0.143
+    ],
+    [
+     0.61,
+     0.238
+    ],
+    [
+     0.66,
+     0.167
+    ],
+    [
+     0.71,
+     0.095
+    ],
+    [
+     0.76,
+     0.167
+    ],
+    [
+     0.81,
+     0.167
+    ],
+    [
+     0.86,
+     0.167
+    ],
+    [
+     0.91,
+     0.143
+    ],
+    [
+     0.96,
+     0.095
+    ]
+   ]
+  },
+  "sources": [
+   {
+    "name": "SHORTS",
+    "views": 4733,
+    "minutes": 449,
+    "pct": 50.3
+   },
+   {
+    "name": "YT_SEARCH",
+    "views": 3647,
+    "minutes": 1199,
+    "pct": 18.5
+   },
+   {
+    "name": "SUBSCRIBER",
+    "views": 467,
+    "minutes": 171,
+    "pct": 24.3
+   },
+   {
+    "name": "RELATED_VIDEO",
+    "views": 424,
+    "minutes": 485,
+    "pct": 19.5
+   },
+   {
+    "name": "YT_OTHER_PAGE",
+    "views": 139,
+    "minutes": 54,
+    "pct": 34.2
+   },
+   {
+    "name": "NO_LINK_OTHER",
+    "views": 104,
+    "minutes": 111,
+    "pct": 19.1
+   },
+   {
+    "name": "EXT_URL",
+    "views": 82,
+    "minutes": 111,
+    "pct": 22.0
+   },
+   {
+    "name": "YT_CHANNEL",
+    "views": 41,
+    "minutes": 21,
+    "pct": 14.8
+   },
+   {
+    "name": "PLAYLIST",
+    "views": 11,
+    "minutes": 25,
+    "pct": 42.0
+   },
+   {
+    "name": "SOUND_PAGE",
+    "views": 1,
+    "minutes": 0,
+    "pct": 0
+   },
+   {
+    "name": "END_SCREEN",
+    "views": 1,
+    "minutes": 0,
+    "pct": 0
+   }
+  ],
+  "types": [
+   {
+    "name": "shorts",
+    "views": 6006,
+    "minutes": 602,
+    "pct": 51.2
+   },
+   {
+    "name": "videoOnDemand",
+    "views": 3646,
+    "minutes": 2027,
+    "pct": 18.8
+   }
+  ],
+  "search": [
+   {
+    "name": "wan2gp",
+    "views": 162,
+    "minutes": 70,
+    "pct": null
+   },
+   {
+    "name": "lfm3",
+    "views": 88,
+    "minutes": 32,
+    "pct": null
+   },
+   {
+    "name": "comfyui",
+    "views": 52,
+    "minutes": 8,
+    "pct": null
+   },
+   {
+    "name": "lfm3-omni-2b",
+    "views": 47,
+    "minutes": 22,
+    "pct": null
+   },
+   {
+    "name": "anythingllm",
+    "views": 24,
+    "minutes": 13,
+    "pct": null
+   },
+   {
+    "name": "gpt4all",
+    "views": 23,
+    "minutes": 10,
+    "pct": null
+   },
+   {
+    "name": "stable diffusion",
+    "views": 21,
+    "minutes": 2,
+    "pct": null
+   },
+   {
+    "name": "yann lecun",
+    "views": 18,
+    "minutes": 1,
+    "pct": null
+   },
+   {
+    "name": "lfm3 omni 2b",
+    "views": 17,
+    "minutes": 12,
+    "pct": null
+   },
+   {
+    "name": "ollama",
+    "views": 14,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "lfm3-1.7b",
+    "views": 13,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "wan2gp tutorial",
+    "views": 13,
+    "minutes": 12,
+    "pct": null
+   },
+   {
+    "name": "lfm3 omni",
+    "views": 12,
+    "minutes": 6,
+    "pct": null
+   },
+   {
+    "name": "lfm3-omni",
+    "views": 12,
+    "minutes": 9,
+    "pct": null
+   },
+   {
+    "name": "lfm3 1.7b",
+    "views": 11,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "open webui",
+    "views": 9,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "stable diffusion tutorial",
+    "views": 9,
+    "minutes": 3,
+    "pct": null
+   },
+   {
+    "name": "minimax h3",
+    "views": 8,
+    "minutes": 1,
+    "pct": null
+   },
+   {
+    "name": "wan2gp install",
+    "views": 8,
+    "minutes": 10,
+    "pct": null
+   },
+   {
+    "name": "free ai models",
+    "views": 7,
+    "minutes": 2,
+    "pct": null
+   },
+   {
+    "name": "liquid lfm3",
+    "views": 7,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "comfyui low vram",
+    "views": 6,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "p-h3-image",
+    "views": 6,
+    "minutes": 0,
+    "pct": null
+   },
+   {
+    "name": "whisper.cpp",
+    "views": 6,
+    "minutes": 6,
+    "pct": null
+   },
+   {
+    "name": "anything llm",
+    "views": 5,
+    "minutes": 2,
+    "pct": null
+   }
+  ]
+ },
+ "instagram": {
+  "username": "runitvideoonlocal",
+  "followers": 3,
+  "posts": 41,
+  "likes": 48,
+  "comments": 0
+ },
+ "facebook": {
+  "name": "Run It Local",
+  "followers": 0,
+  "posts": 43,
+  "reels": 43,
+  "reel_plays": 0,
+  "views": 0
+ }
+}
