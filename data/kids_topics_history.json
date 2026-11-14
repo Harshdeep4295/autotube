@@ -345,5 +345,14 @@
     "opening": "When a robot spills, who mops up? You're about to find out.",
     "ending": "Behind every robot is a person who can fix it.",
     "date": "2026-11-13T11:47:56+00:00"
+  },
+  {
+    "topic": "How can a game draw fewer dots but look sharper?",
+    "area": "tech",
+    "source": "plan",
+    "world": "rocket club",
+    "opening": "Leo's rocket game drew less but looks better, and you get to crack why.",
+    "ending": "A quick rough picture plus smart guesses makes a sharp sky.",
+    "date": "2026-11-14T11:08:16+00:00"
   }
 ]
