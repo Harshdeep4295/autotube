@@ -1,7 +1,199 @@
 {
- "built": "2026-11-11T07:18+00:00",
- "data_through": "2026-11-07",
+ "built": "2026-11-14T15:29+00:00",
+ "data_through": "2026-11-11",
  "videos": [
+  {
+   "id": "5ZS74gHoJQY",
+   "title": "How can fewer dots look sharper? (Explained Like You're 5)",
+   "subject": "How can fewer dots look sharper?",
+   "track": "kids",
+   "short": false,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "2d3yUK7QaMk",
+   "title": "How can fewer dots look sharper? | Explained Like You're 5 #Shorts",
+   "subject": "How can fewer dots look sharper?",
+   "track": "kids",
+   "short": true,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "fID59U9cXGQ",
+   "title": "Strata: Run DeepSeek V4.1 Flash on a 12 GB Graphics Card #Shorts",
+   "subject": "Strata: Run DeepSeek V4.1 Flash on a 12 GB Graphics Card",
+   "track": "explainer",
+   "short": true,
+   "privacy": "private",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "CqiQohN0y2s",
+   "title": "Strata: Run DeepSeek V4.1 Flash on a 12 GB Graphics Card",
+   "subject": "Strata: Run DeepSeek V4.1 Flash on a 12 GB Graphics Card",
+   "track": "explainer",
+   "short": false,
+   "privacy": "private",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "Ha3oncHvSKw",
+   "title": "Why Llama 3.1 405B Needs a Data Center: Memory Math #Shorts",
+   "subject": "Why Llama 3.1 405B Needs a Data Center: Memory Math",
+   "track": "explainer",
+   "short": true,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "hOMmlJTwANE",
+   "title": "Why Llama 3.1 405B Needs a Data Center: Memory Math",
+   "subject": "Why Llama 3.1 405B Needs a Data Center: Memory Math",
+   "track": "explainer",
+   "short": false,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "NFHPpqz1aas",
+   "title": "Can an AI get in trouble? (Explained Like You're 5)",
+   "subject": "Can an AI get in trouble?",
+   "track": "kids",
+   "short": false,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "0NmyBL6-thM",
+   "title": "Can an AI get in trouble? | Explained Like You're 5 #Shorts",
+   "subject": "Can an AI get in trouble?",
+   "track": "kids",
+   "short": true,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "KFmMZw9jVkg",
+   "title": "OpenCode: Install the Open Source AI Coding Agent #Shorts",
+   "subject": "OpenCode: Install the Open Source AI Coding Agent",
+   "track": "explainer",
+   "short": true,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "4Pz6AoDFtts",
+   "title": "OpenCode: Install the Open Source AI Coding Agent",
+   "subject": "OpenCode: Install the Open Source AI Coding Agent",
+   "track": "explainer",
+   "short": false,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "N3m4-pRPqTE",
+   "title": "How does a busy shop go broke? | Explained Like You're 5 #Shorts",
+   "subject": "How does a busy shop go broke?",
+   "track": "kids",
+   "short": true,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "gPiZfV6qokE",
+   "title": "How does a busy shop go broke? (Explained Like You're 5)",
+   "subject": "How does a busy shop go broke?",
+   "track": "kids",
+   "short": false,
+   "privacy": "public",
+   "views": 0,
+   "avg_seconds": null,
+   "pct": null,
+   "subs": 0
+  },
+  {
+   "id": "SrAaHHv8NZM",
+   "title": "PrivateGPT: Chat With Your Files Fully Offline #Shorts",
+   "subject": "PrivateGPT: Chat With Your Files Fully Offline",
+   "track": "explainer",
+   "short": true,
+   "privacy": "public",
+   "views": 15,
+   "avg_seconds": 12,
+   "pct": 37.4,
+   "subs": 0
+  },
+  {
+   "id": "jQrxm-1Wwfg",
+   "title": "PrivateGPT: Chat With Your Files Fully Offline",
+   "subject": "PrivateGPT: Chat With Your Files Fully Offline",
+   "track": "explainer",
+   "short": false,
+   "privacy": "public",
+   "views": 27,
+   "avg_seconds": 96,
+   "pct": 31.5,
+   "subs": 1
+  },
+  {
+   "id": "_iUglykewGk",
+   "title": "Why do prices jump up? | Explained Like You're 5 #Shorts",
+   "subject": "Why do prices jump up?",
+   "track": "kids",
+   "short": true,
+   "privacy": "public",
+   "views": 15,
+   "avg_seconds": 36,
+   "pct": 102.0,
+   "subs": 0
+  },
+  {
+   "id": "T6Uc2_dgKlc",
+   "title": "Why do prices jump up? (Explained Like You're 5)",
+   "subject": "Why do prices jump up?",
+   "track": "kids",
+   "short": false,
+   "privacy": "public",
+   "views": 4,
+   "avg_seconds": 28,
+   "pct": 20.7,
+   "subs": 0
+  },
   {
    "id": "-KN4uAonIKA",
    "title": "RLHF Explained: How Chatbots Learned to Be Helpful #Shorts",
@@ -9,9 +201,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 22,
+   "avg_seconds": 12,
+   "pct": 41.9,
    "subs": 0
   },
   {
@@ -21,9 +213,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 3,
+   "avg_seconds": 22,
+   "pct": 7.5,
    "subs": 0
   },
   {
@@ -33,9 +225,9 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 26,
+   "avg_seconds": 94,
+   "pct": 235.2,
    "subs": 0
   },
   {
@@ -45,9 +237,9 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 3,
+   "avg_seconds": 85,
+   "pct": 59.5,
    "subs": 0
   },
   {
@@ -57,9 +249,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 29,
+   "avg_seconds": 15,
+   "pct": 47.9,
    "subs": 0
   },
   {
@@ -69,9 +261,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 46,
+   "avg_seconds": 43,
+   "pct": 13.1,
    "subs": 0
   },
   {
@@ -81,9 +273,9 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 5,
+   "avg_seconds": 32,
+   "pct": 23.5,
    "subs": 0
   },
   {
@@ -93,9 +285,9 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 22,
+   "avg_seconds": 13,
+   "pct": 35.7,
    "subs": 0
   },
   {
@@ -105,10 +297,10 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
-   "subs": 0
+   "views": 66,
+   "avg_seconds": 104,
+   "pct": 34.4,
+   "subs": 1
   },
   {
    "id": "-GMknR8ezZo",
@@ -117,9 +309,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 57,
+   "avg_seconds": 23,
+   "pct": 67.5,
    "subs": 0
   },
   {
@@ -129,9 +321,9 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 9,
+   "avg_seconds": 31,
+   "pct": 71.0,
    "subs": 0
   },
   {
@@ -141,9 +333,9 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 3,
+   "avg_seconds": 22,
+   "pct": 15.4,
    "subs": 0
   },
   {
@@ -153,9 +345,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 9,
-   "avg_seconds": 56,
-   "pct": 16.7,
+   "views": 12,
+   "avg_seconds": 87,
+   "pct": 25.8,
    "subs": 0
   },
   {
@@ -165,9 +357,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 42,
-   "avg_seconds": 18,
-   "pct": 60.3,
+   "views": 55,
+   "avg_seconds": 17,
+   "pct": 56.8,
    "subs": 0
   },
   {
@@ -189,7 +381,7 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 29,
+   "views": 34,
    "avg_seconds": 21,
    "pct": 53.2,
    "subs": 0
@@ -201,9 +393,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 81,
-   "avg_seconds": 12,
-   "pct": 38.5,
+   "views": 83,
+   "avg_seconds": 13,
+   "pct": 41.4,
    "subs": 0
   },
   {
@@ -213,7 +405,7 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 10,
+   "views": 12,
    "avg_seconds": 193,
    "pct": 64.7,
    "subs": 0
@@ -237,9 +429,9 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 36,
-   "avg_seconds": 26,
-   "pct": 65.4,
+   "views": 41,
+   "avg_seconds": 31,
+   "pct": 78.4,
    "subs": 0
   },
   {
@@ -249,9 +441,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 35,
-   "avg_seconds": 153,
-   "pct": 48.5,
+   "views": 43,
+   "avg_seconds": 121,
+   "pct": 38.6,
    "subs": 0
   },
   {
@@ -261,7 +453,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 46,
+   "views": 47,
    "avg_seconds": 27,
    "pct": 95.2,
    "subs": 0
@@ -273,9 +465,9 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 17,
-   "avg_seconds": 23,
-   "pct": 63.0,
+   "views": 18,
+   "avg_seconds": 21,
+   "pct": 57.9,
    "subs": 0
   },
   {
@@ -297,7 +489,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 68,
+   "views": 77,
    "avg_seconds": 23,
    "pct": 82.9,
    "subs": 0
@@ -309,9 +501,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 14,
-   "avg_seconds": 37,
-   "pct": 12.4,
+   "views": 20,
+   "avg_seconds": 66,
+   "pct": 22.1,
    "subs": 0
   },
   {
@@ -357,9 +549,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 5,
-   "avg_seconds": 63,
-   "pct": 21.4,
+   "views": 7,
+   "avg_seconds": 76,
+   "pct": 25.6,
    "subs": 0
   },
   {
@@ -369,7 +561,7 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 1,
+   "views": 3,
    "avg_seconds": 0,
    "pct": 0,
    "subs": 0
@@ -393,9 +585,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 231,
-   "avg_seconds": 73,
-   "pct": 23.9,
+   "views": 237,
+   "avg_seconds": 71,
+   "pct": 23.3,
    "subs": 0
   },
   {
@@ -405,34 +597,34 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 36,
+   "views": 37,
    "avg_seconds": 12,
    "pct": 41.3,
    "subs": 0
   },
   {
-   "id": "r95yc0MhOPI",
-   "title": "How do video game remakes work? | Explained Like You're 5 #Shorts",
-   "subject": "How do video game remakes work?",
-   "track": "kids",
-   "short": true,
+   "id": "AYzmAwrdMfc",
+   "title": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown",
+   "subject": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown",
+   "track": "explainer",
+   "short": false,
    "privacy": "public",
-   "views": 33,
-   "avg_seconds": 12,
-   "pct": 35.4,
+   "views": 237,
+   "avg_seconds": 71,
+   "pct": 23.3,
    "subs": 0
   },
   {
-   "id": "7kqI69STGDc",
-   "title": "How do video game remakes work? (Explained Like You're 5)",
-   "subject": "How do video game remakes work?",
-   "track": "kids",
-   "short": false,
+   "id": "0qy2IoLFJNw",
+   "title": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown #Shorts",
+   "subject": "Run MiniCPM-OCR 1.0 Locally: Scans to Markdown",
+   "track": "explainer",
+   "short": true,
    "privacy": "public",
-   "views": 24,
-   "avg_seconds": 14,
-   "pct": 14.7,
-   "subs": 1
+   "views": 37,
+   "avg_seconds": 12,
+   "pct": 41.3,
+   "subs": 0
   },
   {
    "id": "glNy22_Oa-w",
@@ -441,9 +633,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 239,
-   "avg_seconds": 75,
-   "pct": 30.6,
+   "views": 342,
+   "avg_seconds": 72,
+   "pct": 29.4,
    "subs": 2
   },
   {
@@ -453,9 +645,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 70,
-   "avg_seconds": 14,
-   "pct": 43.8,
+   "views": 86,
+   "avg_seconds": 19,
+   "pct": 57.9,
    "subs": 0
   },
   {
@@ -489,9 +681,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 19,
-   "avg_seconds": 112,
-   "pct": 41.6,
+   "views": 30,
+   "avg_seconds": 101,
+   "pct": 37.5,
    "subs": 0
   },
   {
@@ -501,7 +693,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 53,
+   "views": 56,
    "avg_seconds": 17,
    "pct": 54.9,
    "subs": 0
@@ -537,9 +729,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 105,
-   "avg_seconds": 77,
-   "pct": 27.0,
+   "views": 118,
+   "avg_seconds": 72,
+   "pct": 25.2,
    "subs": 0
   },
   {
@@ -549,9 +741,9 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 273,
+   "views": 275,
    "avg_seconds": 18,
-   "pct": 57.5,
+   "pct": 58.0,
    "subs": 1
   },
   {
@@ -603,27 +795,27 @@
    "subs": 0
   },
   {
-   "id": "08eK-vMH5E4",
-   "title": "Can You Run DeepSeek-V4.1-Flash at Home? #Shorts",
-   "subject": "Can You Run DeepSeek-V4.1-Flash at Home?",
-   "track": "explainer",
-   "short": true,
-   "privacy": "public",
-   "views": 265,
-   "avg_seconds": 20,
-   "pct": 68.9,
-   "subs": 1
-  },
-  {
-   "id": "AfnCPlvkpyQ",
-   "title": "Can You Run DeepSeek-V4.1-Flash at Home?",
-   "subject": "Can You Run DeepSeek-V4.1-Flash at Home?",
-   "track": "explainer",
+   "id": "gMY10tPCEZ4",
+   "title": "How does the internet work? (Explained Like You're 5)",
+   "subject": "How does the internet work?",
+   "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 35,
-   "avg_seconds": 54,
-   "pct": 20.2,
+   "views": 1,
+   "avg_seconds": 0,
+   "pct": 0,
+   "subs": 0
+  },
+  {
+   "id": "nIBfyPwBmK8",
+   "title": "How does the internet work? | Explained Like You're 5 #Shorts",
+   "subject": "How does the internet work?",
+   "track": "kids",
+   "short": true,
+   "privacy": "public",
+   "views": 21,
+   "avg_seconds": 8,
+   "pct": 28.7,
    "subs": 0
   },
   {
@@ -633,7 +825,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 34,
+   "views": 35,
    "avg_seconds": 39,
    "pct": 93.5,
    "subs": 0
@@ -669,9 +861,9 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 0,
-   "avg_seconds": null,
-   "pct": null,
+   "views": 1,
+   "avg_seconds": 0,
+   "pct": 0,
    "subs": 0
   },
   {
@@ -681,9 +873,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 91,
-   "avg_seconds": 53,
-   "pct": 18.5,
+   "views": 118,
+   "avg_seconds": 62,
+   "pct": 21.9,
    "subs": 0
   },
   {
@@ -693,7 +885,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 234,
+   "views": 241,
    "avg_seconds": 20,
    "pct": 54.2,
    "subs": 0
@@ -729,9 +921,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 41,
-   "avg_seconds": 71,
-   "pct": 20.8,
+   "views": 46,
+   "avg_seconds": 85,
+   "pct": 24.6,
    "subs": 0
   },
   {
@@ -777,7 +969,7 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 34,
+   "views": 35,
    "avg_seconds": 41,
    "pct": 13.2,
    "subs": 0
@@ -825,7 +1017,7 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 47,
+   "views": 49,
    "avg_seconds": 79,
    "pct": 22.4,
    "subs": 0
@@ -873,7 +1065,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 121,
+   "views": 123,
    "avg_seconds": 19,
    "pct": 56.3,
    "subs": 2
@@ -885,9 +1077,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 89,
+   "views": 97,
    "avg_seconds": 57,
-   "pct": 19.5,
+   "pct": 19.4,
    "subs": 0
   },
   {
@@ -969,7 +1161,7 @@
    "track": "explainer",
    "short": true,
    "privacy": "public",
-   "views": 39,
+   "views": 40,
    "avg_seconds": 16,
    "pct": 41.9,
    "subs": 0
@@ -981,9 +1173,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 63,
-   "avg_seconds": 57,
-   "pct": 17.9,
+   "views": 75,
+   "avg_seconds": 66,
+   "pct": 20.6,
    "subs": 0
   },
   {
@@ -1017,7 +1209,7 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 24,
+   "views": 26,
    "avg_seconds": 43,
    "pct": 13.1,
    "subs": 0
@@ -1065,9 +1257,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 59,
-   "avg_seconds": 66,
-   "pct": 11.1,
+   "views": 62,
+   "avg_seconds": 59,
+   "pct": 10.0,
    "subs": 1
   },
   {
@@ -1101,9 +1293,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 37,
-   "avg_seconds": 109,
-   "pct": 22.2,
+   "views": 40,
+   "avg_seconds": 108,
+   "pct": 22.0,
    "subs": 0
   },
   {
@@ -1125,7 +1317,7 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 3,
+   "views": 5,
    "avg_seconds": 70,
    "pct": 66.5,
    "subs": 0
@@ -1137,9 +1329,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 708,
-   "avg_seconds": 75,
-   "pct": 14.3,
+   "views": 815,
+   "avg_seconds": 77,
+   "pct": 14.8,
    "subs": 2
   },
   {
@@ -1173,9 +1365,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 184,
-   "avg_seconds": 110,
-   "pct": 20.8,
+   "views": 202,
+   "avg_seconds": 112,
+   "pct": 21.2,
    "subs": 2
   },
   {
@@ -1209,7 +1401,7 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 104,
+   "views": 105,
    "avg_seconds": 103,
    "pct": 16.4,
    "subs": 1
@@ -1245,9 +1437,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 104,
-   "avg_seconds": 105,
-   "pct": 20.3,
+   "views": 113,
+   "avg_seconds": 97,
+   "pct": 18.7,
    "subs": 1
   },
   {
@@ -1269,7 +1461,7 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 3,
+   "views": 4,
    "avg_seconds": 31,
    "pct": 30.5,
    "subs": 0
@@ -1281,9 +1473,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 83,
-   "avg_seconds": 43,
-   "pct": 8.0,
+   "views": 88,
+   "avg_seconds": 45,
+   "pct": 8.3,
    "subs": 1
   },
   {
@@ -1317,9 +1509,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 81,
-   "avg_seconds": 91,
-   "pct": 17.5,
+   "views": 87,
+   "avg_seconds": 87,
+   "pct": 16.7,
    "subs": 0
   },
   {
@@ -1353,9 +1545,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 125,
-   "avg_seconds": 72,
-   "pct": 12.7,
+   "views": 130,
+   "avg_seconds": 70,
+   "pct": 12.4,
    "subs": 0
   },
   {
@@ -1389,9 +1581,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 122,
-   "avg_seconds": 56,
-   "pct": 10.5,
+   "views": 130,
+   "avg_seconds": 54,
+   "pct": 10.1,
    "subs": 0
   },
   {
@@ -1413,7 +1605,7 @@
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 974,
+   "views": 976,
    "avg_seconds": 11,
    "pct": 49.1,
    "subs": 3
@@ -1461,9 +1653,9 @@
    "track": "kids",
    "short": false,
    "privacy": "public",
-   "views": 6,
-   "avg_seconds": 27,
-   "pct": 25.7,
+   "views": 7,
+   "avg_seconds": 35,
+   "pct": 32.6,
    "subs": 0
   },
   {
@@ -1611,15 +1803,15 @@
    "subs": 0
   },
   {
-   "id": "bdSl7s72Fak",
-   "title": "Why Does Borrowing Cost Extra? | Explained Like You're 5 #Shorts",
-   "subject": "Why Does Borrowing Cost Extra?",
+   "id": "nFRRc2BmP0k",
+   "title": "How computers help farmers grow crops | Explained Like You're 5 #Shorts",
+   "subject": "How computers help farmers grow crops",
    "track": "kids",
    "short": true,
    "privacy": "public",
-   "views": 2,
-   "avg_seconds": 0,
-   "pct": 0,
+   "views": 13,
+   "avg_seconds": 13,
+   "pct": 11.9,
    "subs": 0
   },
   {
@@ -1653,9 +1845,9 @@
    "track": "explainer",
    "short": false,
    "privacy": "public",
-   "views": 65,
-   "avg_seconds": 141,
-   "pct": 25.7,
+   "views": 66,
+   "avg_seconds": 136,
+   "pct": 24.6,
    "subs": 0
   },
   {

@@ -1,125 +1,85 @@
 {
- "made": "2026-11-11T07:19+00:00",
- "start": "2026-11-12",
+ "made": "2026-11-14T15:31+00:00",
+ "start": "2026-11-16",
  "writer": "claude (claude-opus-5-5)",
  "youtube_trends": [
   {
-   "title": "Not this really AI work #duckrescue #waterfall #ducklingspro #animalrescue #wildliferescue",
-   "views": 861706,
-   "channel": "TrendyBot 10"
+   "title": "Why China&#39;s AI Bubble Popped... And Ours Hasn&#39;t...",
+   "views": 1888080,
+   "channel": "How Money Works"
   },
   {
-   "title": "I Turned My Spare Phones Into a Wireless GPU for AI Agents (It Actually Works)",
-   "views": 324118,
-   "channel": "orailnoor"
+   "title": "Why Alibaba Is Paying the Price for Jensen Huang&#39;s Exit: A Life-or-Death Moment for Open-Source AI",
+   "views": 338420,
+   "channel": "BacktoFundamentals"
   },
   {
-   "title": "Democrats Won Congress  Here’s What They Can and Can’t Do — Explained Like You’re 5",
-   "views": 272320,
-   "channel": "Explained Like You´re Five"
+   "title": "I Tested Uncensored AI... It Should Probably Be Illegal…",
+   "views": 337044,
+   "channel": "Jack Roberts"
   },
   {
-   "title": "What If Your Poop Never Stopped? 💩",
-   "views": 232855,
-   "channel": "TheWhyLab"
-  },
-  {
-   "title": "This Tool can Run 744B Ai models on Your Laptop 🤯 #aimodels #aitools  #opensourceai",
-   "views": 224633,
-   "channel": "Wiseversity"
-  },
-  {
-   "title": "QWEN 4 Preview IS INSANE! First Look at Qwen 4 Max &amp; 27B! Greatest Open Model Ever!",
-   "views": 207805,
-   "channel": "WorldofAI"
-  },
-  {
-   "title": "Kimi K3.1 weights OUT, open source computer use, SOTA image model, science model, Pika H3: AI NEWS",
-   "views": 171272,
-   "channel": "Matthew Berman"
-  },
-  {
-   "title": "Geoffrey Hinton: &quot;We Don&#39;t Really Understand Exactly How They Do Those Things&quot; #shorts #ai",
-   "views": 162919,
-   "channel": "Consequence AI"
+   "title": "Before You Spend Thousands on Local AI, Watch This",
+   "views": 237094,
+   "channel": "Manolo Remiddi"
   },
   {
    "title": "AI Making People Work Longer",
-   "views": 147927,
+   "views": 145100,
    "channel": "UFD Tech"
   },
   {
-   "title": "Every Law Of Physics Finally Explained Like You&#39;re 5",
-   "views": 145530,
-   "channel": "Mr Space Explainer"
+   "title": "Get Unlimited Claude Code on Your Own Computer",
+   "views": 111547,
+   "channel": "Sharbel A."
   },
   {
-   "title": "How to Use Ollama (Free Local AI)",
-   "views": 133439,
+   "title": "Someone Put a Working Computer Inside an AI Model #ai  #llm  #qwen",
+   "views": 103320,
+   "channel": "Better Stack"
+  },
+  {
+   "title": "How to Use Claude Code for FREE with Ollama",
+   "views": 102304,
    "channel": "Kevin Stratvert"
   },
   {
-   "title": "Ripple 65B: A Chip Design Lab Just Beat Every US Open Model",
-   "views": 119898,
-   "channel": "Sam Witteveen"
+   "title": "MSI ชิป NVIDIA RTX Spark VS Mac Pro M5 Max คู่นี้ใครจะแรงกว่า ?",
+   "views": 89550,
+   "channel": "Extreme IT"
   },
   {
-   "title": "EP460 - 你的電腦能跑什麼 AI？16GB 到 128GB 一次講完｜Ollama、LM Studio 怎麼設定，新手五個坑",
-   "views": 119465,
-   "channel": "AI懶人報"
-  },
-  {
-   "title": "Did the AI Bubble Just Burst? Explained Like You&#39;re 5",
-   "views": 92373,
+   "title": "Nvidia Is in Big Trouble (Explained Like You’re 5)",
+   "views": 87709,
    "channel": "PENNY"
   },
   {
-   "title": "Get Unlimited Claude Code on Your Own Computer",
-   "views": 88626,
-   "channel": "Sharbel A."
+   "title": "Apple&#39;s Local AI App for Mac Is Coming (Harbor)",
+   "views": 83826,
+   "channel": "Kai"
+  },
+  {
+   "title": "What If You Couldn&#39;t Stop Peeing?",
+   "views": 78069,
+   "channel": "TheWhyLab"
+  },
+  {
+   "title": "Claude Code is FREE Now?! Here&#39;s How to Use It Without Paying",
+   "views": 77908,
+   "channel": "The Tech Girl"
+  },
+  {
+   "title": "AI Can Replace Over 40% of Remote Work RIGHT NOW, Freelance Jobs Are GONE",
+   "views": 75494,
+   "channel": "Timcast IRL"
+  },
+  {
+   "title": "I Tested Local AI on My Mac Studio So You Don&#39;t Have To",
+   "views": 75199,
+   "channel": "Kai"
   }
  ],
  "days": [
-  {
-   "date": "2026-11-12",
-   "explainer": {
-    "topic": "OpenCode: a free AI coding agent that works with local models",
-    "source": "bank",
-    "summary": "",
-    "kind": "tool",
-    "url": "https://github.com/sst/opencode",
-    "source_url": "https://raw.githubusercontent.com/sst/opencode/dev/README.md",
-    "planned": true,
-    "why": "Free local coding agents are hot this week (Qwen + OpenCode, Claude Code with Ollama), and the channel's agent video LFM3-1.7B was a top performer."
-   },
-   "kids": {
-    "topic": "How can a busy shop still run out of money?",
-    "area": "finance",
-    "source": "plan",
-    "hint": "A lemonade stand sells cups all day, but if the lemons, cups and table rent cost more than the coins coming in, the jar still ends up empty.",
-    "why": "Ties to the news of a discount chain fighting collapse, and the surprise (busy but broke) mirrors the hook of the channel's 'Why does gasoline cost so much?'"
-   }
-  },
-  {
-   "date": "2026-11-13",
-   "explainer": {
-    "topic": "Why Llama 3.1 405B needs a data center: the memory math of giant models",
-    "source": "bank",
-    "summary": "",
-    "kind": "concept",
-    "url": "https://huggingface.co/blog/llama31",
-    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/llama31.md",
-    "planned": true,
-    "why": "This week's searches are full of 'what can your 16 to 128 GB PC run' and 'giant models on a laptop', and this video gives the math behind them."
-   },
-   "kids": {
-    "topic": "Can an AI get in trouble with the law?",
-    "area": "ai",
-    "source": "plan",
-    "hint": "If a wind-up toy robot knocks a vase off the table, nobody scolds the toy; they ask who built it, who wound it up and who let it loose.",
-    "why": "Comes from the headline about a country weighing penalties for rogue AI, and it follows the channel's best AI-rules Short (974 views) from a new angle: who is to blame."
-   }
-  },
   {
    "date": "2026-11-14",
    "explainer": {
@@ -158,6 +118,152 @@
     "source": "plan",
     "hint": "A gardener plants seeds and gives them water and sun, but never places each leaf; the plant grows its own shape, and the gardener has to study it afterward.",
     "why": "A clip about researchers saying 'we don't really understand how they do it' got 160K views this week, and the curious angle fits the channel's best AI-learning Shorts without repeating them."
+   }
+  },
+  {
+   "date": "2026-11-16",
+   "explainer": {
+    "topic": "LongCat-2.5: the new AI model that reads images and text from meituan-longcat, and can you run it at home?",
+    "kind": "trend",
+    "source": "trend",
+    "theme": "vision",
+    "summary": "Trending on Hugging Face now (260 likes, released 2026-11-04).",
+    "url": "https://huggingface.co/meituan-longcat/LongCat-2.5",
+    "source_url": "https://huggingface.co/meituan-longcat/LongCat-2.5/raw/main/README.md",
+    "model_id": "meituan-longcat/LongCat-2.5",
+    "planned": true,
+    "why": "'Can you run it at home?' on a big new model matches your DeepSeek-V4.1-Flash Short (265 views) and this week's 744B-on-a-laptop videos."
+   },
+   "kids": {
+    "topic": "What is a money bubble?",
+    "area": "finance",
+    "source": "plan",
+    "hint": "Kids at a lemonade stand keep paying more for cups only because they think tomorrow's price will be even higher, until the bubble pops and the price falls back.",
+    "why": "'AI bubble' videos are this week's biggest hit (1.9M views), and kids Shorts about prices are the channel's best."
+   }
+  },
+  {
+   "date": "2026-11-17",
+   "explainer": {
+    "topic": "OpenHands: an open-source AI software engineer you can run yourself",
+    "source": "bank",
+    "summary": "",
+    "kind": "tool",
+    "url": "https://github.com/All-Hands-AI/OpenHands",
+    "source_url": "https://raw.githubusercontent.com/All-Hands-AI/OpenHands/main/README.md",
+    "planned": true,
+    "why": "'Free Claude Code on your own computer' videos are all over this week's list (110k, 102k, 78k, 59k), and this is the open alternative."
+   },
+   "kids": {
+    "topic": "When does an AI-edited photo become a fib?",
+    "area": "ai",
+    "source": "plan",
+    "hint": "Tidying your room before taking a photo is fine, but drawing a window that isn't really there is a fib.",
+    "why": "This comes from the 'housefishing' headline and has a surprising angle that fits the 'AI rules' Shorts that did well."
+   }
+  },
+  {
+   "date": "2026-11-18",
+   "explainer": {
+    "topic": "Inkling-2-Small: the new AI model that reads images and text from thinkingmachines, and can you run it at home?",
+    "kind": "trend",
+    "source": "trend",
+    "theme": "vision",
+    "summary": "Trending on Hugging Face now (294 likes, released 2026-11-04).",
+    "url": "https://huggingface.co/thinkingmachines/Inkling-2-Small",
+    "source_url": "https://huggingface.co/thinkingmachines/Inkling-2-Small/raw/main/README.md",
+    "model_id": "thinkingmachines/Inkling-2-Small",
+    "planned": true,
+    "why": "A small new model from a well-known lab fits your best Shorts, LFM3-1.7B and LFM3-Omni-2B."
+   },
+   "kids": {
+    "topic": "Why can one computer problem stop the whole world?",
+    "area": "tech",
+    "source": "plan",
+    "hint": "When a whole town gets its water from one big well, one blocked pipe means everyone waits at once, and then fixing it brings everyone back.",
+    "why": "The day-long global outage is the most repeated headline right now."
+   }
+  },
+  {
+   "date": "2026-11-19",
+   "explainer": {
+    "topic": "KV cache explained: why long AI chats eat so much memory",
+    "source": "bank",
+    "summary": "",
+    "kind": "concept",
+    "url": "https://huggingface.co/blog/kv-cache-quantization",
+    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/kv-cache-quantization.md",
+    "planned": true,
+    "why": "It answers the 'Before you spend thousands on local AI' question (237k views) about what hardware you really need."
+   },
+   "kids": {
+    "topic": "Why can AI helpers make people work longer?",
+    "area": "ai",
+    "source": "plan",
+    "hint": "A family gets a super-fast dishwasher, so they start cooking more meals and end up spending more time in the kitchen, not less.",
+    "why": "'AI making people work longer' (145k views) gives a surprising twist that isn't scary."
+   }
+  },
+  {
+   "date": "2026-11-20",
+   "explainer": {
+    "topic": "ZONOS3-Mini: the new AI voice model from Zyphra, and can you run it at home?",
+    "kind": "trend",
+    "source": "trend",
+    "theme": "voice",
+    "summary": "Trending on Hugging Face now (330 likes, released 2026-11-09).",
+    "url": "https://huggingface.co/Zyphra/ZONOS3-Mini",
+    "source_url": "https://huggingface.co/Zyphra/ZONOS3-Mini/raw/main/README.md",
+    "model_id": "Zyphra/ZONOS3-Mini",
+    "planned": true,
+    "why": "It's the most-liked and newest model on the trending list; this is the third and last hf day, with tool or concept days between each one."
+   },
+   "kids": {
+    "topic": "What does it mean when an economy grows?",
+    "area": "finance",
+    "source": "plan",
+    "hint": "A town's bakers bake more bread, more people buy it, and everyone has a bit more to share, which is all the town's work added up.",
+    "why": "'UK economy grows at fastest rate' is in the headlines, and it's a basic money question the channel hasn't covered yet."
+   }
+  },
+  {
+   "date": "2026-11-21",
+   "explainer": {
+    "topic": "ik_llama.cpp: run bigger models faster by splitting them across CPU and GPU",
+    "source": "bank",
+    "summary": "",
+    "kind": "tool",
+    "url": "https://github.com/ikawrakow/ik_llama.cpp",
+    "source_url": "https://raw.githubusercontent.com/ikawrakow/ik_llama.cpp/main/README.md",
+    "planned": true,
+    "why": "It fits 'DeepSeek V4.1 Flash with no GPU', '94 GB on a normal GPU' and split-model inference, which are all trending, and builds on your llama.cpp video."
+   },
+   "kids": {
+    "topic": "How does AI hear your voice?",
+    "area": "ai",
+    "source": "bank",
+    "hint": "",
+    "why": "Claude's question 'Can an AI work with no internet at all?' rejected: too close by words"
+   }
+  },
+  {
+   "date": "2026-11-22",
+   "explainer": {
+    "topic": "AI benchmarks explained: why the same AI model gets different scores",
+    "source": "bank",
+    "summary": "",
+    "kind": "concept",
+    "url": "https://huggingface.co/blog/open-llm-leaderboard-mmlu",
+    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/open-llm-leaderboard-mmlu.md",
+    "planned": true,
+    "why": "People are arguing about the 'next local LLM king' (Qwen 4, 'best local model' videos), and this explains how to read the scores."
+   },
+   "kids": {
+    "topic": "How does a heat pump make heat from cold air?",
+    "area": "tech",
+    "source": "plan",
+    "hint": "It works like a sponge that soaks up the little bit of warmth in cold outdoor air and squeezes it out inside your home.",
+    "why": "Heat pumps are in the headlines, and 'heat from cold air' is the kind of surprising angle the channel's best Shorts had."
    }
   }
  ]
