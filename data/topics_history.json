@@ -280,5 +280,12 @@
     "timestamp": "2026-11-13T11:24:34.435330",
     "used_at": "2026-11-13T11:24:34.435330",
     "source": "bank"
+  },
+  {
+    "topic": "Strata: run a 125-billion-parameter AI model on a 12 GB graphics card",
+    "normalized_topic": "strata run a 125billionparameter ai mode",
+    "timestamp": "2026-11-14T10:57:40.929908",
+    "used_at": "2026-11-14T10:57:40.929908",
+    "source": "bank"
   }
 ]
