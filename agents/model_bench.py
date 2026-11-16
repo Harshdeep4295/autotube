@@ -148,6 +148,26 @@ def measure(binary: Path, model: Path, threads: int) -> Dict:
             "peak_gb": round(int(peak.group(1)) / 1024 / 1024, 1) if peak else None}
 
 
+def weights_gb(model_id: str) -> float:
+    """Total size of the model's original weight files (safetensors / bin), in GB."""
+    tree = _get(f"{HF}/api/models/{model_id}/tree/main", params={"recursive": "true"})
+    size = sum(int((f.get("lfs") or {}).get("size") or f.get("size") or 0) for f in tree
+               if f.get("path", "").endswith((".safetensors", ".bin")))
+    return round(size / 1024**3, 1)
+
+
+def too_big_without_gguf(model_id: str) -> Optional[Dict]:
+    """No compressed copy yet: when the original files alone are bigger than this computer's memory,
+    that is still a real finding ("needs more than N GB"); otherwise there is nothing to report."""
+    full = weights_gb(model_id)
+    box = machine()
+    if full <= box["ram_gb"]:
+        logger.info(f"[bench] no GGUF copy of {model_id} yet ({full} GB original files) — no test")
+        return None
+    logger.info(f"[bench] no GGUF copy of {model_id} yet; original files {full} GB > {box['ram_gb']} GB RAM")
+    return {"model": model_id, "repo": model_id, **box, "fits": False, "no_gguf": True, "full_gb": full}
+
+
 def run(model_id: str) -> Optional[Dict]:
     """Test the model on this computer. None when there is nothing to report."""
     started = time.time()
@@ -155,8 +175,7 @@ def run(model_id: str) -> Optional[Dict]:
     try:
         repos = gguf_repos(model_id)
         if not repos:
-            logger.info(f"[bench] no GGUF copy of {model_id} yet — no test")
-            return None
+            return too_big_without_gguf(model_id)
         repo, files = next(((r, f) for r in repos[:4] if (f := gguf_files(r))), (None, []))
         if not files:
             logger.info(f"[bench] no single-file GGUF of {model_id} — no test")
@@ -198,6 +217,11 @@ def as_source(b: Optional[Dict]) -> str:
     if not b:
         return ""
     box = f"a free GitHub cloud computer with {b['cores']} CPU cores, {b['ram_gb']} GB of RAM and no graphics card"
+    if b.get("no_gguf"):
+        return ("MEASURED BY THIS CHANNEL (our own check, today): the model's original files on Hugging Face "
+                f"add up to {b['full_gb']} GB, far more than the {b['ram_gb']} GB of RAM on {box}, so it cannot "
+                "run there as released. No compressed (GGUF) version for home tools like llama.cpp, Ollama or "
+                "LM Studio had been published yet when we checked.\n\n")
     if not b.get("fits"):
         sizes = []
         if b.get("q4_gb"):

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 TAGS_MAX_CHARS = 500   # YouTube's limit on all tags together
+CAPTION_RETRY_SECONDS = 30
 
 
 def fit_tags(tags, limit: int = TAGS_MAX_CHARS) -> list:
@@ -170,23 +171,34 @@ class UploadAgent:
     def _upload_captions(self, video_id: str, srt_path: str) -> None:
         """Upload SRT subtitle file to YouTube as an English caption track."""
         from googleapiclient.http import MediaFileUpload
-        try:
-            media = MediaFileUpload(srt_path, mimetype="text/plain", resumable=False)
-            self.youtube.captions().insert(
-                part="snippet",
-                body={
-                    "snippet": {
-                        "videoId": video_id,
-                        "language": "en",
-                        "name": "English",
-                        "isDraft": False,
-                    }
-                },
-                media_body=media,
-            ).execute()
-            logger.info(f"Captions uploaded for video {video_id}")
-        except Exception as e:
-            logger.warning(f"Caption upload failed (video still published): {e}")
+        for attempt in range(3):
+            try:
+                self._insert_captions(video_id, srt_path, MediaFileUpload)
+                return
+            except Exception as e:
+                # right after an upload YouTube can still answer "video not found" (seen 2026-11-16)
+                if "404" in str(e)[:200] and attempt < 2:
+                    logger.info(f"Captions: video not ready yet, retrying in {CAPTION_RETRY_SECONDS} s")
+                    time.sleep(CAPTION_RETRY_SECONDS)
+                    continue
+                logger.warning(f"Caption upload failed (video still published): {e}")
+                return
+
+    def _insert_captions(self, video_id: str, srt_path: str, MediaFileUpload) -> None:
+        media = MediaFileUpload(srt_path, mimetype="text/plain", resumable=False)
+        self.youtube.captions().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "videoId": video_id,
+                    "language": "en",
+                    "name": "English",
+                    "isDraft": False,
+                }
+            },
+            media_body=media,
+        ).execute()
+        logger.info(f"Captions uploaded for video {video_id}")
 
     # ── Auth ──────────────────────────────────────────────────────────────────
 
