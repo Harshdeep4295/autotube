@@ -37,7 +37,13 @@ stay in it. Do not invent another world and do not use a lemonade stand unless i
 {worlds}
 
 Things the animation can show (use only these): {props}
-Cast: mia, leo, zoe (main), sam, ava, raj, kim (friends).
+Cast: mia, leo, zoe, sam, ava, raj, kim. LEAD for this video: {lead} (the story is about what
+happens to {lead}; others may help).
+
+RECENT STORIES on the channel (newest last). Yours must feel NEW next to every one of them: a
+different situation and different main objects, a different comparison ("map"), a different lesson
+sentence. Never open with the same situation (a too-full apple tree, a busy shop counting coins).
+{recent}
 
 Return JSON:
 {{
@@ -54,6 +60,11 @@ STORY SHAPE for this video (the channel rotates shapes so videos don't all feel 
 Use 2-4 map rows. If the real thing is itself in the list of things the animation can show
 (chip, phone, laptop, robot, server, cloud, lock, key, battery, bank, coin...), the story must
 show that real thing; the world's objects only help explain it. The story must reach the real idea (say the grown-up word) by the last third."""
+
+PLAN_AGAIN = """
+
+YOUR FIRST PLAN REPEATED THIS RECENT STORY: {story}
+Plan again with a different world, different main objects and a different comparison."""
 
 SCRIPT_USER = """Write the full script for this plan.
 
