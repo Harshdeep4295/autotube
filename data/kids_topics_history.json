@@ -377,5 +377,17 @@
     "date": "2026-11-15T11:38:43+00:00",
     "story": "picking apples from the apple tree in Zoe's garden / AI = Zoe's robot, whose brain grew like a little tree; training = giving the robot lots of practice, like water and sun for a seed; AI builders = Zoe, who helped the brain grow but never placed each branch; studying the AI = peeking at the branches afterward to see how it learned",
     "shape": "race"
+  },
+  {
+    "topic": "What is a money bubble?",
+    "area": "finance",
+    "source": "plan",
+    "world": "toy shop",
+    "opening": "Here's how a 2-coin top ends up costing 10.",
+    "ending": "Hope can lift a price, but only worth holds it up.",
+    "shape": "build it",
+    "lead": "sam",
+    "story": "a spinning top for sale at Leo's toy shop / price = the coins someone pays Leo for the spinning top; real value = how much the top is worth just for spinning it, about 2 coins of fun; money bubble = when the top's price floats way above its fun, only because everyone hopes someone else will pay even more tomorrow; the bubble popping = the day nobody will pay more, so the price drops back to about ",
+    "date": "2026-11-16T12:15:05+00:00"
   }
 ]
