@@ -291,7 +291,7 @@ STORY_SHAPES = [
     "PROBLEM AND FIX: something goes wrong for a character, they try the obvious thing, it fails, "
     "then the real idea fixes it.",
     "MYSTERY: something strange happens; the friends follow two or three clues, and the last clue "
-    "is the grown-up idea.",
+    "is the real idea.",
     "RACE: two ways of doing the same job go head to head (old way vs new way); we watch which wins "
     "and why.",
     "BUILD IT: the friends build the thing from its parts, one part per beat, and switch it on at the end.",
@@ -528,7 +528,7 @@ class KidsScriptAgent:
     def generate(self, topic: Dict) -> Dict:
         logger.info(f"[kids-script] topic: {topic['topic'][:70]}")
         plan = self.plan(topic)
-        logger.info(f"[kids-script] analogy: {plan.get('world', '')!r} — {len(plan.get('map', []))} grown-up words")
+        logger.info(f"[kids-script] analogy: {plan.get('world', '')!r} — {len(plan.get('map', []))} real terms")
         script = self.fit_length(self.write(plan))
         lo, _ = word_bounds()
         if word_count(validate_and_repair(script)[0]) < lo:

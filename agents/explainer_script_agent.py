@@ -205,7 +205,8 @@ class ExplainerScriptAgent:
         text = fetch_text(topic.get("source_url") or topic.get("url", ""))
         if len(text) < 400:
             text = "\n".join(x for x in (topic.get("topic", ""), topic.get("summary", ""), text) if x)
-        return text[:6000]
+        from agents.model_bench import as_source
+        return (as_source(topic.get("bench")) + text)[:6000]
 
     def outline(self, topic: Dict, source: str) -> Dict:
         words = config.EXPLAINER_TARGET_WORDS

@@ -145,7 +145,10 @@ KIND_NOTES = {
               "it, what is new compared with what came before, what hardware it needs (only figures from the "
               "source), how to try it (locally if the source shows how, else say honestly that it needs "
               "data-center hardware and what smaller option exists), and who it is for. Only facts from the "
-              "source: no benchmark numbers, sizes or dates it does not give.\n"),
+              "source: no benchmark numbers, sizes or dates it does not give. If the source starts with a "
+              "MEASURED BY THIS CHANNEL block, that is the channel's own test: give it one chapter (say we ran "
+              "it ourselves, on what computer, which version, the speed and memory numbers exactly as given, "
+              "and what that speed feels like in use) and mention it in the opening.\n"),
     "concept": ("This is a HOW-IT-WORKS video about an idea, not a tool tutorial: what it is, how it works "
                 "(with one everyday comparison), why it matters to people who use AI, and its limits. No "
                 "install steps or commands unless the source shows them; prefer diagrams, steps, compare and "

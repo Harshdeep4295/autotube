@@ -118,6 +118,11 @@ class Config:
     # Tech story every other day from 2026-11-17 (agents/story_agent.py): side-by-side test of news
     # stories against the tool and new-model videos
     EXPLAINER_STORIES: bool = field(default_factory=lambda: os.getenv("EXPLAINER_STORIES", "true").lower() == "true")
+    # New-model days: run a small GGUF copy with llama.cpp on the runner and put the measured speed and
+    # memory in the video (agents/model_bench.py); files above MODEL_BENCH_MAX_GB are reported as too big
+    MODEL_BENCH: bool = field(default_factory=lambda: os.getenv("MODEL_BENCH", "true").lower() == "true")
+    MODEL_BENCH_MAX_GB: float = field(default_factory=lambda: float(os.getenv("MODEL_BENCH_MAX_GB", "9")))
+    MODEL_BENCH_TIMEOUT: int = field(default_factory=lambda: int(os.getenv("MODEL_BENCH_TIMEOUT", "900")))
 
     # ── Kids track: "Explained Like You're 5" (VIDEO_STYLE=kids, see docs/PLAN_KIDS_EXPLAINER.md) ──
     # 2-3 minute story videos (recurring cast + prop kit, pycairo renderer). All ages, NOT made for kids.
