@@ -145,14 +145,12 @@
   {
    "date": "2026-11-17",
    "explainer": {
-    "topic": "OpenHands: an open-source AI software engineer you can run yourself",
-    "source": "bank",
-    "summary": "",
-    "kind": "tool",
-    "url": "https://github.com/All-Hands-AI/OpenHands",
-    "source_url": "https://raw.githubusercontent.com/All-Hands-AI/OpenHands/main/README.md",
+    "topic": "Tech story of the day (picked that morning from the news)",
+    "kind": "story",
+    "slot": true,
     "planned": true,
-    "why": "'Free Claude Code on your own computer' videos are all over this week's list (110k, 102k, 78k, 59k), and this is the open alternative."
+    "why": "side-by-side test: a tech news story every other day",
+    "date": "2026-11-17"
    },
    "kids": {
     "topic": "When does an AI-edited photo become a fib?",
@@ -187,14 +185,12 @@
   {
    "date": "2026-11-19",
    "explainer": {
-    "topic": "KV cache explained: why long AI chats eat so much memory",
-    "source": "bank",
-    "summary": "",
-    "kind": "concept",
-    "url": "https://huggingface.co/blog/kv-cache-quantization",
-    "source_url": "https://raw.githubusercontent.com/huggingface/blog/main/kv-cache-quantization.md",
+    "topic": "Tech story of the day (picked that morning from the news)",
+    "kind": "story",
+    "slot": true,
     "planned": true,
-    "why": "It answers the 'Before you spend thousands on local AI' question (237k views) about what hardware you really need."
+    "why": "side-by-side test: a tech news story every other day",
+    "date": "2026-11-19"
    },
    "kids": {
     "topic": "Why can AI helpers make people work longer?",
@@ -229,14 +225,12 @@
   {
    "date": "2026-11-21",
    "explainer": {
-    "topic": "ik_llama.cpp: run bigger models faster by splitting them across CPU and GPU",
-    "source": "bank",
-    "summary": "",
-    "kind": "tool",
-    "url": "https://github.com/ikawrakow/ik_llama.cpp",
-    "source_url": "https://raw.githubusercontent.com/ikawrakow/ik_llama.cpp/main/README.md",
+    "topic": "Tech story of the day (picked that morning from the news)",
+    "kind": "story",
+    "slot": true,
     "planned": true,
-    "why": "It fits 'DeepSeek V4.1 Flash with no GPU', '94 GB on a normal GPU' and split-model inference, which are all trending, and builds on your llama.cpp video."
+    "why": "side-by-side test: a tech news story every other day",
+    "date": "2026-11-21"
    },
    "kids": {
     "topic": "How does AI hear your voice?",

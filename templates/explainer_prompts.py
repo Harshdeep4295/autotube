@@ -135,6 +135,9 @@ TITLE_RULES = {
               "supports (a giant model is a 'Can you run it' video)."),
     "concept": ("Names the idea and promises the understanding, e.g. 'Mixture of Experts: Why Huge AI Models "
                 "Run Fast' or 'How AI Picks Its Next Word'."),
+    "story": ("Names what happened in plain words and the question it raises, e.g. 'Why a Rocket Failure Just "
+              "Destroyed 40 Satellites' or 'Your Photos App Now Uses AI: What Changed'. No 'BREAKING', no "
+              "clickbait, nothing the article does not say."),
 }
 KIND_NOTES = {
     "tool": "",
@@ -147,6 +150,12 @@ KIND_NOTES = {
                 "(with one everyday comparison), why it matters to people who use AI, and its limits. No "
                 "install steps or commands unless the source shows them; prefer diagrams, steps, compare and "
                 "charts over terminal scenes.\n"),
+    "story": ("This is a TECH STORY video about one news story from the last day or two: what happened (only "
+              "facts in the source, with its numbers), how the technology behind it works in plain words (one "
+              "everyday comparison), why it matters to an ordinary person, and what happens next or what the "
+              "viewer can do. Name companies and products only as the source does. No guessing beyond the "
+              "source, no opinions about people, no install steps unless the source shows them; prefer "
+              "diagrams, steps, compare and charts over terminal scenes.\n"),
 }
 
 
@@ -156,6 +165,10 @@ def first_rule(style: str = "question", kind: str = "tool") -> str:
         how = ("a curiosity QUESTION, in everyday words, about something surprising the idea explains "
                "(\"How can a giant AI model answer as fast as a small one?\"), naming the idea in shot 1 or 2. "
                "Never \"Want to … free, with …\"")
+    if kind == "story":     # news: the event is the hook
+        how = ("a QUESTION in everyday words about the news itself, the one thing people who heard about it "
+               "want to know (\"How did one rocket failure destroy 40 satellites?\"), naming what happened in "
+               "shot 1. Never \"Want to … free, with …\"")
     if kind == "trend":     # a model out days ago: the news is the hook; claim nothing the source lacks
         how = ("a QUESTION that names the new model and the one thing people want to know about it, such as "
                "whether it runs on a normal PC or what it does better, answered only as far as the source "
