@@ -83,3 +83,36 @@ def test_llama_build_skips_placeholder_releases(monkeypatch, tmp_path):
         def json(self): return self._j
     monkeypatch.setattr(MB.requests, "get", lambda url, **kw: R(rels) if "api.github" in url else R(c=buf.getvalue()))
     assert MB.llama_bench(tmp_path).name == "llama-bench"
+
+
+def test_no_gguf_but_huge_is_still_reported(monkeypatch):
+    monkeypatch.setattr(MB, "gguf_repos", lambda m: [])
+    monkeypatch.setattr(MB, "machine", lambda: {"cores": 4, "ram_gb": 16})
+    monkeypatch.setattr(MB, "_get", lambda url, **kw: [{"path": f"model-{i}.safetensors", "lfs": {"size": 50 * GB}}
+                                                       for i in range(10)] + [{"path": "config.json", "size": 9}])
+    b = MB.run("lab/Huge")
+    assert b["no_gguf"] and b["full_gb"] == 500.0
+    text = MB.as_source(b)
+    assert "500.0 GB" in text and "16 GB" in text and "No compressed" in text
+
+
+def test_no_gguf_and_small_means_no_test(monkeypatch):
+    monkeypatch.setattr(MB, "gguf_repos", lambda m: [])
+    monkeypatch.setattr(MB, "machine", lambda: {"cores": 4, "ram_gb": 16})
+    monkeypatch.setattr(MB, "_get", lambda url, **kw: [{"path": "model.safetensors", "lfs": {"size": 8 * GB}}])
+    assert MB.run("lab/Small") is None
+
+
+def test_captions_retry_while_youtube_is_not_ready(monkeypatch):
+    from agents import upload_agent as UA
+    calls = []
+    agent = UA.UploadAgent.__new__(UA.UploadAgent)
+
+    def insert(vid, srt, MFU):
+        calls.append(1)
+        if len(calls) < 2:
+            raise RuntimeError("<HttpError 404 ... video could not be found>")
+    monkeypatch.setattr(agent, "_insert_captions", insert, raising=False)
+    monkeypatch.setattr(UA, "CAPTION_RETRY_SECONDS", 0)
+    agent._upload_captions("vid", "x.srt")
+    assert len(calls) == 2

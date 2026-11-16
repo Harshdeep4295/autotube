@@ -28,9 +28,9 @@ from config import config  # noqa: E402
 
 GRAPH = "https://graph.facebook.com"
 HASHTAGS = {
-    "finance": "#explainedlikeyoure5 #eli5 #moneyforkids #financeforbeginners #learnoninstagram #reels",
-    "ai": "#explainedlikeyoure5 #eli5 #artificialintelligence #aiforkids #techexplained #reels",
-    "tech": "#explainedlikeyoure5 #eli5 #techexplained #howthingswork #stemforkids #reels",
+    "finance": "#explainedlikeyoure5 #eli5 #personalfinance #financeforbeginners #learnoninstagram #reels",
+    "ai": "#explainedlikeyoure5 #eli5 #artificialintelligence #aiexplained #techexplained #reels",
+    "tech": "#explainedlikeyoure5 #eli5 #techexplained #howthingswork #technews #reels",
 }
 GENERAL = "#explainedlikeyoure5 #eli5 #techexplained #learnoninstagram #reels"
 
