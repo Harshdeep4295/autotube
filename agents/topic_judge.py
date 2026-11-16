@@ -37,6 +37,15 @@ RULES = {
         "\"Why does gasoline cost so much?\" vs \"Why do house prices change?\"; \"How does AI learn?\" vs "
         "\"Why does AI need rules?\"; \"Why do we pay taxes?\" vs \"Why do people save money?\"."
     ),
+    "story": (
+        "The channel tells one short story per video to explain an idea simply. Each entry is a story: "
+        "its world / what stands for what / its lesson.\n"
+        "SAME story: a viewer would feel they watched this one already - the same world with the same "
+        "objects doing the same job, or the same lesson told the same way (a robot sorting apples that "
+        "learns from each mistake; coins in and coins out of a jar), even if the question is different.\n"
+        "DIFFERENT story: a different world or different objects carry the idea, and the lesson is "
+        "different, even if both are about AI or money."
+    ),
     "explainer": (
         "The channel makes one explainer per tool, model or idea about running AI on your own computer.\n"
         "SAME video: the same tool, the same model version or the same concept, whatever the wording. "

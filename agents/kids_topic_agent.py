@@ -107,7 +107,8 @@ class KidsTopicAgent:
         for t in topics:
             hist.append({"topic": t["topic"], "area": t.get("area", ""), "source": t.get("source", ""),
                          "world": t.get("world", ""), "opening": t.get("opening", ""),
-                         "ending": t.get("ending", ""), "date": now})
+                         "ending": t.get("ending", ""), "shape": t.get("shape", ""), "lead": t.get("lead", ""),
+                         "story": t.get("story", ""), "date": now})
         (REPO / config.KIDS_HISTORY_FILE).write_text(json.dumps(hist, indent=1, ensure_ascii=False))
 
     # ── sources ──────────────────────────────────────────────────────────────

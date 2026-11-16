@@ -61,7 +61,42 @@ WORLDS = (
 )
 
 
-RECENT_WORLDS = 4   # a world is not offered again until 4 other videos have run
+RECENT_WORLDS = 6   # a world is not offered again until 6 other videos have run (was 4: the apple tree
+                    # came back after 5 videos with almost the same opening, 2026-11-10 and 11-15)
+RECENT_STORIES = 12  # past stories the planner sees and must not repeat
+
+
+def story_text(world: str, mapping: List[Dict], takeaway: str = "") -> str:
+    """One line that says what a story IS: its world, what stands for what, and its lesson."""
+    pairs = "; ".join(f"{m.get('real', '')} = {m.get('kid', '')}" for m in mapping or [] if isinstance(m, dict))
+    return " / ".join(x for x in (world, pairs, takeaway) if x)
+
+
+def recent_stories(history: List[Dict], n: int = RECENT_STORIES) -> str:
+    rows = history[-n:]
+    if not rows:
+        return "(none yet)"
+    out = []
+    for h in rows:
+        bits = [f'"{h["topic"]}"', f"world: {h.get('world') or '?'}"]
+        if h.get("shape"):
+            bits.append(f"shape: {h['shape']}")
+        if h.get("lead"):
+            bits.append(f"lead: {h['lead']}")
+        if h.get("story"):
+            bits.append(f"story: {h['story']}")
+        out.append("- " + " | ".join(bits))
+    return "\n".join(out)
+
+
+def pick_lead(history: List[Dict]) -> str:
+    """The cast member who leads this story: the one who led longest ago (all seven take turns;
+    before 2026-11-16 Mia, Leo or Zoe led every video)."""
+    from agents.kids_scene_schema import CHARACTERS
+    used = [h.get("lead") for h in history]
+    last = {c: max((i for i, u in enumerate(used) if u == c), default=-1) for c in CHARACTERS}
+    # Mia, Leo and Zoe led everything before leads were recorded, so the friends go first
+    return min(CHARACTERS, key=lambda c: (last[c], c in ("mia", "leo", "zoe"), CHARACTERS.index(c)))
 
 
 def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int = 4) -> List[Dict]:
@@ -343,9 +378,21 @@ class KidsScriptAgent:
                            f'"{w["label"]}". Things that fit: {w["items"]}.' for w in opts)
         hist = _history()
         shape = story_shape(len(hist))
-        logger.info(f"[kids-script] story shape: {shape.split(':')[0]}")
-        plan = self._ask(P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
-                                            worlds=worlds, shape=shape), check, max_tokens=3000)
+        lead = pick_lead(hist)
+        logger.info(f"[kids-script] story shape: {shape.split(':')[0]}, lead: {lead}")
+        past = [h for h in hist[-RECENT_STORIES:] if h.get("story")]
+        user = P.PLAN_USER.format(question=topic["topic"], context=ctx or "(none)", props=", ".join(PROPS),
+                                  worlds=worlds, shape=shape, lead=lead.capitalize(), recent=recent_stories(hist))
+        plan = self._ask(user, check, max_tokens=3000)
+        # The same story again under a new question (2026-11-10 and 11-15: apples sorted by a robot
+        # that learns from each "oops")? Ask once more for a different one.
+        from agents.topic_judge import judge
+        story = story_text(plan.get("world", ""), plan.get("map", []), plan.get("takeaway", ""))
+        same = judge(story, [h["story"] for h in past], "story") if past and config.TOPIC_JUDGE else None
+        if same:
+            logger.warning(f"[kids-script] plan repeats a recent story ({same[:90]}) — planning again")
+            plan = self._ask(user + P.PLAN_AGAIN.format(story=same), check, max_tokens=3000)
+            story = story_text(plan.get("world", ""), plan.get("map", []), plan.get("takeaway", ""))
         # The planner may reword the question into one we made last week ("How can AI help stop
         # disease?" became "How can AI stop germs?"). Fall back to the topic's own wording then.
         recent = [h["topic"] for h in hist[-RECENT_TOPICS:]]
@@ -358,6 +405,8 @@ class KidsScriptAgent:
         w = next((o for o in opts if o["key"] == key), opts[0])
         self.world = w
         topic["world"] = w["key"]   # recorded in the history by mark_used after a successful upload
+        topic.update({"shape": shape.split(":")[0].lower(), "lead": lead, "story": story[:400]})
+        plan["lead"] = lead   # the script writer reads the plan
         logger.info(f"[kids-script] story world: {w['world']} (options: {', '.join(o['key'] for o in opts)})")
         return plan
 
