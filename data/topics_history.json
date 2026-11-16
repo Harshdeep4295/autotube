@@ -294,5 +294,13 @@
     "timestamp": "2026-11-15T11:24:56.970588",
     "used_at": "2026-11-15T11:24:56.970588",
     "source": "bank"
+  },
+  {
+    "topic": "LongCat-2.5: the new AI model that reads images and text from meituan-longcat, and can you run it at home?",
+    "normalized_topic": "longcat25 the new ai model that reads im",
+    "timestamp": "2026-11-16T11:50:51.113002",
+    "used_at": "2026-11-16T11:50:51.113002",
+    "source": "trend",
+    "theme": "vision"
   }
 ]
