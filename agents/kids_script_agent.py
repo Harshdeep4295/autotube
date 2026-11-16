@@ -95,7 +95,8 @@ def pick_lead(history: List[Dict]) -> str:
     from agents.kids_scene_schema import CHARACTERS
     used = [h.get("lead") for h in history]
     last = {c: max((i for i, u in enumerate(used) if u == c), default=-1) for c in CHARACTERS}
-    return min(CHARACTERS, key=lambda c: (last[c], CHARACTERS.index(c)))
+    # Mia, Leo and Zoe led everything before leads were recorded, so the friends go first
+    return min(CHARACTERS, key=lambda c: (last[c], c in ("mia", "leo", "zoe"), CHARACTERS.index(c)))
 
 
 def world_options(area: str = "", history: Optional[List[Dict]] = None, n: int = 4) -> List[Dict]:

@@ -22,7 +22,7 @@ def test_lead_rotates_through_the_whole_cast():
 
 
 def test_old_rows_without_a_lead_do_not_block_anyone():
-    assert KS.pick_lead([{"topic": "q"}]) == "mia"
+    assert KS.pick_lead([{"topic": "q"}]) == "sam"      # the friends who never led go first
 
 
 def test_recent_stories_lists_world_shape_and_story():
@@ -47,9 +47,9 @@ def test_plan_prompt_names_the_lead_and_recent_stories():
     with mock.patch.object(KS, "_history", return_value=_history()), mock.patch.object(config, "TOPIC_JUDGE", False):
         topic = {"topic": "How does the stock market work?"}
         plan = KS.KidsScriptAgent(llm).plan(topic)
-    assert "LEAD for this video: Mia" in llm.prompts[0]
+    assert "LEAD for this video: Sam" in llm.prompts[0]
     assert "sorting apples / neuron" in llm.prompts[0]
-    assert plan["lead"] == "mia" and topic["lead"] == "mia"
+    assert plan["lead"] == "sam" and topic["lead"] == "sam"
     assert topic["story"].startswith("lemonade stand / share = a slice")
 
 
