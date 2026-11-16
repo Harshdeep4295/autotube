@@ -363,5 +363,82 @@
     "opening": "Zoe built a robot, but even Zoe can't say how it thinks!",
     "ending": "Builders grow AI, so they study it to understand it.",
     "date": "2026-11-15T11:38:43+00:00"
+  },
+  {
+    "topic": "What is a computer chip?",
+    "area": "tech",
+    "source": "feed",
+    "world": "delivery truck",
+    "opening": "You can help Leo solve a mystery that fits on a fingertip.",
+    "ending": "Yes or no, super fast, all inside one small chip.",
+    "date": "2026-11-09T12:20:10+00:00",
+    "story": "Leo's delivery truck and its tiny roads / computer chip = a tiny town of roads where little deliveries zoom; switch (transistor) = a little gate on the road that opens or shuts; on and off = gate open means yes, gate shut means no",
+    "shape": "mystery"
+  },
+  {
+    "topic": "What is a neural network?",
+    "area": "ai",
+    "source": "feed",
+    "world": "apple tree",
+    "opening": "By the end, you'll know why Mia's team of friends wins.",
+    "ending": "Every time you fix an oops, you learn like Mia's team.",
+    "date": "2026-11-10T11:56:13+00:00",
+    "story": "sorting apples from Zoe's apple tree / neuron = one friend who checks just one small thing about an apple, like its color or its spots; connection weights = how much each friend listens to the friend next to them; training = practicing on a hundred apples and fixing the listening after every mistake; neural network = the whole team of friends passing their guesses down the line",
+    "shape": "race"
+  },
+  {
+    "topic": "Why do prices jump up?",
+    "area": "finance",
+    "source": "feed",
+    "world": "lemonade stand",
+    "opening": "One cup used to cost one coin, and you can find out what changed.",
+    "ending": "Next time a price jumps, ask: costs or crowds?",
+    "date": "2026-11-11T11:36:57+00:00",
+    "story": "Mia's lemonade stand on a busy street / cost = the coins Mia pays for lemons, cups and jars; demand = a long line of kids with lots of coins, all wanting lemonade; inflation = when prices at every stand on the street go up together",
+    "shape": "build it"
+  },
+  {
+    "topic": "How can a busy shop still run out of money?",
+    "area": "finance",
+    "source": "plan",
+    "world": "pizza shop",
+    "opening": "Follow the coins with Mia, and you'll catch the sneaky leak.",
+    "ending": "It wins when more coins come in than go out.",
+    "date": "2026-11-12T12:02:58+00:00",
+    "story": "Mia's busy pizza shop / revenue = the coins that come in when friends buy slices; costs = the coins that go out for cheese, boxes and the shop itself; profit = the coins still left in the jar at the end of the day",
+    "shape": "what if"
+  },
+  {
+    "topic": "Can an AI get in trouble with the law?",
+    "area": "ai",
+    "source": "plan",
+    "world": "robot workshop",
+    "opening": "When a robot spills, who mops up? You're about to find out.",
+    "ending": "Behind every robot is a person who can fix it.",
+    "date": "2026-11-13T11:47:56+00:00",
+    "story": "Zoe's robot workshop / AI = Zoe's robot that follows the chip she put inside it; the law = the workshop rules about who fixes a mess; responsible = the people who built it, switched it on and let it roll",
+    "shape": "problem and fix"
+  },
+  {
+    "topic": "How can a game draw fewer dots but look sharper?",
+    "area": "tech",
+    "source": "plan",
+    "world": "rocket club",
+    "opening": "Leo's rocket game drew less but looks better, and you get to crack why.",
+    "ending": "A quick rough picture plus smart guesses makes a sharp sky.",
+    "date": "2026-11-14T11:08:16+00:00",
+    "story": "the kids' rocket club and its pretend space game / graphics chip = the tiny chip in the rocket that draws the space game; pixels = the little dots that make up every picture on the screen; low resolution = a quick rough picture made with fewer dots; AI upscaling = a smart helper in the chip that has seen lots and lots of pictures and guesses the missing dots",
+    "shape": "mystery"
+  },
+  {
+    "topic": "Why don't AI builders fully understand their AI?",
+    "area": "ai",
+    "source": "plan",
+    "world": "apple tree",
+    "opening": "Zoe built a robot, but even Zoe can't say how it thinks!",
+    "ending": "Builders grow AI, so they study it to understand it.",
+    "date": "2026-11-15T11:38:43+00:00",
+    "story": "picking apples from the apple tree in Zoe's garden / AI = Zoe's robot, whose brain grew like a little tree; training = giving the robot lots of practice, like water and sun for a seed; AI builders = Zoe, who helped the brain grow but never placed each branch; studying the AI = peeking at the branches afterward to see how it learned",
+    "shape": "race"
   }
 ]
