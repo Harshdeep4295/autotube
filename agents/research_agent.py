@@ -196,6 +196,23 @@ class ResearchAgent:
         """
         history = self._load_history()
         if config.EXPLAINER_TOPIC_MODE == "bank":
+            from agents import story_agent
+            if count == 1 and story_agent.is_story_day():
+                # Story day: only a big model release takes the slot; no usable story → the usual topic
+                if config.EXPLAINER_TRENDS:
+                    from agents.trend_agent import trending_topic
+                    big = trending_topic(history, big_only=True)
+                    if big:
+                        logger.info(f"  ✓ {big['topic'][:70]} (big release, on a story day)")
+                        if record:
+                            self._save_to_history([big], history)
+                        return [big]
+                story = story_agent.pick(self._made(history))
+                if story:
+                    logger.info(f"  ✓ {story['topic'][:70]} (tech story of the day)")
+                    if record:
+                        self._save_to_history([story], history)
+                    return [story]
             planned = self._planned_today(history) if count == 1 else None
             if config.EXPLAINER_TRENDS and count == 1:
                 # Checked every day; the day after a trend video only a big release
@@ -320,7 +337,7 @@ class ResearchAgent:
         """Today's topic from the week plan, unless it was made in the meantime."""
         from agents.week_plan import for_today
         t = for_today("explainer")
-        if not t or not t.get("topic"):
+        if not t or not t.get("topic") or t.get("slot"):
             return None
         from agents.published import channel_titles, explainer_published
         used = {h.get("normalized_topic") or self._normalize(h["topic"]) for h in history}

@@ -146,7 +146,7 @@ def _explainers_made() -> int:
 
 
 def topic_kind(topic: Dict) -> str:
-    return topic.get("kind") if topic.get("kind") in ("concept", "trend") else "tool"
+    return topic.get("kind") if topic.get("kind") in ("concept", "trend", "story") else "tool"
 
 
 def hook_style_for(n: int) -> str:
@@ -397,7 +397,7 @@ class ExplainerScriptAgent:
 
     def generate(self, topic: Dict) -> Dict:
         self.kind = topic_kind(topic)
-        if self.kind == "concept" and self.hook_style == "steps":
+        if self.kind in ("concept", "story") and self.hook_style == "steps":
             self.hook_style = "question"   # "how many commands" makes no sense for an idea
         source = self.source_for(topic)
         logger.info(f"[script] topic: {topic['topic'][:70]} (source text: {len(source)} chars, "

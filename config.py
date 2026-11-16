@@ -115,6 +115,9 @@ class Config:
     # bank is used up; "feed" = news feeds only (research_agent scoring).
     EXPLAINER_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("EXPLAINER_TOPIC_MODE", "bank").lower())
     EXPLAINER_TOPICS_FILE: str = "data/explainer_topics.json"
+    # Tech story every other day from 2026-11-17 (agents/story_agent.py): side-by-side test of news
+    # stories against the tool and new-model videos
+    EXPLAINER_STORIES: bool = field(default_factory=lambda: os.getenv("EXPLAINER_STORIES", "true").lower() == "true")
 
     # ── Kids track: "Explained Like You're 5" (VIDEO_STYLE=kids, see docs/PLAN_KIDS_EXPLAINER.md) ──
     # 2-3 minute story videos (recurring cast + prop kit, pycairo renderer). All ages, NOT made for kids.

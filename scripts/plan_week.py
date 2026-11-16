@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agents import content_db, topic_index  # noqa: E402
 from agents.topic_judge import same_as  # noqa: E402
+from agents import story_agent  # noqa: E402
 from agents.kids_topic_agent import KidsTopicAgent, norm, too_close  # noqa: E402
 from agents.published import explainer_published  # noqa: E402
 from agents.research_agent import ResearchAgent, bank_topic  # noqa: E402
@@ -241,6 +242,9 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
         # explainer
         ex, note = None, ""
         pick = want.get("explainer") or {}
+        if story_agent.is_story_day(date.fromisoformat(d)):
+            pick = {}   # picked on the morning itself from that day's news
+            ex = story_agent.slot(d)
         if pick:
             ex = resolve(pick, bank, models)
             why = check.explainer_ok(ex) if ex else "unknown ref or repo"
@@ -253,7 +257,9 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
                 if not check.explainer_ok(t):
                     ex = t
                     break
-        if ex:
+        if ex and ex.get("slot"):
+            pass
+        elif ex:
             spare_bank = [b for b in spare_bank if b["topic"] != ex["topic"]]
             check.take_explainer(ex)
             ex.update({"planned": True, "why": pick.get("why", "") if not note else note})
@@ -368,7 +374,9 @@ def main() -> int:
             headlines="\n".join(f"  {h}" for h in heads[:30]) or "  (not available)",
             kids_done="\n".join(f"  {q}" for q in check.kids_past[-150:]),
             explainers_done="\n".join(f"  {t}" for t in check.ex_past[-150:]),
-            days=", ".join(f"{d} {ar}" for d, ar in zip(dates, areas)))
+            days=", ".join(f"{d} {ar}" + (" (STORY DAY: the explainer is picked that morning from the news; "
+                                          "give it no explainer)" if story_agent.is_story_day(date.fromisoformat(d)) else "")
+                           for d, ar in zip(dates, areas)))
         try:
             text, writer = ask_llm(prompt)
             raw = parse_json(text)
