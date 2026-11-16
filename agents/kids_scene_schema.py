@@ -136,7 +136,7 @@ CATALOGUE: Dict[str, Dict[str, Any]] = {
                     "winner": "right"},
     },
     "reveal": {
-        "use": "say the grown-up word out loud, big (the name of the concept)",
+        "use": "say the real term out loud, big (the name of the concept)",
         "lines": (1, 2),
         "beats": ["big banner with the word and confetti", "the small explanation appears"],
         "props": {"word": T(18, True), "sub": T(36), "prop": PR("star")},
@@ -150,7 +150,7 @@ CATALOGUE: Dict[str, Dict[str, Any]] = {
         "example": {"who": "zoe", "bubble": "Be patient!", "prop": "tree"},
     },
     "recap": {
-        "use": "remember the grown-up words: each card = grown-up word + kid meaning",
+        "use": "remember the real terms: each card = real term + its plain meaning",
         "lines": (2, 4),
         "beats": ["the 'Let's remember!' header", "card 1", "card 2", "card 3"],
         "props": {"cards": L(O(prop=PR(), term=T(14, True), means=T(30, True)), 1, 3)},

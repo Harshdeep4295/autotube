@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import requests
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -95,6 +96,11 @@ class Orchestrator:
             with open(script_path) as f:
                 fixed = json.load(f)
             topics = [{"topic": fixed.get("topic") or fixed.get("title", "script"), "script": fixed}]
+        elif topic_override and topic_override.startswith("https://huggingface.co/"):
+            from agents.trend_agent import to_topic     # a model link → that model's new-release video
+            model_id = "/".join(topic_override.rstrip("/").split("/")[3:5])
+            info = requests.get(f"https://huggingface.co/api/models/{model_id}", timeout=30).json()
+            topics = [to_topic(info)]
         elif topic_override:
             topics = [{"topic": topic_override, "source": "manual_override", "url": ""}]
         else:
@@ -127,6 +133,12 @@ class Orchestrator:
         result = {"job_id": job_id, "topic": topic["topic"], "style": "explainer", "success": False,
                   "started": datetime.now().isoformat()}
         try:
+            if topic.get("kind") == "trend" and config.MODEL_BENCH and not topic.get("script") and "bench" not in topic:
+                from agents import model_bench
+                self.logger.info("Step 2a/5: Testing the model on this computer…")
+                topic["bench"] = model_bench.run(topic.get("url", "").replace("https://huggingface.co/", ""))
+                (out_dir / "bench.json").write_text(json.dumps(topic["bench"], indent=2))
+                result["bench"] = topic["bench"]
             self.logger.info("Step 2/5: Writing grounded script (free LLM)…")
             script = topic.get("script") or ExplainerScriptAgent().generate(topic)
             (out_dir / "script.json").write_text(json.dumps(script, indent=2, ensure_ascii=False))
