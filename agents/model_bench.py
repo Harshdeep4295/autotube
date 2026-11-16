@@ -37,7 +37,7 @@ from config import config
 logger = logging.getLogger(__name__)
 
 HF = "https://huggingface.co"
-LLAMA_RELEASE = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+LLAMA_RELEASES = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=10"
 QUANTS = ("Q4_K_M", "Q4_K_S", "IQ4_XS", "Q4_0", "Q3_K_M", "IQ3_M", "Q3_K_S", "Q2_K", "IQ2_M", "IQ2_XS")
 TRUSTED = ("unsloth", "bartowski", "lmstudio-community", "ggml-org", "mradermacher", "qwen", "google")
 HEADERS = {"User-Agent": "AutoTube/1.0"}
@@ -100,9 +100,10 @@ def llama_bench(work: Path) -> Path:
     hdr = dict(HEADERS)
     if os.getenv("GITHUB_TOKEN"):
         hdr["Authorization"] = f"Bearer {os.getenv('GITHUB_TOKEN')}"
-    rel = requests.get(LLAMA_RELEASE, timeout=30, headers=hdr).json()
-    asset = next(a for a in rel.get("assets", [])
-                 if re.search(r"bin-ubuntu-x64\.(zip|tar\.gz)$", a["name"]))
+    # the newest numbered build that has the plain CPU Linux file ("latest" can be a placeholder release)
+    rels = requests.get(LLAMA_RELEASES, timeout=30, headers=hdr).json()
+    rel, asset = next((r, a) for r in rels for a in r.get("assets", [])
+                      if re.fullmatch(r"llama-b\d+-bin-ubuntu-x64\.(zip|tar\.gz)", a["name"]))
     data = requests.get(asset["browser_download_url"], timeout=300, headers=HEADERS).content
     dest = work / "llama"
     if asset["name"].endswith(".zip"):
@@ -185,7 +186,7 @@ def run(model_id: str) -> Optional[Dict]:
                     f"peak {got['peak_gb']} GB ({result['seconds']} s)")
         return result
     except Exception as e:  # noqa: BLE001 — no test: the video is made from the model card as before
-        logger.warning(f"[bench] no test ({str(e)[:200]})")
+        logger.warning(f"[bench] no test ({type(e).__name__}: {str(e)[:200]})")
         return None
     finally:
         if work:

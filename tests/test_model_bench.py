@@ -65,3 +65,21 @@ def test_kids_prompts_speak_to_adults():
     from templates import kids_prompts as P
     assert "CURIOUS ADULT" in P.SYSTEM and "5-year-old could" not in P.CONCEPT_USER
     assert "talks down" in P.CHECK_USER
+
+
+def test_llama_build_skips_placeholder_releases(monkeypatch, tmp_path):
+    import io, tarfile
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as t:
+        data = b"#!/bin/sh\n"
+        info = tarfile.TarInfo("llama-b2/llama-bench"); info.size = len(data)
+        t.addfile(info, io.BytesIO(data))
+    rels = [{"tag_name": "v1.0.0", "assets": [{"name": "nightly-tag.txt"}]},
+            {"tag_name": "b2", "assets": [{"name": "llama-b2-bin-ubuntu-vulkan-x64.tar.gz"},
+                                          {"name": "llama-b2-bin-ubuntu-x64.tar.gz", "browser_download_url": "u"}]}]
+
+    class R:
+        def __init__(self, j=None, c=b""): self._j, self.content = j, c
+        def json(self): return self._j
+    monkeypatch.setattr(MB.requests, "get", lambda url, **kw: R(rels) if "api.github" in url else R(c=buf.getvalue()))
+    assert MB.llama_bench(tmp_path).name == "llama-bench"
