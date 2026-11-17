@@ -302,5 +302,12 @@
     "used_at": "2026-11-16T11:50:51.113002",
     "source": "trend",
     "theme": "vision"
+  },
+  {
+    "topic": "Three small failures took down Microsoft 365: how cascading failures knock out services millions rely on",
+    "normalized_topic": "three small failures took down microsoft",
+    "timestamp": "2026-11-17T12:19:31.151551",
+    "used_at": "2026-11-17T12:19:31.151551",
+    "source": "story"
   }
 ]
