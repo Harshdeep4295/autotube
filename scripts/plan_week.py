@@ -169,6 +169,10 @@ want and the bank lacks (only repos you are sure exist; give the topic in the ba
 "<Tool>: <what you can do with it>"). At most 3 "hf" days, never two in a row. Alternate tool and
 concept topics on the other days. Prefer topics close to what is getting views this week and to
 the channel's own best videos.
+SEARCH FIRST: the channel's long-video views come from people searching a tool or model by name
+(wan2gp, ollama, comfyui, gpt4all); concept videos get few views. So on non-story days prefer a
+named "tool" people can install, or an "hf" model that runs on a normal PC; at most one "concept"
+a week. Skip "hf" models over a trillion parameters (nobody can run them at home).
 Kids: one question per day in that day's area, under 60 characters, that a curious adult or child
 would really ask, about something in the news right now (see the headlines) on most days, with a surprising angle (like
 "Why does gasoline cost so much?" or "How do AI safety rules keep robots safe?" — the channel's
@@ -236,7 +240,7 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
     models = {m["ref"]: m for m in ctx["models"]}
     spare_bank = list(ctx["bank"])
     kids_bank = ctx["kids_bank"]
-    days, last_kind = [], None
+    days = []
     for d, area in zip(dates, ctx["areas"]):
         want = by_date.get(d, {})
         # explainer
@@ -252,7 +256,7 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
                 note = f"Claude's pick {pick.get('ref')} rejected: {why}"
                 ex = None
         if ex is None:
-            for b in sorted(spare_bank, key=lambda b: b["kind"] == last_kind):
+            for b in sorted(spare_bank, key=lambda b: b["kind"] == "concept"):   # tools first
                 t = bank_topic(b["entry"])
                 if not check.explainer_ok(t):
                     ex = t
@@ -263,7 +267,6 @@ def build_plan(dates: List[str], raw: Dict, ctx: Dict) -> List[Dict]:
             spare_bank = [b for b in spare_bank if b["topic"] != ex["topic"]]
             check.take_explainer(ex)
             ex.update({"planned": True, "why": pick.get("why", "") if not note else note})
-            last_kind = ex.get("kind")
         # kids
         kid, knote = None, ""
         kp = want.get("kids") or {}

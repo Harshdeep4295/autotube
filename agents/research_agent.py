@@ -354,6 +354,10 @@ class ResearchAgent:
             if covered(t["model_id"], history):
                 logger.info(f"  – week plan model already covered, skipped: {t['model_id']}")
                 return None
+            from agents.trend_agent import too_big
+            if too_big(t["model_id"]):
+                logger.info(f"  – week plan model too big to run at home, skipped: {t['model_id']}")
+                return None
         return t
 
     @staticmethod
@@ -380,7 +384,8 @@ class ResearchAgent:
         from agents.topic_judge import same_as
         made = self._made(history)
         picks = []
-        for b in bank:
+        # named tools first: search for tool names brings most long-video views; concepts get few
+        for b in sorted(bank, key=lambda b: b.get("kind", "tool") == "concept"):
             if self._normalize(b["topic"]) in used:
                 continue
             if explainer_published(b["topic"], titles):
