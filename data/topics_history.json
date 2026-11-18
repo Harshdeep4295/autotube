@@ -309,5 +309,13 @@
     "timestamp": "2026-11-17T12:19:31.151551",
     "used_at": "2026-11-17T12:19:31.151551",
     "source": "story"
+  },
+  {
+    "topic": "Inkling-2-Small: the new AI model that reads images and text from thinkingmachines, and can you run it at home?",
+    "normalized_topic": "inkling2small the new ai model that read",
+    "timestamp": "2026-11-18T12:10:42.001008",
+    "used_at": "2026-11-18T12:10:42.001008",
+    "source": "trend",
+    "theme": "vision"
   }
 ]
