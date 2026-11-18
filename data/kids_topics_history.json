@@ -401,5 +401,17 @@
     "lead": "ava",
     "story": "Ava's photo letters to Grandma's house / AI photo editing = the smart helper on Ava's phone that can change her photos before she mails them to Grandma; touch-up = fixing the light or tidying the edges so Grandma sees Ava's real garden more clearly; fake (a fib) = adding a tree or a door that was never really there, so the photo tells Grandma something untrue; the honesty test = asking: if Grandma",
     "date": "2026-11-17T12:39:00+00:00"
+  },
+  {
+    "topic": "Why can one computer problem stop the whole world?",
+    "area": "tech",
+    "source": "plan",
+    "world": "delivery truck",
+    "opening": "Raj’s truck carries the key that opens the city hub.",
+    "ending": "If a system depends on one piece, it can halt.",
+    "shape": "problem and fix",
+    "lead": "raj",
+    "story": "Leo's delivery truck / single point of failure = one broken truck that stops all deliveries; redundancy = extra backup truck / If a system depends on one piece, that piece failing can halt everything.",
+    "date": "2026-11-18T12:40:36+00:00"
   }
 ]
