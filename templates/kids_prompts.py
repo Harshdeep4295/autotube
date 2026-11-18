@@ -52,7 +52,7 @@ sentence. Never open with the same situation (a too-full apple tree, a busy shop
 
 Return JSON:
 {{
-  "question": "the question a curious adult would type into a search box, at most 33 characters (it must fit a title), e.g. 'How does the stock market work?'",
+  "question": "the question a curious adult would type into a search box, at most 33 characters (it must fit a title), in the words people search ('lie', not 'fib'; no baby words), e.g. 'How does the stock market work?'",
   "world_key": "the key of the world you picked, copied exactly",
   "world": "the analogy world in a few words",
   "map": [{{"real": "real term", "kid": "what it is in the story"}}],
@@ -120,7 +120,7 @@ their wording or their sentence pattern (e.g. if they say "You will see how…",
 Return JSON:
 {{
   "title": "the plan's question followed by (Explained Like You're 5); 60 characters at most in total",
-  "description": "60-100 words. Sentence 1 answers the question in the words someone would type into a search box and names the real term ('Drones find forest fires with an infrared sensor, a camera that sees heat.'). Then what the viewer will understand. No links.",
+  "description": "60-100 words. Name the characters exactly as the plan's story does. Sentence 1 answers the question in the words someone would type into a search box and names the real term ('Drones find forest fires with an infrared sensor, a camera that sees heat.'). Then what the viewer will understand. No links.",
   "tags": ["8-12 search phrases; first one exactly: Explained Like You're 5"],
   "thumbnail_text": "2-3 words that make someone curious and are NOT the title's words: for 'How do drones see hidden forest fires?' write 'IT SEES HEAT'",
   "scenes": [{{"type": "...", "weather": "sunny", "props": {{...}},

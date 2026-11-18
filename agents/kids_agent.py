@@ -269,7 +269,7 @@ def description_for(script: Dict, skip_url: str = "") -> str:
     parts = [body]
     amap = (script.get("analogy") or {}).get("map") or []
     if amap:
-        parts.append("Grown-up words in this video:\n" + "\n".join(
+        parts.append("Key terms in this video:\n" + "\n".join(
             f"- {m.get('real', '')} = {m.get('kid', '')}" for m in amap if isinstance(m, dict)))
     parts.append("Explained Like You're 5 — big ideas, told simply, for curious people of all ages.")
     more = earlier_videos(skip_url=skip_url)

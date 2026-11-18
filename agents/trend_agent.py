@@ -25,7 +25,8 @@ from config import config
 logger = logging.getLogger(__name__)
 
 HF_TRENDING = ("https://huggingface.co/api/models?sort=trendingScore&limit=60"
-               "&expand[]=createdAt&expand[]=likes&expand[]=trendingScore&expand[]=pipeline_tag&expand[]=cardData")
+               "&expand[]=createdAt&expand[]=likes&expand[]=trendingScore&expand[]=pipeline_tag&expand[]=cardData"
+               "&expand[]=safetensors")
 
 # Labs whose names people search for. Unknown authors still count, ranked lower.
 KNOWN_LABS = {
@@ -138,12 +139,36 @@ def covered(model_id: str, history: List[Dict]) -> bool:
     return False
 
 
+def params_b(m: Dict) -> Optional[float]:
+    """Total parameters in billions from the model's weight files, or None when Hugging Face does not say."""
+    total = (m.get("safetensors") or {}).get("total")
+    return round(int(total) / 1e9, 1) if total else None
+
+
+def runs_at_home(m: Dict) -> bool:
+    """Not a giant beyond TREND_MAX_PARAMS_B; unknown size passes. LongCat-2.5 (1.8 trillion parameters)
+    got 19 views in two days, while DeepSeek-V4.1-Flash (763 billion) did well on its famous name."""
+    p = params_b(m)
+    return p is None or p <= config.TREND_MAX_PARAMS_B
+
+
+def too_big(model_id: str) -> bool:
+    """A planned model over TREND_MAX_PARAMS_B (checked on the day; no answer → not too big)."""
+    try:
+        m = requests.get(f"https://huggingface.co/api/models/{model_id}", params={"expand[]": "safetensors"},
+                         timeout=20, headers={"User-Agent": "AutoTube/1.0"}).json()
+    except Exception:  # noqa: BLE001
+        return False
+    return not runs_at_home(m)
+
+
 def rank(models: List[Dict], history: List[Dict], now: Optional[datetime] = None) -> List[Dict]:
     keep = [m for m in models
             if is_original(m) and m.get("pipeline_tag") in WHAT
             and age_days(m, now) <= config.TREND_MAX_AGE_DAYS
             and int(m.get("likes") or 0) >= config.TREND_MIN_LIKES
-            and not covered(m["id"], history)]
+            and not covered(m["id"], history)
+            and runs_at_home(m)]
     done = recent_themes(history, now)
     if done:
         keep = [m for m in keep if model_theme(m) not in done]

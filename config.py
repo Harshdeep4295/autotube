@@ -77,6 +77,9 @@ class Config:
     EXPLAINER_TRENDS: bool = field(default_factory=lambda: os.getenv("EXPLAINER_TRENDS", "true").lower() == "true")
     TREND_MAX_AGE_DAYS: int = field(default_factory=lambda: int(os.getenv("TREND_MAX_AGE_DAYS", "14")))
     TREND_MIN_LIKES: int = field(default_factory=lambda: int(os.getenv("TREND_MIN_LIKES", "250")))
+    # skip new models bigger than this (billions of parameters). Not lower: DeepSeek-V4.1-Flash (763 B)
+    # still did well because people search the name; LongCat-2.5 (1.8 trillion) got 19 views
+    TREND_MAX_PARAMS_B: float = field(default_factory=lambda: float(os.getenv("TREND_MAX_PARAMS_B", "1000")))
     # Trend videos alternate with how-it-works / tool videos: no trend the day after a trend.
     TREND_ALTERNATE: bool = field(default_factory=lambda: os.getenv("TREND_ALTERNATE", "true").lower() == "true")
     # On the day after a trend, only a big release still wins: a known lab with this many likes.
