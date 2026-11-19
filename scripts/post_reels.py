@@ -1,6 +1,6 @@
 """
-Post a kids Short (the vertical cut) as an Instagram Reel and a Facebook Reel.
-Runs as a step of the kids workflow after the YouTube upload; free Meta Graph API.
+Post a Short (kids or explainer, the vertical cut) as an Instagram Reel and a Facebook Reel.
+Runs as a step of the kids and explainer workflows after the YouTube upload; free Meta Graph API.
 
     python scripts/post_reels.py                 # newest outputs/*/short.mp4
     python scripts/post_reels.py --dir outputs/20261005_kids_ab12cd --dry-run
@@ -14,6 +14,7 @@ not stop the other; the exit code is 1 if anything that was attempted failed.
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -35,7 +36,36 @@ HASHTAGS = {
 GENERAL = "#explainedlikeyoure5 #eli5 #techexplained #learnoninstagram #reels"
 
 
+EXPLAINER_TAGS = "#localai #opensource #aitools #selfhosted #artificialintelligence #techexplained #reels"
+
+
+def is_kids(script: Dict) -> bool:
+    return "explained like you're 5" in script.get("title", "").lower() or "scenes" in script
+
+
+def tool_tag(title: str) -> str:
+    """'OpenCode: Install the …' → '#opencode' (the name people search), or '' when there is no short name."""
+    name = re.split(r"[:\-–|]", title, maxsplit=1)[0]
+    name = re.sub(r"^(Run|Install|Can You Run|How)\s+", "", name.strip(), flags=re.I)
+    tag = re.sub(r"[^a-z0-9]", "", name.lower())
+    return f"#{tag}" if 2 < len(tag) <= 24 and len(name.split()) <= 3 else ""
+
+
+def explainer_caption(script: Dict, full_url: str = "") -> str:
+    """Tool / new-model / tech-story Short: the title, the full video link up top, the first lines of the
+    description, the tool's own name as a hashtag."""
+    title = script.get("title", "").strip()
+    desc = script.get("description", "").strip().split("\n\n")[0]
+    first = " ".join(re.split(r"(?<=[.!?])\s+", desc)[:2])
+    parts = [title, f"Full video on YouTube ({config.CHANNEL_NAME}): {full_url}" if full_url else "", first,
+             "Narration voice is AI-generated. Animation is made with code.",
+             " ".join(t for t in (tool_tag(title), EXPLAINER_TAGS) if t)]
+    return "\n\n".join(p for p in parts if p)[:2100]
+
+
 def caption_for(script: Dict, full_url: str = "") -> str:
+    if not is_kids(script):
+        return explainer_caption(script, full_url)
     base = script.get("title", "").split(" (")[0].strip()
     area = script.get("area", "")
     parts = [f"{base} — explained like you're 5.", script.get("description", "").strip()]
