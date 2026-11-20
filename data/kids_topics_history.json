@@ -413,5 +413,17 @@
     "lead": "raj",
     "story": "Leo's delivery truck / single point of failure = one broken truck that stops all deliveries; redundancy = extra backup truck / If a system depends on one piece, that piece failing can halt everything.",
     "date": "2026-11-18T12:40:36+00:00"
+  },
+  {
+    "topic": "What does it mean when an economy grows?",
+    "area": "finance",
+    "source": "plan",
+    "world": "cookie bakery",
+    "opening": "Follow Kim's clues, and you'll finally get it when the news says it.",
+    "ending": "Not pricier ones, just more of them to share.",
+    "shape": "mystery",
+    "lead": "kim",
+    "story": "Mia's cookie bakery and the street around it / economy = all the cookies, boxes and work made on Kim's street, added up together; economic growth = the street making more real stuff this year than last year; real growth vs. higher prices = more cookies at the same price is growth; the same cookies at a higher price is not / An economy grows when a place makes more real goods and services than befo",
+    "date": "2026-11-20T12:21:53+00:00"
   }
 ]
