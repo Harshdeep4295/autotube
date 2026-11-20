@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: System packages
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fontconfig libcairo2-dev pkg-config --no-install-recommends
+        run: for i in 1 2 3 4; do sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fontconfig libcairo2-dev pkg-config --no-install-recommends -o Acquire::Retries=5 && break; [ $i = 4 ] && exit 1; echo "apt failed, retrying in 60 s"; sleep 60; done
       - name: Python packages
         run: pip install -r requirements.txt
       - name: Cache voice + whisper models
