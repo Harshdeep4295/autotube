@@ -425,5 +425,17 @@
     "lead": "kim",
     "story": "Mia's cookie bakery and the street around it / economy = all the cookies, boxes and work made on Kim's street, added up together; economic growth = the street making more real stuff this year than last year; real growth vs. higher prices = more cookies at the same price is growth; the same cookies at a higher price is not / An economy grows when a place makes more real goods and services than befo",
     "date": "2026-11-20T12:21:53+00:00"
+  },
+  {
+    "topic": "How does AI hear your voice?",
+    "area": "ai",
+    "source": "bank",
+    "world": "robot workshop",
+    "opening": "The robot that wins this race listens the way your phone listens to you.",
+    "ending": "It listens in pieces, then picks what makes sense.",
+    "shape": "race",
+    "lead": "mia",
+    "story": "Zoe's robot workshop, where two robots race to understand Mia / sound waves = the tiny wiggles Mia's voice makes in the air, which the robot's ear feels like ripples in water; breaking sound into slices = the new robot chopping Mia's words into a hundred tiny bits of sound, like slicing a loaf into thin pieces; speech recognition = the robot's chip matching each tiny bit to a sound it has practice",
+    "date": "2026-11-21T11:58:51+00:00"
   }
 ]
