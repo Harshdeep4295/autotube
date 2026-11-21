@@ -332,5 +332,12 @@
     "used_at": "2026-11-20T12:10:32.410097",
     "source": "trend",
     "theme": "voice"
+  },
+  {
+    "topic": "Researcher plants 2 million trackable secrets into the AI supply chain and they leak: does what you type into AI chatbots really stay private?",
+    "normalized_topic": "researcher plants 2 million trackable se",
+    "timestamp": "2026-11-21T11:42:12.199085",
+    "used_at": "2026-11-21T11:42:12.199085",
+    "source": "story"
   }
 ]
