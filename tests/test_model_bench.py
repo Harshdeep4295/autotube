@@ -15,6 +15,12 @@ def test_choose_takes_q4_when_it_fits_else_the_next_smaller():
     assert MB.choose(files, 2 * GB) is None
 
 
+def test_choose_falls_back_to_q8_when_there_is_no_q4():
+    files = [{"path": "m-BF16.gguf", "size": int(1.6 * GB), "quant": None},
+             {"path": "m-Q8_0.gguf", "size": int(0.8 * GB), "quant": "Q8_0"}]
+    assert MB.choose(files, 9 * GB)["quant"] == "Q8_0"
+
+
 def test_gguf_files_skips_split_files_and_vision_adapters(monkeypatch):
     tree = [{"path": "m-Q4_K_M.gguf", "lfs": {"size": 5 * GB}},
             {"path": "big/m-Q4_K_M-00001-of-00003.gguf", "lfs": {"size": 40 * GB}},
