@@ -38,7 +38,8 @@ logger = logging.getLogger(__name__)
 
 HF = "https://huggingface.co"
 LLAMA_RELEASES = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=10"
-QUANTS = ("Q4_K_M", "Q4_K_S", "IQ4_XS", "Q4_0", "Q3_K_M", "IQ3_M", "Q3_K_S", "Q2_K", "IQ2_M", "IQ2_XS")
+QUANTS = ("Q4_K_M", "Q4_K_S", "IQ4_XS", "Q4_0", "Q3_K_M", "IQ3_M", "Q3_K_S", "Q2_K", "IQ2_M", "IQ2_XS",
+          "Q5_K_M", "Q5_K_S", "Q6_K", "Q8_0")   # bigger ones last: small models often ship only Q8
 TRUSTED = ("unsloth", "bartowski", "lmstudio-community", "ggml-org", "mradermacher", "qwen", "google")
 HEADERS = {"User-Agent": "AutoTube/1.0"}
 
@@ -189,7 +190,7 @@ def run(model_id: str) -> Optional[Dict]:
             q4 = choose(files, 10**15)
             smallest = min((f for f in files if f["size"]), key=lambda f: f["size"], default=None)
             logger.info(f"[bench] {model_id}: too big for this computer (smallest file "
-                        f"{smallest['size'] / 1024**3 if smallest else 0:.0f} GB)")
+                        f"{smallest['size'] / 1024**3 if smallest else 0:.1f} GB)")
             return {**base, "fits": False,
                     "q4_gb": round(q4["size"] / 1024**3, 1) if q4 else None, "q4_quant": q4["quant"] if q4 else None,
                     "smallest_gb": round(smallest["size"] / 1024**3, 1) if smallest else None,
