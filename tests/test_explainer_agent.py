@@ -54,3 +54,22 @@ def test_hashtag_uses_the_repo_for_multi_word_names():
 def test_hashtags_survive_the_length_cut():
     d = description_with_chapters("x" * 6000, [], [], "Run Jan: Chat", "janhq/jan")
     assert len(d) <= 4900 and d.endswith("#Jan #LocalAI #OpenSource")
+
+
+def test_description_has_a_subscribe_link_right_after_the_first_paragraph():
+    d = description_with_chapters("What you get.\n\nMore detail.", [], [], "Run Jan: Chat")
+    first, second, third = d.split("\n\n")[:3]
+    assert first == "What you get." and "sub_confirmation=1" in second and third == "More detail."
+
+
+def test_the_close_asks_to_subscribe_with_a_reason():
+    from agents.explainer_script_agent import add_subscribe_ask
+    from agents.script_rules import check_script
+    shots = [{"text": "Which tool will you try?", "scene": {"type": "cta_end", "props": {"question": "Which tool?"}}}]
+    out = add_subscribe_ask(shots, "tool")[-1]
+    assert "subscribe" in out["text"] and "every few days" in out["text"]
+    assert out["scene"]["props"]["question"] == "Which tool?" and out["scene"]["props"]["sub"]
+    assert "story" in add_subscribe_ask([{"text": "", "scene": {"type": "cta_end"}}], "story")[-1]["text"]
+    script = {"title": "", "shots":
+              [{"text": f"line {i} you?"} for i in range(30)] + [{"text": "That is how you run it."}, out]}
+    assert not [p for p in check_script(script) if "close asks" in p]

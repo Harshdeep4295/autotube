@@ -156,8 +156,8 @@ CATALOGUE: Dict[str, Dict[str, Any]] = {
     },
     "cta_end": {
         "use": "final shot: a question for the comments",
-        "props": {"question": T(60, True), "sub": T(60, default="Subscribe for more practical AI")},
-        "example": {"question": "Which model will you try first?", "sub": "Subscribe for more practical AI"},
+        "props": {"question": T(60, True), "sub": T(60, default="A new local AI tool, tested every few days")},
+        "example": {"question": "Which model will you try first?", "sub": "A new local AI tool, tested every few days"},
     },
 }
 
