@@ -346,5 +346,12 @@
     "timestamp": "2026-11-22T11:55:21.152811",
     "used_at": "2026-11-22T11:55:21.152811",
     "source": "bank"
+  },
+  {
+    "topic": "Walmart lets Meta's Muse AI agent shop and buy Black Friday deals for you: how does an AI agent actually buy things on a website, and should you trust it with your money?",
+    "normalized_topic": "walmart lets metas muse ai agent shop an",
+    "timestamp": "2026-11-23T13:22:50.733956",
+    "used_at": "2026-11-23T13:22:50.733956",
+    "source": "story"
   }
 ]
