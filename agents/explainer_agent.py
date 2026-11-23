@@ -295,7 +295,9 @@ def hashtags_for(title: str, repo: str = "") -> str:
 def description_with_chapters(description: str, chapters: List[Dict], sources: List[Dict], title: str = "",
                               repo: str = "") -> str:
     """Append chapter timestamps, sources and three hashtags to the YouTube description."""
-    parts = [description.strip()]
+    head, _, rest = description.strip().partition("\n\n")
+    parts = [head, f"Subscribe for a new local AI video every day: {config.CHANNEL_URL}?sub_confirmation=1"
+             if config.CHANNEL_URL else "", rest]
     if chapters:
         parts.append("Chapters:\n" + "\n".join(f"{fmt_ts(c['t'])} {c['title']}" for c in chapters))
     if sources:

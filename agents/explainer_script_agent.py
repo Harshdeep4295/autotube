@@ -178,6 +178,30 @@ def tidy_shots(shots: List[Dict], min_words: int) -> List[Dict]:
     return out
 
 
+# The spoken close and the line under the SUBSCRIBE button, by kind. The comment question stays on
+# screen; the narration asks for one thing only (subscribe), with the reason to.
+SUBSCRIBE = {
+    "tool": ("If you like running AI on your own computer, subscribe. A new tool gets tested here every few days.",
+             "A new local AI tool, tested every few days"),
+    "story": ("If you want the next big tech story explained in plain words, subscribe.",
+              "Big tech news, explained in plain words"),
+    "concept": ("If you want to understand the AI you can run yourself, subscribe. There is a new video every day.",
+                "AI you can run yourself, explained daily"),
+}
+
+
+def add_subscribe_ask(shots: List[Dict], kind: str) -> List[Dict]:
+    """The last cta_end shot says the subscribe line (with its reason) and shows its sub line."""
+    line, sub = SUBSCRIBE.get(kind, SUBSCRIBE["tool"])
+    for s in reversed(shots):
+        scene = s.get("scene") or {}
+        if scene.get("type") == "cta_end":
+            s["text"] = line
+            scene.setdefault("props", {})["sub"] = sub
+            break
+    return shots
+
+
 class ExplainerScriptAgent:
     def __init__(self, llm: Optional[FreeLLM] = None):
         self.llm = llm or FreeLLM()
@@ -435,6 +459,7 @@ class ExplainerScriptAgent:
             script["shots"] = tidy
         script, repairs = validate_and_repair(script)
         script = self.fix_numbers(script, source, floor)
+        script["shots"] = add_subscribe_ask(script["shots"], "tool" if self.kind == "trend" else self.kind)
         words = word_count(script["shots"])
         est = estimated_seconds(words)
         script["estimated_seconds"] = round(est)
