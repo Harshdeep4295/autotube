@@ -5,6 +5,7 @@ YouTube token; nothing else does).
     python scripts/channel_admin.py status
     python scripts/channel_admin.py playlist-add --video TdWMrNFhfig --playlist "Explained Like You're 5"
     python scripts/channel_admin.py home-section --playlist "Explained Like You're 5"
+    python scripts/channel_admin.py home-first --playlist "Run AI Locally"
     python scripts/channel_admin.py playlist-fill --playlist "Run AI Locally" --track explainer
 
 `playlist-fill` adds every public full-length video of one track (explainer or kids; never
@@ -68,6 +69,26 @@ def home_section(agent: UploadAgent, playlist: str) -> None:
     print(f"Added '{playlist}' as a home page section")
 
 
+def home_first(agent: UploadAgent, playlist: str) -> None:
+    """Move this playlist's home page section to the top (position 0)."""
+    yt = agent.youtube
+    pid = agent._find_playlist(playlist)
+    if not pid:
+        sys.exit(f"No playlist titled '{playlist}' on the channel")
+    for s in yt.channelSections().list(part="snippet,contentDetails", mine=True).execute().get("items", []):
+        if pid in s.get("contentDetails", {}).get("playlists", []):
+            if s["snippet"].get("position") == 0:
+                print(f"'{playlist}' is already the first home page section")
+                return
+            s["snippet"]["position"] = 0
+            yt.channelSections().update(part="snippet,contentDetails",
+                                        body={"id": s["id"], "snippet": s["snippet"],
+                                              "contentDetails": s["contentDetails"]}).execute()
+            print(f"Moved '{playlist}' to the top of the home page")
+            return
+    sys.exit(f"'{playlist}' is not a home page section yet; run home-section first")
+
+
 def track_of(title: str) -> str:
     """'kids', 'explainer' or 'short' from an upload's title."""
     if "#shorts" in title.lower():
@@ -97,7 +118,7 @@ def playlist_fill(agent: UploadAgent, playlist: str, track: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("action", choices=["status", "playlist-add", "home-section", "playlist-fill"])
+    ap.add_argument("action", choices=["status", "playlist-add", "home-section", "home-first", "playlist-fill"])
     ap.add_argument("--video", default="")
     ap.add_argument("--playlist", default="")
     ap.add_argument("--track", default="explainer", choices=["explainer", "kids"])
@@ -115,8 +136,8 @@ def main() -> None:
         playlist_fill(agent, a.playlist, a.track)
     else:
         if not a.playlist:
-            sys.exit("home-section needs --playlist")
-        home_section(agent, a.playlist)
+            sys.exit(f"{a.action} needs --playlist")
+        (home_first if a.action == "home-first" else home_section)(agent, a.playlist)
 
 
 if __name__ == "__main__":

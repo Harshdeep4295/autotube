@@ -8,14 +8,14 @@ on:
       action:
         description: "What to do"
         type: choice
-        options: [status, playlist-add, home-section, playlist-fill]
+        options: [status, playlist-add, home-section, home-first, playlist-fill]
         default: status
       video:
         description: "Video ID (playlist-add)"
         required: false
         default: ""
       playlist:
-        description: "Playlist title (playlist-add, home-section)"
+        description: "Playlist title (playlist-add, home-section, home-first)"
         required: false
         default: "Explained Like You're 5"
       track:
