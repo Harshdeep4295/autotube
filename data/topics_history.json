@@ -353,5 +353,12 @@
     "timestamp": "2026-11-23T13:22:50.733956",
     "used_at": "2026-11-23T13:22:50.733956",
     "source": "story"
+  },
+  {
+    "topic": "ik_llama.cpp: run bigger models faster by splitting them across CPU and GPU",
+    "normalized_topic": "ik_llamacpp run bigger models faster by ",
+    "timestamp": "2026-11-24T14:16:32.140297",
+    "used_at": "2026-11-24T14:16:32.140297",
+    "source": "bank"
   }
 ]
