@@ -461,5 +461,17 @@
     "lead": "zoe",
     "story": "the book swap at Zoe's house / smart device (like a fridge on the internet) = Zoe's new book drop box, built into the back wall of her house so friends can swap books anytime; internet connection = the box's little door that opens onto the busy street, where anyone at all can walk past; password = the secret code on the box's lock that only Zoe and her friends know; default password = the code the",
     "date": "2026-11-23T13:51:17+00:00"
+  },
+  {
+    "topic": "How does a computer decide if you can borrow?",
+    "area": "ai",
+    "source": "plan",
+    "world": "lemonade stand",
+    "opening": "By the end, you'll know the number behind yes or no.",
+    "ending": "Paying back on time is what builds the score.",
+    "shape": "problem and fix",
+    "lead": "sam",
+    "story": "Mia's lemonade stand lending coins / credit history = Mia's 'paid back' notebook, a page for every friend who ever borrowed coins and whether they returned them; credit score = one number the laptop gives each friend, from 1 to 10, showing how well they have paid back before; lending algorithm = the laptop at the stand that reads a hundred notebook pages in a blink and spots who usually pays back;",
+    "date": "2026-11-24T14:31:47+00:00"
   }
 ]
