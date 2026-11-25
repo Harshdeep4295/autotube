@@ -11,13 +11,13 @@ HEADS = [
 ]
 
 
-def test_story_days_alternate_from_the_start_date():
-    assert not SA.is_story_day(date(2026, 11, 16))
-    assert SA.is_story_day(date(2026, 11, 17))
-    assert not SA.is_story_day(date(2026, 11, 18))
-    assert SA.is_story_day(date(2026, 11, 19))
+def test_one_story_day_a_week():
+    assert SA.is_story_day(date(2026, 11, 25))                       # Wednesday
+    week = [date(2026, 11, 23 + i) for i in range(7)]
+    assert [d.day for d in week if SA.is_story_day(d)] == [25]
+    assert not SA.is_story_day(date(2026, 11, 11))                   # a Wednesday before the start
     with mock.patch.object(config, "EXPLAINER_STORIES", False):
-        assert not SA.is_story_day(date(2026, 11, 17))
+        assert not SA.is_story_day(date(2026, 11, 25))
 
 
 def _pick(answer, article="x" * 2000, dup=None):
