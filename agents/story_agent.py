@@ -1,6 +1,6 @@
 """
-Tech story of the day: on story days (every other day from STORY_START, a side-by-side test
-against the tool and new-model videos), the explainer is "what happened and what it means for
+Tech story of the day: on story days (one weekday a week, STORY_WEEKDAY, from STORY_START; was every
+other day until 2026-11-25, when stories got under 10 views each against hundreds for tool videos), the explainer is "what happened and what it means for
 you" about one of the last day and a half's biggest tech / AI news stories.
 
   1. headlines from a few big tech news feeds, newest first
@@ -32,7 +32,7 @@ FEEDS = (
 )
 MAX_AGE_HOURS = 36
 MIN_ARTICLE_CHARS = 1500
-STORY_START = date(2026, 11, 17)   # first story day; then every other day
+STORY_START = date(2026, 11, 17)   # first story day
 
 PROMPT = """You pick today's TECH STORY video for the YouTube channel "{channel}". The video (about 5
 minutes) explains one news story to curious non-experts: what happened, how the technology behind
@@ -57,7 +57,7 @@ what it means for you>", "why": "<a few words>"}}]}}"""
 
 def is_story_day(day: Optional[date] = None) -> bool:
     day = day or datetime.now(timezone.utc).date()
-    return config.EXPLAINER_STORIES and day >= STORY_START and (day - STORY_START).days % 2 == 0
+    return config.EXPLAINER_STORIES and day >= STORY_START and day.weekday() == config.STORY_WEEKDAY
 
 
 def _clean(text: str) -> str:
@@ -144,4 +144,4 @@ def pick(made: List[str]) -> Optional[Dict]:
 def slot(day: str) -> Dict:
     """The week plan's entry for a story day: picked on the morning itself, from that day's news."""
     return {"topic": "Tech story of the day (picked that morning from the news)", "kind": "story", "slot": True,
-            "planned": True, "why": "side-by-side test: a tech news story every other day", "date": day}
+            "planned": True, "why": "one tech news story a week", "date": day}

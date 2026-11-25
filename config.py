@@ -118,9 +118,10 @@ class Config:
     # bank is used up; "feed" = news feeds only (research_agent scoring).
     EXPLAINER_TOPIC_MODE: str = field(default_factory=lambda: os.getenv("EXPLAINER_TOPIC_MODE", "bank").lower())
     EXPLAINER_TOPICS_FILE: str = "data/explainer_topics.json"
-    # Tech story every other day from 2026-11-17 (agents/story_agent.py): side-by-side test of news
-    # stories against the tool and new-model videos
+    # One tech story a week (agents/story_agent.py), on STORY_WEEKDAY (0 = Monday, default 2 = Wednesday).
+    # Every other day from 2026-11-17 to 11-24; cut because stories got under 10 views, tool videos hundreds.
     EXPLAINER_STORIES: bool = field(default_factory=lambda: os.getenv("EXPLAINER_STORIES", "true").lower() == "true")
+    STORY_WEEKDAY: int = field(default_factory=lambda: int(os.getenv("STORY_WEEKDAY", "2")))
     # New-model days: run a small GGUF copy with llama.cpp on the runner and put the measured speed and
     # memory in the video (agents/model_bench.py); files above MODEL_BENCH_MAX_GB are reported as too big
     MODEL_BENCH: bool = field(default_factory=lambda: os.getenv("MODEL_BENCH", "true").lower() == "true")
