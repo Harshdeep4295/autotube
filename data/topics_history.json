@@ -360,5 +360,12 @@
     "timestamp": "2026-11-24T14:16:32.140297",
     "used_at": "2026-11-24T14:16:32.140297",
     "source": "bank"
+  },
+  {
+    "topic": "Half of NASA's aging Mars fleet knocked offline, with Perseverance struggling to transmit and Odyssey burning its last fuel: how do we talk to robots on Mars, and what happens when they go quiet?",
+    "normalized_topic": "half of nasas aging mars fleet knocked o",
+    "timestamp": "2026-11-25T13:22:41.234918",
+    "used_at": "2026-11-25T13:22:41.234918",
+    "source": "story"
   }
 ]
