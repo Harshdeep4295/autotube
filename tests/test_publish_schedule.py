@@ -26,3 +26,19 @@ def test_publish_at_schedules_private_upload(tmp_path):
     status = agent.youtube.videos().insert.call_args.kwargs["body"]["status"]
     assert status["publishAt"] == "2026-09-30T18:30:00.000Z" and status["privacyStatus"] == "private"
     assert res["success"] and res["publish_at"] == "2026-09-30T18:30:00.000Z"
+
+
+def test_a_late_run_does_not_double_book_a_day(tmp_path):
+    import json
+    from orchestrator import free_slot, short_slot
+    posted = tmp_path / "posted.json"
+    posted.write_text(json.dumps([
+        {"title": "How do credit scores work? (Explained Like You're 5)", "publish_at": "2026-11-25T14:30:00.000Z"},
+        {"title": "How do credit scores work? | Explained Like You're 5 #Shorts", "publish_at": "2026-11-26T14:30:00.000Z"},
+        {"title": "Run X Locally", "publish_at": "2026-11-25T18:30:00.000Z"}]))
+    morning = datetime(2026, 11, 25, 11, 0, tzinfo=timezone.utc)
+    assert free_slot("14:30", kids=True, now=morning, path=posted) == "2026-11-26T14:30:00.000Z"
+    assert free_slot("18:30", kids=False, now=morning, path=posted) == "2026-11-26T18:30:00.000Z"
+    assert free_slot("14:30", kids=True, now=morning, path=tmp_path / "none.json") == "2026-11-25T14:30:00.000Z"
+    assert short_slot("14:30", "2026-11-26T14:30:00.000Z", morning) == "2026-11-26T14:30:00.000Z"
+    assert short_slot("14:30", None, morning) == "2026-11-25T14:30:00.000Z"

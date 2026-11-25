@@ -62,6 +62,42 @@ def next_utc_time(hhmm: str, now: Optional[datetime] = None, min_lead_minutes: i
     return t.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
+POSTED_VIDEOS = Path(__file__).resolve().parent / "data" / "posted_videos.json"
+KIDS_MARK = "Explained Like You're 5"
+
+
+def taken_slots(kids: bool, path: Path = POSTED_VIDEOS) -> set:
+    """publishAt times already used by this track's full videos (a late run's video can take tomorrow's)."""
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return set()
+    videos = data if isinstance(data, list) else data.get("videos", [])
+    return {v["publish_at"] for v in videos if isinstance(v, dict) and v.get("publish_at")
+            and "#shorts" not in str(v.get("title", "")).lower() and (KIDS_MARK in str(v.get("title", ""))) == kids}
+
+
+def free_slot(hhmm: str, kids: bool, now: Optional[datetime] = None, path: Path = POSTED_VIDEOS) -> str:
+    """The next "HH:MM" UTC that no full video of this track is already scheduled for."""
+    from datetime import timedelta
+    t, taken = next_utc_time(hhmm, now), taken_slots(kids, path)
+    while t in taken:
+        t = (datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.000Z") + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return t
+
+
+def short_slot(hhmm: str, full_at: Optional[str], now: Optional[datetime] = None) -> str:
+    """The Short goes public on the same day as its full video (at its own HH:MM), never in the past."""
+    from datetime import timedelta
+    now = now or datetime.now(timezone.utc)
+    if full_at:
+        h, m = map(int, hhmm.split(":"))
+        t = datetime.strptime(full_at, "%Y-%m-%dT%H:%M:%S.000Z").replace(hour=h, minute=m, tzinfo=timezone.utc)
+        if t >= now + timedelta(minutes=30):
+            return t.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return next_utc_time(hhmm, now)
+
+
 class Orchestrator:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
@@ -168,7 +204,7 @@ class Orchestrator:
                 uploader = self._get_uploader()
                 if not uploader:
                     raise RuntimeError("YouTube uploader unavailable (check credentials)")
-                publish_at = next_utc_time(config.EXPLAINER_PUBLISH_AT_UTC) if config.EXPLAINER_PUBLISH_AT_UTC else None
+                publish_at = free_slot(config.EXPLAINER_PUBLISH_AT_UTC, kids=False) if config.EXPLAINER_PUBLISH_AT_UTC else None
                 if publish_at:
                     self.logger.info(f"  scheduled to go public at {publish_at} (private until then — review it in Studio)")
                 up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script,
@@ -185,7 +221,7 @@ class Orchestrator:
                     from agents.explainer_short import short_meta as explainer_short_meta
                     result["short"] = self._upload_short(
                         uploader, rendered["short_path"], explainer_short_meta(upload_script, up.get("url", "")),
-                        config.EXPLAINER_SHORT_PUBLISH_AT_UTC or config.EXPLAINER_PUBLISH_AT_UTC)
+                        config.EXPLAINER_SHORT_PUBLISH_AT_UTC or config.EXPLAINER_PUBLISH_AT_UTC, publish_at)
             result["success"] = True
         except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
             result["error"] = str(e)
@@ -261,7 +297,7 @@ class Orchestrator:
                 uploader = self._get_uploader()
                 if not uploader:
                     raise RuntimeError("YouTube uploader unavailable (check credentials)")
-                publish_at = next_utc_time(config.KIDS_PUBLISH_AT_UTC) if config.KIDS_PUBLISH_AT_UTC else None
+                publish_at = free_slot(config.KIDS_PUBLISH_AT_UTC, kids=True) if config.KIDS_PUBLISH_AT_UTC else None
                 if publish_at:
                     self.logger.info(f"  scheduled to go public at {publish_at} (private until then — review it in Studio)")
                 up = uploader.publish(rendered["video_path"], rendered["thumbnail_path"], upload_script,
@@ -274,7 +310,7 @@ class Orchestrator:
                     topics_agent.mark_used([topic])
                 if rendered.get("short_path"):
                     result["short"] = self._upload_kids_short(uploader, rendered["short_path"], upload_script,
-                                                              up.get("url", ""))
+                                                              up.get("url", ""), publish_at)
             result["success"] = True
         except Exception as e:  # noqa: BLE001 — one failed video must not stop the run
             result["error"] = str(e)
@@ -285,17 +321,18 @@ class Orchestrator:
                                                          indent=2, default=str))
         return result
 
-    def _upload_kids_short(self, uploader, short_path: str, full: Dict, full_url: str) -> Dict:
+    def _upload_kids_short(self, uploader, short_path: str, full: Dict, full_url: str,
+                           full_at: Optional[str] = None) -> Dict:
         from agents.kids_agent import short_meta
 
         return self._upload_short(uploader, short_path, short_meta(full, full_url),
-                                  config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC)
+                                  config.KIDS_SHORT_PUBLISH_AT_UTC or config.KIDS_PUBLISH_AT_UTC, full_at)
 
-    def _upload_short(self, uploader, short_path: str, short: Dict, when: str) -> Dict:
+    def _upload_short(self, uploader, short_path: str, short: Dict, when: str, full_at: Optional[str] = None) -> Dict:
         """Upload a vertical cut as a second video (a YouTube Short). The full video is already
         up, so a failure here is logged and reported but never fails the run."""
         try:
-            publish_at = next_utc_time(when) if when else None
+            publish_at = short_slot(when, full_at) if when else None
             self.logger.info(f"Uploading the Short ({'public at ' + publish_at if publish_at else config.VIDEO_PRIVACY})…")
             up = uploader.publish(short_path, None, short, publish_at=publish_at)
             if up.get("success") is False:
