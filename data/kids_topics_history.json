@@ -485,5 +485,17 @@
     "lead": "ava",
     "story": "Mia's pizza shop and its neighbors / share (stock) = a paper slice of the pizza shop itself, not a slice of pizza; going public (IPO) = the day Mia first offers a hundred shop slices to anyone in town, not just her family, to get coins for a second shop; stock price = how many coins neighbors pay each other for a shop slice, which goes up and down on the chart by the door; shareholder = every neig",
     "date": "2026-11-25T13:46:31+00:00"
+  },
+  {
+    "topic": "Can AI solve math puzzles nobody else could?",
+    "area": "ai",
+    "source": "plan",
+    "world": "delivery truck",
+    "opening": "Leo's stuck truck door shows you where AI helps, and where it stops.",
+    "ending": "An answer only counts once someone proves it is right.",
+    "shape": "race",
+    "lead": "raj",
+    "story": "packing Leo's delivery truck / unsolved math problem = the packing puzzle nobody has cracked: fitting all 10 odd-shaped boxes into Leo's truck so the door still shuts; math AI = the helper on Raj's laptop that tries a hundred box arrangements in a blink and keeps the ones that look promising; proof = Raj's step-by-step check that every single box truly fits, so the answer is right for sure and not",
+    "date": "2026-11-26T13:19:44+00:00"
   }
 ]
