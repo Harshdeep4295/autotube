@@ -367,5 +367,12 @@
     "timestamp": "2026-11-25T13:22:41.234918",
     "used_at": "2026-11-25T13:22:41.234918",
     "source": "story"
+  },
+  {
+    "topic": "KV cache explained: why long AI chats eat so much memory",
+    "normalized_topic": "kv cache explained why long ai chats eat",
+    "timestamp": "2026-11-26T13:05:56.298716",
+    "used_at": "2026-11-26T13:05:56.298716",
+    "source": "bank"
   }
 ]
