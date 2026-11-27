@@ -497,5 +497,17 @@
     "lead": "raj",
     "story": "packing Leo's delivery truck / unsolved math problem = the packing puzzle nobody has cracked: fitting all 10 odd-shaped boxes into Leo's truck so the door still shuts; math AI = the helper on Raj's laptop that tries a hundred box arrangements in a blink and keeps the ones that look promising; proof = Raj's step-by-step check that every single box truly fits, so the answer is right for sure and not",
     "date": "2026-11-26T13:19:44+00:00"
+  },
+  {
+    "topic": "How do smart glasses know what you're looking at?",
+    "area": "tech",
+    "source": "plan",
+    "world": "rocket club",
+    "opening": "Kim builds a pair on star night, and you get the whole trick.",
+    "ending": "But no light doesn't promise it isn't, and a light is never a yes. Only asking first gets you that.",
+    "shape": "build it",
+    "lead": "kim",
+    "story": "the rocket club's night of star-spotting / camera on smart glasses = a tiny eye Kim clips to the glasses frame, pointing the same way Kim's face points, so it sees roughly what Kim sees; computer vision = the chip in the glasses arm that has studied lots and lots of star pictures, and matches the shapes in the camera's picture to the ones it learned; recording light (privacy indicator) = a small b",
+    "date": "2026-11-27T13:17:04+00:00"
   }
 ]
