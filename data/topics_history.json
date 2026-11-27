@@ -374,5 +374,13 @@
     "timestamp": "2026-11-26T13:05:56.298716",
     "used_at": "2026-11-26T13:05:56.298716",
     "source": "bank"
+  },
+  {
+    "topic": "ERNIE-5.5-Flash-Preview: the new AI language model from baidu, and can you run it at home?",
+    "normalized_topic": "ernie55flashpreview the new ai language ",
+    "timestamp": "2026-11-27T12:57:37.833106",
+    "used_at": "2026-11-27T12:57:37.833106",
+    "source": "trend",
+    "theme": "language"
   }
 ]
