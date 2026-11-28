@@ -382,5 +382,12 @@
     "used_at": "2026-11-27T12:57:37.833106",
     "source": "trend",
     "theme": "language"
+  },
+  {
+    "topic": "OpenHands: an open-source AI software engineer you can run yourself",
+    "normalized_topic": "openhands an opensource ai software engi",
+    "timestamp": "2026-11-28T12:13:38.827599",
+    "used_at": "2026-11-28T12:13:38.827599",
+    "source": "bank"
   }
 ]
