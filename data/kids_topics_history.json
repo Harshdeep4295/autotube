@@ -509,5 +509,17 @@
     "lead": "kim",
     "story": "the rocket club's night of star-spotting / camera on smart glasses = a tiny eye Kim clips to the glasses frame, pointing the same way Kim's face points, so it sees roughly what Kim sees; computer vision = the chip in the glasses arm that has studied lots and lots of star pictures, and matches the shapes in the camera's picture to the ones it learned; recording light (privacy indicator) = a small b",
     "date": "2026-11-27T13:17:04+00:00"
+  },
+  {
+    "topic": "Does it matter where an AI's computers live?",
+    "area": "ai",
+    "source": "plan",
+    "world": "letters to grandma",
+    "opening": "Mia's slow morning gives you the answer, and it's not where you'd guess.",
+    "ending": "Some town keeps it powered and cool for you.",
+    "shape": "what if",
+    "lead": "mia",
+    "story": "letters to Grandma's house / data center = the back room at Grandma's house, full of humming servers that read Mia's letters and write the answers; power and cooling = the electricity that keeps the servers running and the cold water pipes that stop them overheating, which Grandma's town has plenty of; latency = how long the truck takes to carry Mia's letter there and the answer back; a nearby hou",
+    "date": "2026-11-28T12:35:54+00:00"
   }
 ]
